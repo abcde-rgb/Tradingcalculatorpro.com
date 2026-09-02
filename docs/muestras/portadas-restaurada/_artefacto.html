@@ -1,0 +1,705 @@
+<title>Seis mejoras de la restaurada</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Inter+Tight:wght@300..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>body{background:#101319}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#101319;color:#E7E2D6;
+  font:400 16px/1.65 "Inter Tight",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;line-height:1.1;text-wrap:balance}
+p{margin:0} img{max-width:100%} a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid #17CF63;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+:root{
+  --bg:#101319; --bg2:#0B0E13; --card:#171B22; --raised:#1C222B;
+  --rule:#262C36; --rule2:#1E242D;
+  --fg:#E7E2D6; --dim:#9096A0; --faint:#6B7079;
+  --br:#17CF63; --br-ink:#05130A; --br-soft:rgba(23,207,99,.10);
+  --long:#22C55E; --short:#EF4444;
+  --r1:2px; --r2:10px;
+}
+.disp{font-family:"Archivo","Inter Tight",sans-serif;font-variation-settings:"wdth" 106;letter-spacing:-.025em;font-weight:700}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+/* El degradado sobre «PRO»: el sistema de diseño lo prohíbe en general, pero es
+   la firma del hero viejo y el propietario lo pidió de vuelta. Vive aquí y en
+   ningún otro sitio de la página. */
+.pro{background:linear-gradient(90deg,#17CF63 0%,#4ADE80 45%,#10B981 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+
+.in{max-width:1140px;margin:0 auto;padding-left:32px;padding-right:32px;position:relative}
+@media (max-width:640px){.in{padding-left:20px;padding-right:20px}}
+.velas{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.velas canvas{width:100%;height:100%;display:block}
+.velas .fade-t{position:absolute;left:0;right:0;top:0;height:78%;
+  background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.9) 42%,rgba(16,19,25,.6) 72%,transparent 100%)}
+.velas .fade-b{position:absolute;left:0;right:0;bottom:0;height:52%;
+  background:linear-gradient(to top,var(--bg) 0%,rgba(16,19,25,.72) 55%,transparent 100%)}
+.velas .fade-r{position:absolute;inset:0;
+  background:radial-gradient(115% 78% at 50% 38%,var(--bg) 20%,rgba(16,19,25,.6) 58%,transparent 100%)}
+
+nav.nav{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;
+  border-bottom:1px solid var(--rule2);position:relative;z-index:3}
+.bd{display:flex;align-items:center;gap:9px;font:600 15px/1 "Archivo",sans-serif;
+  font-variation-settings:"wdth" 100;letter-spacing:-.01em}
+.bd .m{width:19px;height:19px;border:1.5px solid var(--br);border-radius:var(--r1);position:relative;flex:0 0 auto}
+.bd .m::after{content:"";position:absolute;left:2px;right:2px;top:8px;height:1.5px;background:var(--br)}
+.nl{display:flex;gap:22px;font-size:13.5px;color:var(--dim)}
+@media (max-width:860px){.nl{display:none}}
+.nl span{transition:color .18s}
+.nl span:hover{color:var(--fg)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;
+  font:600 14px/1 "Inter Tight",sans-serif;padding:13px 20px;border-radius:var(--r1);
+  border:1px solid transparent;transition:all .18s cubic-bezier(.2,.7,.3,1)}
+.btn.p{background:var(--br);color:var(--br-ink)}
+.btn.p:hover{filter:brightness(1.09);transform:translateY(-1px)}
+.btn.g{background:transparent;color:var(--fg);border-color:var(--rule)}
+.btn.g:hover{border-color:var(--faint)}
+.btn.lg{padding:16px 30px;font-size:15.5px}
+.btn.sm{padding:9px 15px;font-size:13px}
+.btn.w{width:100%}
+
+.pill{display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(23,207,99,.28);
+  background:var(--br-soft);border-radius:100px;padding:8px 16px;font-size:13px;color:var(--br)}
+.pill i{width:6px;height:6px;border-radius:50%;background:var(--br);flex:0 0 auto;
+  animation:lat 2.4s ease-in-out infinite}
+@keyframes lat{0%,100%{opacity:1}50%{opacity:.35}}
+.trial{font-size:13.5px;color:var(--br);font-weight:500}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+@media (max-width:640px){.stats{grid-template-columns:1fr 1fr;gap:24px 14px}}
+.stats .s{text-align:center}
+.stats .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:clamp(26px,3.6vw,38px);font-weight:600;color:var(--br);line-height:1;letter-spacing:-.02em}
+.stats .k{font-size:12.5px;color:var(--faint);margin-top:8px}
+
+section{padding-top:76px;padding-bottom:76px;position:relative}
+.sh{font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 104;font-weight:700;
+  font-size:clamp(23px,3vw,34px);letter-spacing:-.025em;margin-bottom:12px}
+.sl{color:var(--dim);max-width:62ch;margin-bottom:42px;line-height:1.75}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r2)}
+.hair{height:1px;background:var(--rule);border:0;margin:0}
+
+.feat{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:var(--r2);overflow:hidden}
+@media (max-width:900px){.feat{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.feat{grid-template-columns:1fr}}
+.feat > div{background:var(--card);padding:24px 20px;transition:background .22s}
+.feat > div:hover{background:var(--raised)}
+.feat .ic{width:22px;height:22px;margin-bottom:14px;color:var(--br)}
+.feat h3{font-size:15px;font-weight:600;margin-bottom:7px}
+.feat p{font-size:13.5px;color:var(--dim);line-height:1.6}
+
+.cal{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+@media (max-width:900px){.cal{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.cal{grid-template-columns:1fr}}
+.cal h4{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--br);
+  padding-bottom:10px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+.cal ul{list-style:none;margin:0;padding:0}
+.cal li{font-size:14px;color:var(--dim);padding:5px 0;transition:color .16s}
+.cal li:hover{color:var(--fg)}
+
+table.spec{width:100%;border-collapse:collapse;font-size:13.5px}
+table.spec th{text-align:right;font:500 10px/1 "Inter Tight",sans-serif;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint);padding:0 0 12px;border-bottom:1px solid var(--rule)}
+table.spec th:first-child,table.spec td:first-child{text-align:left}
+table.spec td{text-align:right;padding:12px 0;border-bottom:1px solid var(--rule2);color:var(--dim);
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+table.spec tr:hover td{color:var(--fg)}
+table.spec td b{color:var(--fg);font-weight:600}
+table.spec td .op{font-family:"Inter Tight",sans-serif;opacity:.75}
+table.spec td .ac{color:var(--br)}
+
+.planes{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:var(--r2);overflow:hidden}
+@media (max-width:760px){.planes{grid-template-columns:1fr 1fr}}
+.pl{background:var(--card);padding:26px 22px;transition:background .22s}
+.pl:hover{background:var(--raised)}
+.pl.mk{background:var(--raised);box-shadow:inset 2px 0 0 var(--br)}
+.pn{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+.pp{font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 104;font-weight:700;
+  font-size:36px;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.03em}
+.pl.mk .pp{color:var(--br)}
+.pu{font-size:12.5px;color:var(--faint);margin-top:8px}
+
+.faq details{border-bottom:1px solid var(--rule);padding:18px 0}
+.faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px;
+  align-items:baseline;font-size:16px;font-weight:500}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:"IBM Plex Mono",monospace;color:var(--br);transition:transform .2s}
+.faq details[open] summary::after{content:"−"}
+.faq .a{padding-top:12px;max-width:66ch;color:var(--dim);font-size:15px;line-height:1.7}
+
+.cierre{position:relative;overflow:hidden;border-top:1px solid var(--rule)}
+.cierre .in{padding-top:76px;padding-bottom:76px;text-align:center}
+.cierre h2{font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 106;font-weight:700;
+  font-size:clamp(26px,4vw,44px);letter-spacing:-.03em;margin-bottom:16px}
+.cierre p{color:var(--dim);max-width:52ch;margin:0 auto 28px}
+
+footer.pie{border-top:1px solid var(--rule);padding:34px 0 60px;color:var(--faint);font-size:13px}
+footer.pie .in{display:flex;justify-content:space-between;gap:22px;flex-wrap:wrap}
+.aviso{background:var(--bg2);border-bottom:1px solid var(--rule);padding:9px 0;text-align:center;
+  font-size:11.5px;color:var(--faint);letter-spacing:.03em;position:relative;z-index:4}
+.leyenda{position:absolute;right:16px;bottom:12px;z-index:3;font-size:10.5px;color:var(--faint);
+  font-family:"IBM Plex Mono",monospace;letter-spacing:.04em;opacity:.75}
+
+.hero{position:relative;padding:88px 0 66px;text-align:center;overflow:hidden}
+@media (max-width:640px){.hero{padding:54px 0 46px}}
+.hero .in{z-index:2}
+.hero h1{font-size:clamp(40px,8vw,88px);line-height:.98;margin:24px 0 22px}
+.hero h1 span{display:block}
+.hero .cl{color:var(--dim);font-size:clamp(16px,1.9vw,19px);max-width:56ch;margin:0 auto 32px;line-height:1.7}
+.hero .ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.hero .stats{margin-top:52px;max-width:680px;margin-left:auto;margin-right:auto}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.mejora{display:inline-flex;align-items:center;gap:8px;font:500 11px/1 "IBM Plex Mono",monospace;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--br);border:1px solid rgba(23,207,99,.3);
+  background:var(--br-soft);border-radius:var(--r1);padding:7px 11px;margin-bottom:22px}
+
+#sel{position:sticky;top:0;z-index:100;background:#0B0E13;border-bottom:1px solid #262C36;
+  font:400 13px/1 "Inter Tight",system-ui,sans-serif}
+#sel .in2{max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:4px;
+  overflow-x:auto;scrollbar-width:none}
+#sel .in2::-webkit-scrollbar{display:none}
+#sel .t2{flex:0 0 auto;padding:14px 14px 13px 0;margin-right:12px;color:#6B7079;font-size:11px;
+  letter-spacing:.18em;text-transform:uppercase;white-space:nowrap;border-right:1px solid #262C36}
+#sel button{flex:0 0 auto;background:none;border:0;border-bottom:2px solid transparent;cursor:pointer;
+  padding:15px 14px;color:#9096A0;font:500 13px/1 "Inter Tight",sans-serif;white-space:nowrap;
+  display:flex;gap:9px;align-items:baseline;transition:color .2s;margin-bottom:-1px}
+#sel button .rn{font-family:"IBM Plex Mono",monospace;font-size:10px}
+#sel button:hover{color:#E7E2D6}
+#sel button[aria-selected="true"]{color:#E7E2D6;border-bottom-color:#17CF63}
+#sel button[aria-selected="true"] .rn{color:#17CF63}
+.pgw[hidden]{display:none!important}
+.nota-mejora{background:#0B0E13;border-bottom:1px solid #262C36;padding:14px 0}
+.nota-mejora .in{color:#9096A0;font-size:13.5px;line-height:1.6}
+.nota-mejora b{color:#17CF63;font-weight:600}
+
+#r1 .velas-fondo{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#r1 .velas-fondo canvas{width:100%;height:100%;display:block}
+#r1 .velas-fondo .v{position:absolute;left:0;right:0;top:0;height:100%;
+  background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.94) 38%,rgba(16,19,25,.8) 70%,rgba(16,19,25,.55) 100%)}
+#r1 h1 span:first-child{color:var(--fg)}
+#r1 .maskwrap{position:relative;display:block;width:100%;height:.92em;margin-top:.02em}
+#r1 .maskwrap canvas{position:absolute;inset:0;width:100%;height:100%}
+#r1 .maskwrap .fb{position:absolute;inset:0;display:grid;place-items:center;color:var(--br);opacity:0}
+
+#r2 .velas-fondo{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#r2 .velas-fondo canvas{width:100%;height:100%;display:block}
+#r2 .velas-fondo .v{position:absolute;left:0;right:0;top:0;height:78%;
+  background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.9) 42%,rgba(16,19,25,.6) 72%,transparent 100%)}
+#r2 .ent{opacity:0;transform:translateY(14px);animation:r2in .62s cubic-bezier(.16,1,.3,1) forwards}
+#r2 .d1{animation-delay:.05s} #r2 .d2{animation-delay:.16s} #r2 .d3{animation-delay:.28s}
+#r2 .d4{animation-delay:.4s}  #r2 .d5{animation-delay:.52s} #r2 .d6{animation-delay:.64s}
+@keyframes r2in{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#r2 .ent{opacity:1;transform:none;animation:none}}
+#r2 .barrido{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--br);
+  box-shadow:0 0 24px 4px rgba(23,207,99,.5);z-index:3;
+  animation:r2sw 1.15s cubic-bezier(.5,0,.2,1) forwards;pointer-events:none}
+@keyframes r2sw{0%{left:0;opacity:0}8%{opacity:.9}92%{opacity:.9}100%{left:100%;opacity:0}}
+@media (prefers-reduced-motion:reduce){#r2 .barrido{display:none}}
+
+#r3 .hero{padding-right:0}
+#r3 .velas-fondo{position:absolute;inset:0 78px 0 0;overflow:hidden;pointer-events:none}
+@media (max-width:640px){#r3 .velas-fondo{inset:0 56px 0 0}}
+#r3 .velas-fondo canvas{width:100%;height:100%;display:block}
+#r3 .velas-fondo .v{position:absolute;left:0;right:0;top:0;height:74%;
+  background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.88) 44%,rgba(16,19,25,.55) 74%,transparent 100%)}
+#r3 .eje{position:absolute;right:0;top:0;bottom:0;width:78px;border-left:1px solid var(--rule);
+  background:var(--bg2);z-index:2;pointer-events:none;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;font-variant-numeric:tabular-nums;color:var(--faint)}
+@media (max-width:640px){#r3 .eje{width:56px;font-size:9px}}
+#r3 .eje b{position:absolute;left:8px;font-weight:400;transform:translateY(-50%)}
+#r3 .ultimo{position:absolute;left:0;right:0;padding:3px 6px;background:var(--br);color:var(--br-ink);
+  font-weight:600;transform:translateY(-50%);text-align:center;font-size:10.5px}
+#r3 .cruz-x{position:absolute;left:0;right:78px;height:1px;background:rgba(148,163,184,.4);z-index:2;
+  pointer-events:none;opacity:0;transition:opacity .15s}
+@media (max-width:640px){#r3 .cruz-x{right:56px}}
+#r3 .cruz-tag{position:absolute;right:0;width:78px;padding:3px 6px;background:var(--raised);
+  border:1px solid var(--rule);color:var(--fg);font-family:"IBM Plex Mono",monospace;font-size:10px;
+  text-align:center;transform:translateY(-50%);z-index:3;opacity:0;transition:opacity .15s}
+@media (max-width:640px){#r3 .cruz-tag{width:56px}}
+#r3 .hero:hover .cruz-x,#r3 .hero:hover .cruz-tag{opacity:1}
+#r3 .in{padding-right:110px}
+@media (max-width:640px){#r3 .in{padding-right:72px}}
+
+#r4 .velas-fondo{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#r4 .velas-fondo canvas{width:100%;height:100%;display:block}
+#r4 .velas-fondo .v{position:absolute;left:0;right:0;top:0;height:76%;
+  background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.9) 40%,rgba(16,19,25,.62) 72%,transparent 100%)}
+#r4 .marca{position:absolute;z-index:3;pointer-events:none;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--br);
+  border:1px solid rgba(23,207,99,.4);background:rgba(11,14,19,.9);padding:4px 8px;
+  transform:translate(-50%,-140%);opacity:0;transition:opacity .2s;white-space:nowrap}
+#r4 .hero:hover .marca{opacity:1}
+
+#r5 .hero{padding-bottom:170px}
+#r5 .capa{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#r5 .capa canvas{width:100%;height:100%;display:block}
+#r5 .velo{position:absolute;left:0;right:0;top:0;height:80%;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.92) 40%,rgba(16,19,25,.6) 74%,transparent 100%)}
+#r5 .leyenda2{position:absolute;left:0;right:0;bottom:10px;z-index:3;display:flex;gap:26px;
+  justify-content:center;flex-wrap:wrap;font-size:11.5px;color:var(--faint)}
+#r5 .leyenda2 span{display:inline-flex;align-items:center;gap:8px}
+#r5 .leyenda2 i{width:16px;height:2px;display:inline-block}
+#r5 .leyenda2 .m{background:rgba(148,163,184,.55)}
+#r5 .leyenda2 .d{background:var(--br);height:2px}
+
+#r6 .velas-fondo{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#r6 .velas-fondo canvas{width:100%;height:100%;display:block}
+#r6 .velas-fondo .v{position:absolute;left:0;right:0;top:0;height:80%;
+  background:linear-gradient(to bottom,var(--bg) 0%,rgba(16,19,25,.93) 42%,rgba(16,19,25,.62) 74%,transparent 100%)}
+#r6 .regla{position:relative;height:16px;margin:34px auto 0;max-width:760px}
+#r6 .regla .ax{position:absolute;left:0;right:0;top:0;height:1px;background:var(--rule)}
+#r6 .regla i{position:absolute;top:0;width:1px;background:var(--rule)}
+#r6 .regla i.mj{height:13px;background:var(--faint)}
+#r6 .regla i.md{height:8px}
+#r6 .regla i.mn{height:4px}
+#r6 .regla b{position:absolute;top:0;width:1px;height:16px;background:var(--br);
+  box-shadow:0 0 8px rgba(23,207,99,.6)}
+#r6 .stats{margin-top:20px;max-width:760px}
+#r6 .stats .s{position:relative;padding-top:14px}
+#r6 .stats .s::before{content:"";position:absolute;top:0;left:50%;width:1px;height:9px;background:var(--br);
+  transform:translateX(-50%)}
+#r6 .lect{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:14px;
+  letter-spacing:.04em}
+#r6 .lect b{color:var(--br);font-weight:500}
+</style>
+<div id="sel"><div class="in2"><span class="t2">Mejoras de la restaurada</span><div role="tablist" style="display:flex"><button role="tab" aria-selected="true" data-p="r1"><span class="rn">01</span>El titular es el gráfico</button><button role="tab" aria-selected="false" data-p="r2"><span class="rn">02</span>La apertura</button><button role="tab" aria-selected="false" data-p="r3"><span class="rn">03</span>El hero es un gráfico</button><button role="tab" aria-selected="false" data-p="r4"><span class="rn">04</span>Tu vela</button><button role="tab" aria-selected="false" data-p="r5"><span class="rn">05</span>Dos capas</button><button role="tab" aria-selected="false" data-p="r6"><span class="rn">06</span>Medido</button></div></div></div><div class="pgw" id="r1"><div class="nota-mejora"><div class="in"><b>Mejora 01 · El titular es el gráfico.</b> La palabra PRO deja de ser un degradado y pasa a ser una ventana: las velas corren DENTRO de las letras.</div></div><div class="aviso">Maqueta de trabajo. No sustituye a la portada en producción; las cifras salen del código del proyecto y las velas son ilustrativas.</div><div class="in"><nav class="nav"><a class="bd" href="#"><span class="m"></span>TradingCalculator<span style="color:var(--br)">.Pro</span></a><div class="nl"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div><button class="btn p sm">Probar 7 días</button></nav></div>
+<div class="hero r1h">
+  <div class="velas-fondo" id="r1f"><canvas></canvas><div class="v"></div></div>
+  <div class="leyenda">velas ilustrativas · no son cotizaciones</div>
+  <div class="in">
+    <span class="pill"><i></i>La palabra está viva · pásale el ratón por encima</span>
+    <h1 class="disp"><span>Trading Calculator</span><span class="maskwrap"><canvas id="r1mask" aria-hidden="true"></canvas><span class="fb">PRO</span><span class="sr">PRO</span></span></h1>
+    <p class="cl">Calculadoras profesionales, diario de operativa, simulador Monte Carlo y todo lo que hace falta para dimensionar una posición en cripto, divisas, acciones, índices y futuros.</p>
+    <div class="ctas">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+    <p class="trial">7 días gratis · Cancela cuando quieras · Sin permanencia</p>
+    
+    <div class="stats"><div class="s"><div class="v">17</div><div class="k">calculadoras</div></div><div class="s"><div class="v">186</div><div class="k">activos</div></div><div class="s"><div class="v">66</div><div class="k">estrategias</div></div><div class="s"><div class="v">10</div><div class="k">idiomas</div></div></div>
+  </div>
+</div><section class="in"><h2 class="sh">Todo lo que necesita una sesión</h2><p class="sl">Ocho módulos. Ninguno pide más datos de los que necesita, y ninguno inventa un número que no pueda defender.</p><div class="feat"><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><h3>Calculadoras profesionales</h3><p>17 herramientas de riesgo, precio, técnico y simulación, cada una sobre las specs reales del contrato.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 4H6l6 8-6 8h12"/></svg><h3>Suite de opciones</h3><p>66 estrategias con su diagrama de resultado y las griegas completas, vanna y charm incluidas.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><h3>Gráficos TradingView</h3><p>Los gráficos que ya usas, integrados, con la temporalidad y las herramientas de dibujo.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 4h-6v13.5"/></svg><h3>Diario de operativa</h3><p>Cada operación con su R, su racha y la curva de capital ordenada por fecha de salida.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7 4"/></svg><h3>Riesgo de cartera</h3><p>Exposición por activo y correlación, para que dos posiciones no sean en realidad la misma.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg><h3>Avisos por correo</h3><p>Al tocar un nivel o al cerrarse una racha. Sin notificaciones de relleno.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-10V3"/><path d="M8 3h8"/></svg><h3>Simulador Monte Carlo</h3><p>Miles de secuencias del mismo sistema para ver la distribución, no un único resultado afortunado.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg><h3>Academia</h3><p>Desde qué es un stop hasta 42 patrones chartistas, en 10 idiomas.</p></div></div></section><section class="in"><h2 class="sh">Las 17 calculadoras</h2><p class="sl">Repartidas en cuatro familias. Se abren desde el mismo panel y comparten el catálogo de instrumentos, así que el tamaño de contrato nunca hay que teclearlo.</p><div class="cal"><div><h4>Riesgo y posición</h4><ul><li>Tamaño Posición</li><li>Lotaje</li><li>Salida parcial (R:B)</li><li>Apalancamiento</li><li>Margen cruzado</li><li>Futuros</li><li>Punto de equilibrio</li><li>Rachas de pérdidas</li></ul></div><div><h4>Precio y objetivos</h4><ul><li>Precio Objetivo</li><li>% Requerido</li><li>Spot</li><li>Medir Target</li></ul></div><div><h4>Análisis técnico</h4><ul><li>Fibonacci</li><li>Trading Patrones</li></ul></div><div><h4>Simuladores</h4><ul><li>Monte Carlo</li><li>Simulador Pro</li><li>Interés compuesto</li></ul></div></div></section><section class="in"><h2 class="sh">El catálogo por dentro</h2><p class="sl">186 activos con su tamaño de contrato, su tick y su margen inicial. Seis, de muestra — es la parte que ninguna calculadora genérica tiene.</p><table class="spec"><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th><th>Valor del tick</th><th>Margen inicial</th></tr></thead><tbody><tr><td><b>MES</b> <span class="op">Micro E-mini S&P 500</span></td><td>5</td><td>0,25</td><td class="ac">1,25 $</td><td>1.320 $</td></tr><tr><td><b>MNQ</b> <span class="op">Micro E-mini Nasdaq</span></td><td>2</td><td>0,25</td><td class="ac">0,50 $</td><td>1.760 $</td></tr><tr><td><b>ES</b> <span class="op">E-mini S&P 500</span></td><td>50</td><td>0,25</td><td class="ac">12,50 $</td><td>13.200 $</td></tr><tr><td><b>NQ</b> <span class="op">E-mini Nasdaq 100</span></td><td>20</td><td>0,25</td><td class="ac">5,00 $</td><td>17.600 $</td></tr><tr><td><b>GC</b> <span class="op">Oro</span></td><td>100</td><td>0,10</td><td class="ac">10,00 $</td><td>10.000 $</td></tr><tr><td><b>CL</b> <span class="op">Petróleo WTI</span></td><td>1000</td><td>0,01</td><td class="ac">10,00 $</td><td>6.500 $</td></tr></tbody></table></section><section class="in"><h2 class="sh">Precios</h2><p class="sl">Siete días de prueba con todo abierto. Sin permanencia: se cancela desde Ajustes en dos clics, y el vitalicio es un pago único que no vuelve a cobrarse.</p><div class="planes"><div class="pl"><div class="pn">Mensual</div><div class="pp">17 €</div><div class="pu">al mes</div></div><div class="pl"><div class="pn">Trimestral</div><div class="pp">45 €</div><div class="pu">cada tres meses</div></div><div class="pl mk"><div class="pn">Anual</div><div class="pp">200 €</div><div class="pu">al año</div></div><div class="pl"><div class="pn">Vitalicio</div><div class="pp">500 €</div><div class="pu">pago único</div></div></div></section><section class="in"><h2 class="sh">Preguntas frecuentes</h2><div class="faq"><details><summary>¿Hay permanencia?</summary><div class="a">No. La suscripción se cancela desde Ajustes en dos clics y no hay penalización. El plan vitalicio es un pago único: no vuelve a cobrarse nunca.</div></details><details><summary>¿Qué mercados cubre?</summary><div class="a">Cripto, divisas, acciones de NYSE y NASDAQ, índices, materias primas y futuros: 186 activos con ficha, cada uno con su tamaño de contrato y su tick.</div></details><details><summary>¿Custodiáis fondos o ejecutáis órdenes?</summary><div class="a">Ninguna de las dos cosas. Esto calcula. Su bróker sigue siendo su bróker, y aquí no hay nada que se pueda perder.</div></details><details><summary>¿Hace falta experiencia previa?</summary><div class="a">No para las calculadoras de riesgo. La academia cubre desde qué es un stop hasta las 66 estrategias de opciones, y está traducida a los 10 idiomas.</div></details><details><summary>¿Funciona en el móvil?</summary><div class="a">Sí. Las calculadoras y el diario están diseñados para el ancho de un teléfono, no adaptados a él después.</div></details></div></section>
+<section class="cierre">
+  <div class="velas" id="rz"><canvas></canvas><div class="fade-r"></div></div>
+  <div class="in">
+    <h2 class="disp">Calcula antes de operar, no después.</h2>
+    <p>Siete días de prueba con todo abierto. Sin permanencia y sin llamada de retención.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+  </div>
+</section><footer class="pie"><div class="in"><span>TradingCalculator.Pro · 10 idiomas</span><span>Sin custodia de fondos · sin ejecución de órdenes · desde 17 € al mes</span></div></footer></div><div class="pgw" id="r2" hidden><div class="nota-mejora"><div class="in"><b>Mejora 02 · La apertura.</b> Coreografía de entrada: un barrido recorre el hero, el titular se ensambla y las cifras cuentan hasta su valor.</div></div><div class="aviso">Maqueta de trabajo. No sustituye a la portada en producción; las cifras salen del código del proyecto y las velas son ilustrativas.</div><div class="in"><nav class="nav"><a class="bd" href="#"><span class="m"></span>TradingCalculator<span style="color:var(--br)">.Pro</span></a><div class="nl"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div><button class="btn p sm">Probar 7 días</button></nav></div>
+<div class="hero r2h">
+  <div class="velas-fondo" id="r2f"><canvas></canvas><div class="v"></div></div>
+  <div class="barrido"></div>
+  <div class="leyenda">velas ilustrativas · no son cotizaciones</div>
+  <div class="in">
+    <span class="pill ent d1"><i></i>Recarga la página para volver a verlo</span>
+    <h1 class="disp"><span class="ent d2">Trading Calculator</span><span class="pro ent d3">PRO</span></h1>
+    <p class="cl ent d4">Calculadoras profesionales, diario de operativa, simulador Monte Carlo y todo lo que
+      hace falta para dimensionar una posición en cripto, divisas, acciones, índices y futuros.</p>
+    <div class="ctas ent d5">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+    <p class="trial ent d5">7 días gratis · Cancela cuando quieras · Sin permanencia</p>
+    <div class="ent d6" id="r2stats"><div class="stats"><div class="s"><div class="v">17</div><div class="k">calculadoras</div></div><div class="s"><div class="v">186</div><div class="k">activos</div></div><div class="s"><div class="v">66</div><div class="k">estrategias</div></div><div class="s"><div class="v">10</div><div class="k">idiomas</div></div></div></div>
+  </div>
+</div><section class="in"><h2 class="sh">Todo lo que necesita una sesión</h2><p class="sl">Ocho módulos. Ninguno pide más datos de los que necesita, y ninguno inventa un número que no pueda defender.</p><div class="feat"><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><h3>Calculadoras profesionales</h3><p>17 herramientas de riesgo, precio, técnico y simulación, cada una sobre las specs reales del contrato.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 4H6l6 8-6 8h12"/></svg><h3>Suite de opciones</h3><p>66 estrategias con su diagrama de resultado y las griegas completas, vanna y charm incluidas.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><h3>Gráficos TradingView</h3><p>Los gráficos que ya usas, integrados, con la temporalidad y las herramientas de dibujo.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 4h-6v13.5"/></svg><h3>Diario de operativa</h3><p>Cada operación con su R, su racha y la curva de capital ordenada por fecha de salida.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7 4"/></svg><h3>Riesgo de cartera</h3><p>Exposición por activo y correlación, para que dos posiciones no sean en realidad la misma.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg><h3>Avisos por correo</h3><p>Al tocar un nivel o al cerrarse una racha. Sin notificaciones de relleno.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-10V3"/><path d="M8 3h8"/></svg><h3>Simulador Monte Carlo</h3><p>Miles de secuencias del mismo sistema para ver la distribución, no un único resultado afortunado.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg><h3>Academia</h3><p>Desde qué es un stop hasta 42 patrones chartistas, en 10 idiomas.</p></div></div></section><section class="in"><h2 class="sh">Las 17 calculadoras</h2><p class="sl">Repartidas en cuatro familias. Se abren desde el mismo panel y comparten el catálogo de instrumentos, así que el tamaño de contrato nunca hay que teclearlo.</p><div class="cal"><div><h4>Riesgo y posición</h4><ul><li>Tamaño Posición</li><li>Lotaje</li><li>Salida parcial (R:B)</li><li>Apalancamiento</li><li>Margen cruzado</li><li>Futuros</li><li>Punto de equilibrio</li><li>Rachas de pérdidas</li></ul></div><div><h4>Precio y objetivos</h4><ul><li>Precio Objetivo</li><li>% Requerido</li><li>Spot</li><li>Medir Target</li></ul></div><div><h4>Análisis técnico</h4><ul><li>Fibonacci</li><li>Trading Patrones</li></ul></div><div><h4>Simuladores</h4><ul><li>Monte Carlo</li><li>Simulador Pro</li><li>Interés compuesto</li></ul></div></div></section><section class="in"><h2 class="sh">El catálogo por dentro</h2><p class="sl">186 activos con su tamaño de contrato, su tick y su margen inicial. Seis, de muestra — es la parte que ninguna calculadora genérica tiene.</p><table class="spec"><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th><th>Valor del tick</th><th>Margen inicial</th></tr></thead><tbody><tr><td><b>MES</b> <span class="op">Micro E-mini S&P 500</span></td><td>5</td><td>0,25</td><td class="ac">1,25 $</td><td>1.320 $</td></tr><tr><td><b>MNQ</b> <span class="op">Micro E-mini Nasdaq</span></td><td>2</td><td>0,25</td><td class="ac">0,50 $</td><td>1.760 $</td></tr><tr><td><b>ES</b> <span class="op">E-mini S&P 500</span></td><td>50</td><td>0,25</td><td class="ac">12,50 $</td><td>13.200 $</td></tr><tr><td><b>NQ</b> <span class="op">E-mini Nasdaq 100</span></td><td>20</td><td>0,25</td><td class="ac">5,00 $</td><td>17.600 $</td></tr><tr><td><b>GC</b> <span class="op">Oro</span></td><td>100</td><td>0,10</td><td class="ac">10,00 $</td><td>10.000 $</td></tr><tr><td><b>CL</b> <span class="op">Petróleo WTI</span></td><td>1000</td><td>0,01</td><td class="ac">10,00 $</td><td>6.500 $</td></tr></tbody></table></section><section class="in"><h2 class="sh">Precios</h2><p class="sl">Siete días de prueba con todo abierto. Sin permanencia: se cancela desde Ajustes en dos clics, y el vitalicio es un pago único que no vuelve a cobrarse.</p><div class="planes"><div class="pl"><div class="pn">Mensual</div><div class="pp">17 €</div><div class="pu">al mes</div></div><div class="pl"><div class="pn">Trimestral</div><div class="pp">45 €</div><div class="pu">cada tres meses</div></div><div class="pl mk"><div class="pn">Anual</div><div class="pp">200 €</div><div class="pu">al año</div></div><div class="pl"><div class="pn">Vitalicio</div><div class="pp">500 €</div><div class="pu">pago único</div></div></div></section><section class="in"><h2 class="sh">Preguntas frecuentes</h2><div class="faq"><details><summary>¿Hay permanencia?</summary><div class="a">No. La suscripción se cancela desde Ajustes en dos clics y no hay penalización. El plan vitalicio es un pago único: no vuelve a cobrarse nunca.</div></details><details><summary>¿Qué mercados cubre?</summary><div class="a">Cripto, divisas, acciones de NYSE y NASDAQ, índices, materias primas y futuros: 186 activos con ficha, cada uno con su tamaño de contrato y su tick.</div></details><details><summary>¿Custodiáis fondos o ejecutáis órdenes?</summary><div class="a">Ninguna de las dos cosas. Esto calcula. Su bróker sigue siendo su bróker, y aquí no hay nada que se pueda perder.</div></details><details><summary>¿Hace falta experiencia previa?</summary><div class="a">No para las calculadoras de riesgo. La academia cubre desde qué es un stop hasta las 66 estrategias de opciones, y está traducida a los 10 idiomas.</div></details><details><summary>¿Funciona en el móvil?</summary><div class="a">Sí. Las calculadoras y el diario están diseñados para el ancho de un teléfono, no adaptados a él después.</div></details></div></section>
+<section class="cierre">
+  <div class="velas" id="rz"><canvas></canvas><div class="fade-r"></div></div>
+  <div class="in">
+    <h2 class="disp">Calcula antes de operar, no después.</h2>
+    <p>Siete días de prueba con todo abierto. Sin permanencia y sin llamada de retención.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+  </div>
+</section><footer class="pie"><div class="in"><span>TradingCalculator.Pro · 10 idiomas</span><span>Sin custodia de fondos · sin ejecución de órdenes · desde 17 € al mes</span></div></footer></div><div class="pgw" id="r3" hidden><div class="nota-mejora"><div class="in"><b>Mejora 03 · El hero es un gráfico.</b> Eje de precio a la derecha, último precio en etiqueta viva y cruceta que sigue al ratón por todo el hero.</div></div><div class="aviso">Maqueta de trabajo. No sustituye a la portada en producción; las cifras salen del código del proyecto y las velas son ilustrativas.</div><div class="in"><nav class="nav"><a class="bd" href="#"><span class="m"></span>TradingCalculator<span style="color:var(--br)">.Pro</span></a><div class="nl"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div><button class="btn p sm">Probar 7 días</button></nav></div>
+<div class="hero r3h" id="r3hero">
+  <div class="velas-fondo" id="r3f"><canvas></canvas><div class="v"></div></div>
+  <div class="cruz-x" id="r3cx"></div>
+  <div class="eje" id="r3eje"></div>
+  <div class="cruz-tag" id="r3tag"></div>
+  <div class="leyenda">velas ilustrativas · no son cotizaciones</div>
+  <div class="in">
+    <span class="pill"><i></i>Eje de precio a la derecha · la cruceta te sigue</span>
+    <h1 class="disp"><span>Trading Calculator</span><span class="pro">PRO</span></h1>
+    <p class="cl">Calculadoras profesionales, diario de operativa, simulador Monte Carlo y todo lo que
+      hace falta para dimensionar una posición en cripto, divisas, acciones, índices y futuros.</p>
+    <div class="ctas">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+    <p class="trial">7 días gratis · Cancela cuando quieras · Sin permanencia</p>
+    <div class="stats"><div class="s"><div class="v">17</div><div class="k">calculadoras</div></div><div class="s"><div class="v">186</div><div class="k">activos</div></div><div class="s"><div class="v">66</div><div class="k">estrategias</div></div><div class="s"><div class="v">10</div><div class="k">idiomas</div></div></div>
+  </div>
+</div><section class="in"><h2 class="sh">Todo lo que necesita una sesión</h2><p class="sl">Ocho módulos. Ninguno pide más datos de los que necesita, y ninguno inventa un número que no pueda defender.</p><div class="feat"><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><h3>Calculadoras profesionales</h3><p>17 herramientas de riesgo, precio, técnico y simulación, cada una sobre las specs reales del contrato.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 4H6l6 8-6 8h12"/></svg><h3>Suite de opciones</h3><p>66 estrategias con su diagrama de resultado y las griegas completas, vanna y charm incluidas.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><h3>Gráficos TradingView</h3><p>Los gráficos que ya usas, integrados, con la temporalidad y las herramientas de dibujo.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 4h-6v13.5"/></svg><h3>Diario de operativa</h3><p>Cada operación con su R, su racha y la curva de capital ordenada por fecha de salida.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7 4"/></svg><h3>Riesgo de cartera</h3><p>Exposición por activo y correlación, para que dos posiciones no sean en realidad la misma.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg><h3>Avisos por correo</h3><p>Al tocar un nivel o al cerrarse una racha. Sin notificaciones de relleno.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-10V3"/><path d="M8 3h8"/></svg><h3>Simulador Monte Carlo</h3><p>Miles de secuencias del mismo sistema para ver la distribución, no un único resultado afortunado.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg><h3>Academia</h3><p>Desde qué es un stop hasta 42 patrones chartistas, en 10 idiomas.</p></div></div></section><section class="in"><h2 class="sh">Las 17 calculadoras</h2><p class="sl">Repartidas en cuatro familias. Se abren desde el mismo panel y comparten el catálogo de instrumentos, así que el tamaño de contrato nunca hay que teclearlo.</p><div class="cal"><div><h4>Riesgo y posición</h4><ul><li>Tamaño Posición</li><li>Lotaje</li><li>Salida parcial (R:B)</li><li>Apalancamiento</li><li>Margen cruzado</li><li>Futuros</li><li>Punto de equilibrio</li><li>Rachas de pérdidas</li></ul></div><div><h4>Precio y objetivos</h4><ul><li>Precio Objetivo</li><li>% Requerido</li><li>Spot</li><li>Medir Target</li></ul></div><div><h4>Análisis técnico</h4><ul><li>Fibonacci</li><li>Trading Patrones</li></ul></div><div><h4>Simuladores</h4><ul><li>Monte Carlo</li><li>Simulador Pro</li><li>Interés compuesto</li></ul></div></div></section><section class="in"><h2 class="sh">El catálogo por dentro</h2><p class="sl">186 activos con su tamaño de contrato, su tick y su margen inicial. Seis, de muestra — es la parte que ninguna calculadora genérica tiene.</p><table class="spec"><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th><th>Valor del tick</th><th>Margen inicial</th></tr></thead><tbody><tr><td><b>MES</b> <span class="op">Micro E-mini S&P 500</span></td><td>5</td><td>0,25</td><td class="ac">1,25 $</td><td>1.320 $</td></tr><tr><td><b>MNQ</b> <span class="op">Micro E-mini Nasdaq</span></td><td>2</td><td>0,25</td><td class="ac">0,50 $</td><td>1.760 $</td></tr><tr><td><b>ES</b> <span class="op">E-mini S&P 500</span></td><td>50</td><td>0,25</td><td class="ac">12,50 $</td><td>13.200 $</td></tr><tr><td><b>NQ</b> <span class="op">E-mini Nasdaq 100</span></td><td>20</td><td>0,25</td><td class="ac">5,00 $</td><td>17.600 $</td></tr><tr><td><b>GC</b> <span class="op">Oro</span></td><td>100</td><td>0,10</td><td class="ac">10,00 $</td><td>10.000 $</td></tr><tr><td><b>CL</b> <span class="op">Petróleo WTI</span></td><td>1000</td><td>0,01</td><td class="ac">10,00 $</td><td>6.500 $</td></tr></tbody></table></section><section class="in"><h2 class="sh">Precios</h2><p class="sl">Siete días de prueba con todo abierto. Sin permanencia: se cancela desde Ajustes en dos clics, y el vitalicio es un pago único que no vuelve a cobrarse.</p><div class="planes"><div class="pl"><div class="pn">Mensual</div><div class="pp">17 €</div><div class="pu">al mes</div></div><div class="pl"><div class="pn">Trimestral</div><div class="pp">45 €</div><div class="pu">cada tres meses</div></div><div class="pl mk"><div class="pn">Anual</div><div class="pp">200 €</div><div class="pu">al año</div></div><div class="pl"><div class="pn">Vitalicio</div><div class="pp">500 €</div><div class="pu">pago único</div></div></div></section><section class="in"><h2 class="sh">Preguntas frecuentes</h2><div class="faq"><details><summary>¿Hay permanencia?</summary><div class="a">No. La suscripción se cancela desde Ajustes en dos clics y no hay penalización. El plan vitalicio es un pago único: no vuelve a cobrarse nunca.</div></details><details><summary>¿Qué mercados cubre?</summary><div class="a">Cripto, divisas, acciones de NYSE y NASDAQ, índices, materias primas y futuros: 186 activos con ficha, cada uno con su tamaño de contrato y su tick.</div></details><details><summary>¿Custodiáis fondos o ejecutáis órdenes?</summary><div class="a">Ninguna de las dos cosas. Esto calcula. Su bróker sigue siendo su bróker, y aquí no hay nada que se pueda perder.</div></details><details><summary>¿Hace falta experiencia previa?</summary><div class="a">No para las calculadoras de riesgo. La academia cubre desde qué es un stop hasta las 66 estrategias de opciones, y está traducida a los 10 idiomas.</div></details><details><summary>¿Funciona en el móvil?</summary><div class="a">Sí. Las calculadoras y el diario están diseñados para el ancho de un teléfono, no adaptados a él después.</div></details></div></section>
+<section class="cierre">
+  <div class="velas" id="rz"><canvas></canvas><div class="fade-r"></div></div>
+  <div class="in">
+    <h2 class="disp">Calcula antes de operar, no después.</h2>
+    <p>Siete días de prueba con todo abierto. Sin permanencia y sin llamada de retención.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+  </div>
+</section><footer class="pie"><div class="in"><span>TradingCalculator.Pro · 10 idiomas</span><span>Sin custodia de fondos · sin ejecución de órdenes · desde 17 € al mes</span></div></footer></div><div class="pgw" id="r4" hidden><div class="nota-mejora"><div class="in"><b>Mejora 04 · Tu vela.</b> El ratón sesga el mercado: subes y la vela en formación se va al alza. El visitante mueve el gráfico.</div></div><div class="aviso">Maqueta de trabajo. No sustituye a la portada en producción; las cifras salen del código del proyecto y las velas son ilustrativas.</div><div class="in"><nav class="nav"><a class="bd" href="#"><span class="m"></span>TradingCalculator<span style="color:var(--br)">.Pro</span></a><div class="nl"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div><button class="btn p sm">Probar 7 días</button></nav></div>
+<div class="hero r4h">
+  <div class="velas-fondo" id="r4f"><canvas></canvas><div class="v"></div></div><div class="marca" id="r4m">tu vela</div>
+  <div class="leyenda">velas ilustrativas · no son cotizaciones</div>
+  <div class="in">
+    <span class="pill"><i></i>Mueve el ratón arriba y abajo · el mercado te sigue</span>
+    <h1 class="disp"><span>Trading Calculator</span><span class="pro">PRO</span></h1>
+    <p class="cl">Calculadoras profesionales, diario de operativa, simulador Monte Carlo y todo lo que hace falta para dimensionar una posición en cripto, divisas, acciones, índices y futuros.</p>
+    <div class="ctas">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+    <p class="trial">7 días gratis · Cancela cuando quieras · Sin permanencia</p>
+    
+    <div class="stats"><div class="s"><div class="v">17</div><div class="k">calculadoras</div></div><div class="s"><div class="v">186</div><div class="k">activos</div></div><div class="s"><div class="v">66</div><div class="k">estrategias</div></div><div class="s"><div class="v">10</div><div class="k">idiomas</div></div></div>
+  </div>
+</div><section class="in"><h2 class="sh">Todo lo que necesita una sesión</h2><p class="sl">Ocho módulos. Ninguno pide más datos de los que necesita, y ninguno inventa un número que no pueda defender.</p><div class="feat"><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><h3>Calculadoras profesionales</h3><p>17 herramientas de riesgo, precio, técnico y simulación, cada una sobre las specs reales del contrato.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 4H6l6 8-6 8h12"/></svg><h3>Suite de opciones</h3><p>66 estrategias con su diagrama de resultado y las griegas completas, vanna y charm incluidas.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><h3>Gráficos TradingView</h3><p>Los gráficos que ya usas, integrados, con la temporalidad y las herramientas de dibujo.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 4h-6v13.5"/></svg><h3>Diario de operativa</h3><p>Cada operación con su R, su racha y la curva de capital ordenada por fecha de salida.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7 4"/></svg><h3>Riesgo de cartera</h3><p>Exposición por activo y correlación, para que dos posiciones no sean en realidad la misma.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg><h3>Avisos por correo</h3><p>Al tocar un nivel o al cerrarse una racha. Sin notificaciones de relleno.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-10V3"/><path d="M8 3h8"/></svg><h3>Simulador Monte Carlo</h3><p>Miles de secuencias del mismo sistema para ver la distribución, no un único resultado afortunado.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg><h3>Academia</h3><p>Desde qué es un stop hasta 42 patrones chartistas, en 10 idiomas.</p></div></div></section><section class="in"><h2 class="sh">Las 17 calculadoras</h2><p class="sl">Repartidas en cuatro familias. Se abren desde el mismo panel y comparten el catálogo de instrumentos, así que el tamaño de contrato nunca hay que teclearlo.</p><div class="cal"><div><h4>Riesgo y posición</h4><ul><li>Tamaño Posición</li><li>Lotaje</li><li>Salida parcial (R:B)</li><li>Apalancamiento</li><li>Margen cruzado</li><li>Futuros</li><li>Punto de equilibrio</li><li>Rachas de pérdidas</li></ul></div><div><h4>Precio y objetivos</h4><ul><li>Precio Objetivo</li><li>% Requerido</li><li>Spot</li><li>Medir Target</li></ul></div><div><h4>Análisis técnico</h4><ul><li>Fibonacci</li><li>Trading Patrones</li></ul></div><div><h4>Simuladores</h4><ul><li>Monte Carlo</li><li>Simulador Pro</li><li>Interés compuesto</li></ul></div></div></section><section class="in"><h2 class="sh">El catálogo por dentro</h2><p class="sl">186 activos con su tamaño de contrato, su tick y su margen inicial. Seis, de muestra — es la parte que ninguna calculadora genérica tiene.</p><table class="spec"><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th><th>Valor del tick</th><th>Margen inicial</th></tr></thead><tbody><tr><td><b>MES</b> <span class="op">Micro E-mini S&P 500</span></td><td>5</td><td>0,25</td><td class="ac">1,25 $</td><td>1.320 $</td></tr><tr><td><b>MNQ</b> <span class="op">Micro E-mini Nasdaq</span></td><td>2</td><td>0,25</td><td class="ac">0,50 $</td><td>1.760 $</td></tr><tr><td><b>ES</b> <span class="op">E-mini S&P 500</span></td><td>50</td><td>0,25</td><td class="ac">12,50 $</td><td>13.200 $</td></tr><tr><td><b>NQ</b> <span class="op">E-mini Nasdaq 100</span></td><td>20</td><td>0,25</td><td class="ac">5,00 $</td><td>17.600 $</td></tr><tr><td><b>GC</b> <span class="op">Oro</span></td><td>100</td><td>0,10</td><td class="ac">10,00 $</td><td>10.000 $</td></tr><tr><td><b>CL</b> <span class="op">Petróleo WTI</span></td><td>1000</td><td>0,01</td><td class="ac">10,00 $</td><td>6.500 $</td></tr></tbody></table></section><section class="in"><h2 class="sh">Precios</h2><p class="sl">Siete días de prueba con todo abierto. Sin permanencia: se cancela desde Ajustes en dos clics, y el vitalicio es un pago único que no vuelve a cobrarse.</p><div class="planes"><div class="pl"><div class="pn">Mensual</div><div class="pp">17 €</div><div class="pu">al mes</div></div><div class="pl"><div class="pn">Trimestral</div><div class="pp">45 €</div><div class="pu">cada tres meses</div></div><div class="pl mk"><div class="pn">Anual</div><div class="pp">200 €</div><div class="pu">al año</div></div><div class="pl"><div class="pn">Vitalicio</div><div class="pp">500 €</div><div class="pu">pago único</div></div></div></section><section class="in"><h2 class="sh">Preguntas frecuentes</h2><div class="faq"><details><summary>¿Hay permanencia?</summary><div class="a">No. La suscripción se cancela desde Ajustes en dos clics y no hay penalización. El plan vitalicio es un pago único: no vuelve a cobrarse nunca.</div></details><details><summary>¿Qué mercados cubre?</summary><div class="a">Cripto, divisas, acciones de NYSE y NASDAQ, índices, materias primas y futuros: 186 activos con ficha, cada uno con su tamaño de contrato y su tick.</div></details><details><summary>¿Custodiáis fondos o ejecutáis órdenes?</summary><div class="a">Ninguna de las dos cosas. Esto calcula. Su bróker sigue siendo su bróker, y aquí no hay nada que se pueda perder.</div></details><details><summary>¿Hace falta experiencia previa?</summary><div class="a">No para las calculadoras de riesgo. La academia cubre desde qué es un stop hasta las 66 estrategias de opciones, y está traducida a los 10 idiomas.</div></details><details><summary>¿Funciona en el móvil?</summary><div class="a">Sí. Las calculadoras y el diario están diseñados para el ancho de un teléfono, no adaptados a él después.</div></details></div></section>
+<section class="cierre">
+  <div class="velas" id="rz"><canvas></canvas><div class="fade-r"></div></div>
+  <div class="in">
+    <h2 class="disp">Calcula antes de operar, no después.</h2>
+    <p>Siete días de prueba con todo abierto. Sin permanencia y sin llamada de retención.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+  </div>
+</section><footer class="pie"><div class="in"><span>TradingCalculator.Pro · 10 idiomas</span><span>Sin custodia de fondos · sin ejecución de órdenes · desde 17 € al mes</span></div></footer></div><div class="pgw" id="r5" hidden><div class="nota-mejora"><div class="in"><b>Mejora 05 · Dos capas.</b> Profundidad y tesis: velas lentas al fondo, velas normales delante y encima la curva de capital de una cuenta al 1 % — el ruido detrás, la disciplina delante.</div></div><div class="aviso">Maqueta de trabajo. No sustituye a la portada en producción; las cifras salen del código del proyecto y las velas son ilustrativas.</div><div class="in"><nav class="nav"><a class="bd" href="#"><span class="m"></span>TradingCalculator<span style="color:var(--br)">.Pro</span></a><div class="nl"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div><button class="btn p sm">Probar 7 días</button></nav></div>
+<div class="hero r5h">
+  <div class="capa" id="r5lejos"><canvas></canvas></div>
+  <div class="capa" id="r5cerca"><canvas></canvas></div>
+  <div class="velo"></div>
+  <div class="leyenda">velas ilustrativas · no son cotizaciones</div>
+  <div class="in">
+    <span class="pill"><i></i>Detrás el mercado · delante una cuenta dimensionada</span>
+    <h1 class="disp"><span>Trading Calculator</span><span class="pro">PRO</span></h1>
+    <p class="cl">El ruido de fondo no lo controlas. El tamaño de cada posición, sí — y es lo único que
+      convierte una racha en un sistema.</p>
+    <div class="ctas">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+    <p class="trial">7 días gratis · Cancela cuando quieras · Sin permanencia</p>
+    <div class="stats"><div class="s"><div class="v">17</div><div class="k">calculadoras</div></div><div class="s"><div class="v">186</div><div class="k">activos</div></div><div class="s"><div class="v">66</div><div class="k">estrategias</div></div><div class="s"><div class="v">10</div><div class="k">idiomas</div></div></div>
+  </div>
+  <div class="leyenda2">
+    <span><i class="m"></i>Velas: mercado ilustrativo</span>
+    <span><i class="d"></i>Línea: curva de capital de una cuenta al 1 % por operación</span>
+  </div>
+</div><section class="in"><h2 class="sh">Todo lo que necesita una sesión</h2><p class="sl">Ocho módulos. Ninguno pide más datos de los que necesita, y ninguno inventa un número que no pueda defender.</p><div class="feat"><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><h3>Calculadoras profesionales</h3><p>17 herramientas de riesgo, precio, técnico y simulación, cada una sobre las specs reales del contrato.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 4H6l6 8-6 8h12"/></svg><h3>Suite de opciones</h3><p>66 estrategias con su diagrama de resultado y las griegas completas, vanna y charm incluidas.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><h3>Gráficos TradingView</h3><p>Los gráficos que ya usas, integrados, con la temporalidad y las herramientas de dibujo.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 4h-6v13.5"/></svg><h3>Diario de operativa</h3><p>Cada operación con su R, su racha y la curva de capital ordenada por fecha de salida.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7 4"/></svg><h3>Riesgo de cartera</h3><p>Exposición por activo y correlación, para que dos posiciones no sean en realidad la misma.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg><h3>Avisos por correo</h3><p>Al tocar un nivel o al cerrarse una racha. Sin notificaciones de relleno.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-10V3"/><path d="M8 3h8"/></svg><h3>Simulador Monte Carlo</h3><p>Miles de secuencias del mismo sistema para ver la distribución, no un único resultado afortunado.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg><h3>Academia</h3><p>Desde qué es un stop hasta 42 patrones chartistas, en 10 idiomas.</p></div></div></section><section class="in"><h2 class="sh">Las 17 calculadoras</h2><p class="sl">Repartidas en cuatro familias. Se abren desde el mismo panel y comparten el catálogo de instrumentos, así que el tamaño de contrato nunca hay que teclearlo.</p><div class="cal"><div><h4>Riesgo y posición</h4><ul><li>Tamaño Posición</li><li>Lotaje</li><li>Salida parcial (R:B)</li><li>Apalancamiento</li><li>Margen cruzado</li><li>Futuros</li><li>Punto de equilibrio</li><li>Rachas de pérdidas</li></ul></div><div><h4>Precio y objetivos</h4><ul><li>Precio Objetivo</li><li>% Requerido</li><li>Spot</li><li>Medir Target</li></ul></div><div><h4>Análisis técnico</h4><ul><li>Fibonacci</li><li>Trading Patrones</li></ul></div><div><h4>Simuladores</h4><ul><li>Monte Carlo</li><li>Simulador Pro</li><li>Interés compuesto</li></ul></div></div></section><section class="in"><h2 class="sh">El catálogo por dentro</h2><p class="sl">186 activos con su tamaño de contrato, su tick y su margen inicial. Seis, de muestra — es la parte que ninguna calculadora genérica tiene.</p><table class="spec"><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th><th>Valor del tick</th><th>Margen inicial</th></tr></thead><tbody><tr><td><b>MES</b> <span class="op">Micro E-mini S&P 500</span></td><td>5</td><td>0,25</td><td class="ac">1,25 $</td><td>1.320 $</td></tr><tr><td><b>MNQ</b> <span class="op">Micro E-mini Nasdaq</span></td><td>2</td><td>0,25</td><td class="ac">0,50 $</td><td>1.760 $</td></tr><tr><td><b>ES</b> <span class="op">E-mini S&P 500</span></td><td>50</td><td>0,25</td><td class="ac">12,50 $</td><td>13.200 $</td></tr><tr><td><b>NQ</b> <span class="op">E-mini Nasdaq 100</span></td><td>20</td><td>0,25</td><td class="ac">5,00 $</td><td>17.600 $</td></tr><tr><td><b>GC</b> <span class="op">Oro</span></td><td>100</td><td>0,10</td><td class="ac">10,00 $</td><td>10.000 $</td></tr><tr><td><b>CL</b> <span class="op">Petróleo WTI</span></td><td>1000</td><td>0,01</td><td class="ac">10,00 $</td><td>6.500 $</td></tr></tbody></table></section><section class="in"><h2 class="sh">Precios</h2><p class="sl">Siete días de prueba con todo abierto. Sin permanencia: se cancela desde Ajustes en dos clics, y el vitalicio es un pago único que no vuelve a cobrarse.</p><div class="planes"><div class="pl"><div class="pn">Mensual</div><div class="pp">17 €</div><div class="pu">al mes</div></div><div class="pl"><div class="pn">Trimestral</div><div class="pp">45 €</div><div class="pu">cada tres meses</div></div><div class="pl mk"><div class="pn">Anual</div><div class="pp">200 €</div><div class="pu">al año</div></div><div class="pl"><div class="pn">Vitalicio</div><div class="pp">500 €</div><div class="pu">pago único</div></div></div></section><section class="in"><h2 class="sh">Preguntas frecuentes</h2><div class="faq"><details><summary>¿Hay permanencia?</summary><div class="a">No. La suscripción se cancela desde Ajustes en dos clics y no hay penalización. El plan vitalicio es un pago único: no vuelve a cobrarse nunca.</div></details><details><summary>¿Qué mercados cubre?</summary><div class="a">Cripto, divisas, acciones de NYSE y NASDAQ, índices, materias primas y futuros: 186 activos con ficha, cada uno con su tamaño de contrato y su tick.</div></details><details><summary>¿Custodiáis fondos o ejecutáis órdenes?</summary><div class="a">Ninguna de las dos cosas. Esto calcula. Su bróker sigue siendo su bróker, y aquí no hay nada que se pueda perder.</div></details><details><summary>¿Hace falta experiencia previa?</summary><div class="a">No para las calculadoras de riesgo. La academia cubre desde qué es un stop hasta las 66 estrategias de opciones, y está traducida a los 10 idiomas.</div></details><details><summary>¿Funciona en el móvil?</summary><div class="a">Sí. Las calculadoras y el diario están diseñados para el ancho de un teléfono, no adaptados a él después.</div></details></div></section>
+<section class="cierre">
+  <div class="velas" id="rz"><canvas></canvas><div class="fade-r"></div></div>
+  <div class="in">
+    <h2 class="disp">Calcula antes de operar, no después.</h2>
+    <p>Siete días de prueba con todo abierto. Sin permanencia y sin llamada de retención.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+  </div>
+</section><footer class="pie"><div class="in"><span>TradingCalculator.Pro · 10 idiomas</span><span>Sin custodia de fondos · sin ejecución de órdenes · desde 17 € al mes</span></div></footer></div><div class="pgw" id="r6" hidden><div class="nota-mejora"><div class="in"><b>Mejora 06 · Medido.</b> La regleta del sistema de diseño, viva: mide la portada de verdad y las cuatro cifras son sus marcas.</div></div><div class="aviso">Maqueta de trabajo. No sustituye a la portada en producción; las cifras salen del código del proyecto y las velas son ilustrativas.</div><div class="in"><nav class="nav"><a class="bd" href="#"><span class="m"></span>TradingCalculator<span style="color:var(--br)">.Pro</span></a><div class="nl"><span>Calculadoras</span><span>Opciones</span><span>Diario</span><span>Academia</span><span>Precios</span></div><button class="btn p sm">Probar 7 días</button></nav></div>
+<div class="hero r6h">
+  <div class="velas-fondo" id="r6f"><canvas></canvas><div class="v"></div></div>
+  <div class="leyenda">velas ilustrativas · no son cotizaciones</div>
+  <div class="in">
+    <span class="pill"><i></i>La regleta mide · las cifras son sus marcas</span>
+    <h1 class="disp"><span>Trading Calculator</span><span class="pro">PRO</span></h1>
+    <p class="cl">Calculadoras profesionales, diario de operativa, simulador Monte Carlo y todo lo que hace falta para dimensionar una posición en cripto, divisas, acciones, índices y futuros.</p>
+    <div class="ctas">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+    <p class="trial">7 días gratis · Cancela cuando quieras · Sin permanencia</p>
+    <div class="regla" id="r6r"><div class="ax"></div></div><p class="lect" id="r6l">La escala mide esta portada: <b>0 px</b></p>
+    <div class="stats"><div class="s"><div class="v">17</div><div class="k">calculadoras</div></div><div class="s"><div class="v">186</div><div class="k">activos</div></div><div class="s"><div class="v">66</div><div class="k">estrategias</div></div><div class="s"><div class="v">10</div><div class="k">idiomas</div></div></div>
+  </div>
+</div><section class="in"><h2 class="sh">Todo lo que necesita una sesión</h2><p class="sl">Ocho módulos. Ninguno pide más datos de los que necesita, y ninguno inventa un número que no pueda defender.</p><div class="feat"><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><h3>Calculadoras profesionales</h3><p>17 herramientas de riesgo, precio, técnico y simulación, cada una sobre las specs reales del contrato.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 4H6l6 8-6 8h12"/></svg><h3>Suite de opciones</h3><p>66 estrategias con su diagrama de resultado y las griegas completas, vanna y charm incluidas.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><h3>Gráficos TradingView</h3><p>Los gráficos que ya usas, integrados, con la temporalidad y las herramientas de dibujo.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H4z"/><path d="M20 4h-6v13.5"/></svg><h3>Diario de operativa</h3><p>Cada operación con su R, su racha y la curva de capital ordenada por fecha de salida.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l7 4"/></svg><h3>Riesgo de cartera</h3><p>Exposición por activo y correlación, para que dos posiciones no sean en realidad la misma.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M10 21h4"/></svg><h3>Avisos por correo</h3><p>Al tocar un nivel o al cerrarse una racha. Sin notificaciones de relleno.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v6L4 19a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-10V3"/><path d="M8 3h8"/></svg><h3>Simulador Monte Carlo</h3><p>Miles de secuencias del mismo sistema para ver la distribución, no un único resultado afortunado.</p></div><div><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg><h3>Academia</h3><p>Desde qué es un stop hasta 42 patrones chartistas, en 10 idiomas.</p></div></div></section><section class="in"><h2 class="sh">Las 17 calculadoras</h2><p class="sl">Repartidas en cuatro familias. Se abren desde el mismo panel y comparten el catálogo de instrumentos, así que el tamaño de contrato nunca hay que teclearlo.</p><div class="cal"><div><h4>Riesgo y posición</h4><ul><li>Tamaño Posición</li><li>Lotaje</li><li>Salida parcial (R:B)</li><li>Apalancamiento</li><li>Margen cruzado</li><li>Futuros</li><li>Punto de equilibrio</li><li>Rachas de pérdidas</li></ul></div><div><h4>Precio y objetivos</h4><ul><li>Precio Objetivo</li><li>% Requerido</li><li>Spot</li><li>Medir Target</li></ul></div><div><h4>Análisis técnico</h4><ul><li>Fibonacci</li><li>Trading Patrones</li></ul></div><div><h4>Simuladores</h4><ul><li>Monte Carlo</li><li>Simulador Pro</li><li>Interés compuesto</li></ul></div></div></section><section class="in"><h2 class="sh">El catálogo por dentro</h2><p class="sl">186 activos con su tamaño de contrato, su tick y su margen inicial. Seis, de muestra — es la parte que ninguna calculadora genérica tiene.</p><table class="spec"><thead><tr><th>Contrato</th><th>Tamaño</th><th>Tick</th><th>Valor del tick</th><th>Margen inicial</th></tr></thead><tbody><tr><td><b>MES</b> <span class="op">Micro E-mini S&P 500</span></td><td>5</td><td>0,25</td><td class="ac">1,25 $</td><td>1.320 $</td></tr><tr><td><b>MNQ</b> <span class="op">Micro E-mini Nasdaq</span></td><td>2</td><td>0,25</td><td class="ac">0,50 $</td><td>1.760 $</td></tr><tr><td><b>ES</b> <span class="op">E-mini S&P 500</span></td><td>50</td><td>0,25</td><td class="ac">12,50 $</td><td>13.200 $</td></tr><tr><td><b>NQ</b> <span class="op">E-mini Nasdaq 100</span></td><td>20</td><td>0,25</td><td class="ac">5,00 $</td><td>17.600 $</td></tr><tr><td><b>GC</b> <span class="op">Oro</span></td><td>100</td><td>0,10</td><td class="ac">10,00 $</td><td>10.000 $</td></tr><tr><td><b>CL</b> <span class="op">Petróleo WTI</span></td><td>1000</td><td>0,01</td><td class="ac">10,00 $</td><td>6.500 $</td></tr></tbody></table></section><section class="in"><h2 class="sh">Precios</h2><p class="sl">Siete días de prueba con todo abierto. Sin permanencia: se cancela desde Ajustes en dos clics, y el vitalicio es un pago único que no vuelve a cobrarse.</p><div class="planes"><div class="pl"><div class="pn">Mensual</div><div class="pp">17 €</div><div class="pu">al mes</div></div><div class="pl"><div class="pn">Trimestral</div><div class="pp">45 €</div><div class="pu">cada tres meses</div></div><div class="pl mk"><div class="pn">Anual</div><div class="pp">200 €</div><div class="pu">al año</div></div><div class="pl"><div class="pn">Vitalicio</div><div class="pp">500 €</div><div class="pu">pago único</div></div></div></section><section class="in"><h2 class="sh">Preguntas frecuentes</h2><div class="faq"><details><summary>¿Hay permanencia?</summary><div class="a">No. La suscripción se cancela desde Ajustes en dos clics y no hay penalización. El plan vitalicio es un pago único: no vuelve a cobrarse nunca.</div></details><details><summary>¿Qué mercados cubre?</summary><div class="a">Cripto, divisas, acciones de NYSE y NASDAQ, índices, materias primas y futuros: 186 activos con ficha, cada uno con su tamaño de contrato y su tick.</div></details><details><summary>¿Custodiáis fondos o ejecutáis órdenes?</summary><div class="a">Ninguna de las dos cosas. Esto calcula. Su bróker sigue siendo su bróker, y aquí no hay nada que se pueda perder.</div></details><details><summary>¿Hace falta experiencia previa?</summary><div class="a">No para las calculadoras de riesgo. La academia cubre desde qué es un stop hasta las 66 estrategias de opciones, y está traducida a los 10 idiomas.</div></details><details><summary>¿Funciona en el móvil?</summary><div class="a">Sí. Las calculadoras y el diario están diseñados para el ancho de un teléfono, no adaptados a él después.</div></details></div></section>
+<section class="cierre">
+  <div class="velas" id="rz"><canvas></canvas><div class="fade-r"></div></div>
+  <div class="in">
+    <h2 class="disp">Calcula antes de operar, no después.</h2>
+    <p>Siete días de prueba con todo abierto. Sin permanencia y sin llamada de retención.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn p lg">Empezar gratis</button>
+      <button class="btn g lg">Ver los planes</button>
+    </div>
+  </div>
+</section><footer class="pie"><div class="in"><span>TradingCalculator.Pro · 10 idiomas</span><span>Sin custodia de fondos · sin ejecución de órdenes · desde 17 € al mes</span></div></footer></div>
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)}, $$=function(s){return [].slice.call(document.querySelectorAll(s))};
+var nf=function(n,d){d=(d===undefined?0:d);return new Intl.NumberFormat('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}).format(n)};
+var reducido=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Mismo motor que la restaurada (port fiel de AnimatedHeroChart.jsx) más las
+   piezas que cada mejora necesita: máscara de texto, sesgo por ratón, línea de
+   capital, cruceta a lo ancho del hero y último precio. Las constantes del
+   original no se tocan. */
+var VERDE=[34,197,94], ROJO=[239,68,68], CW=15, MIN_PX=8;
+var rgba=function(c,a){return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'};
+var raton={x:-1,y:-1,dentro:false};
+window.addEventListener('mousemove',function(e){raton.x=e.clientX;raton.y=e.clientY;raton.dentro=true;});
+document.documentElement.addEventListener('mouseleave',function(){raton.dentro=false;});
+
+function motor(host,o){
+  o=o||{};
+  var canvas=host.querySelector('canvas'); if(!canvas) return null;
+  var ctx=canvas.getContext('2d');
+  var alpha=(o.dim===undefined?1:o.dim), vel=(o.vel===undefined?0.9:o.vel);
+  var velas=[],ancho=0,alto=0,dpr=1,izq=0,arr=0,scroll=0,precio=100,tend=0,capital=100,serie=[];
+  var api={ultimo:function(){return precio}, y:null, alto:function(){return alto}, arriba:function(){return arr}};
+
+  function sesgo(){
+    if(!o.sesgoRaton||!raton.dentro||!alto) return 0;
+    var ry=raton.y-arr;
+    if(ry<0||ry>alto) return 0;
+    return (0.5-(ry/alto))*2.6;      // ratón arriba → empuja al alza
+  }
+  function siguiente(){
+    tend+=(Math.random()-0.5)*0.4; tend=Math.max(-1.2,Math.min(1.2,tend));
+    var o1=precio, mv=tend+sesgo()+(Math.random()-0.5)*3.2, c=o1+mv;
+    var h=Math.max(o1,c)+Math.random()*1.8, l=Math.min(o1,c)-Math.random()*1.8;
+    precio=c;
+    if(precio>130) tend-=0.5;
+    if(precio<70)  tend+=0.5;
+    /* curva de capital de una cuenta al 1 %: gana o pierde según cerró la vela,
+       pero SIEMPRE arriesgando el mismo porcentaje. Es la tesis del producto
+       dibujada — y por eso sube aunque el mercado no vaya a ninguna parte. */
+    capital *= (c>=o1) ? 1.014 : 0.991;
+    serie.push(capital); if(serie.length>600) serie.shift();
+    return {o:o1,h:h,l:l,c:c};
+  }
+  function medir(){
+    var r=canvas.getBoundingClientRect();
+    if(!r.width||!r.height) return false;
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    ancho=r.width; alto=r.height; izq=r.left; arr=r.top;
+    canvas.width=Math.floor(ancho*dpr); canvas.height=Math.floor(alto*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    var n=Math.ceil(ancho/CW)+3;
+    while(velas.length<n) velas.push(siguiente());
+    if(velas.length>n+4) velas=velas.slice(-n);
+    return true;
+  }
+  function pintar(){
+    if(!ancho||!velas.length) return;
+    ctx.clearRect(0,0,ancho,alto);
+    if(o.base){ ctx.fillStyle=o.base; ctx.fillRect(0,0,ancho,alto); }
+    var min=Infinity,max=-Infinity,i,k;
+    for(i=0;i<velas.length;i++){k=velas[i]; if(k.l<min)min=k.l; if(k.h>max)max=k.h;}
+    var pad=(max-min)*0.12||1; min-=pad; max+=pad;
+    var padY=alto*0.14;
+    var esc=Math.max((alto-padY*2)/(max-min),MIN_PX), mid=(min+max)/2;
+    var y=function(p){return alto/2-(p-mid)*esc;};
+    api.y=y; api.min=min; api.max=max;
+    var baseX=-scroll;
+
+    if(!o.sinArea){
+      ctx.beginPath(); ctx.moveTo(baseX,alto);
+      for(i=0;i<velas.length;i++) ctx.lineTo(baseX+i*CW+CW/2,y(velas[i].c));
+      ctx.lineTo(baseX+(velas.length-1)*CW+CW/2,alto); ctx.closePath();
+      var g=ctx.createLinearGradient(0,0,0,alto);
+      g.addColorStop(0,rgba(VERDE,0.10*alpha)); g.addColorStop(1,rgba(VERDE,0));
+      ctx.fillStyle=g; ctx.fill();
+    }
+
+    var mx=raton.dentro?raton.x-izq:-1, hot=-1;
+    if(mx>=0&&mx<=ancho) hot=Math.round((mx-baseX-CW/2)/CW);
+    if(o.forzarHot) hot=velas.length-1;
+
+    for(i=0;i<velas.length;i++){
+      k=velas[i];
+      var cx=baseX+i*CW+CW/2;
+      if(cx<-CW||cx>ancho+CW) continue;
+      var col=(k.c>=k.o)?VERDE:ROJO, a=((i===hot)?0.95:(o.opaco?0.9:0.42))*alpha;
+      ctx.strokeStyle=rgba(col,a); ctx.fillStyle=rgba(col,a); ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.moveTo(cx,y(k.h)); ctx.lineTo(cx,y(k.l)); ctx.stroke();
+      var top=y(Math.max(k.o,k.c)), bh=Math.max(Math.abs(y(k.o)-y(k.c)),1.5);
+      ctx.fillRect(cx-CW*0.32,top,CW*0.64,bh);
+    }
+
+    /* línea de capital: escala propia, dibujada sobre la mitad baja del lienzo */
+    if(o.capital&&serie.length>3){
+      var s=serie.slice(-velas.length), lo=Math.min.apply(null,s), hi=Math.max.apply(null,s);
+      if(alto<220) return;
+      var rg=(hi-lo)||1, y0=alto-26, y1=alto-150;
+      ctx.beginPath();
+      for(i=0;i<s.length;i++){
+        var px=baseX+i*CW+CW/2, py=y0-((s[i]-lo)/rg)*(y0-y1);
+        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.strokeStyle=rgba([23,207,99],0.95); ctx.lineWidth=2;
+      ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+      var ux=baseX+(s.length-1)*CW+CW/2, uy=y0-((s[s.length-1]-lo)/rg)*(y0-y1);
+      ctx.fillStyle=rgba([23,207,99],1); ctx.beginPath(); ctx.arc(ux,uy,3.5,0,Math.PI*2); ctx.fill();
+    }
+
+    if(hot>=0&&hot<velas.length&&!o.sinCruz){
+      k=velas[hot];
+      var hx=baseX+hot*CW+CW/2;
+      ctx.strokeStyle=rgba([148,163,184],0.5*alpha); ctx.lineWidth=1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(hx,0); ctx.lineTo(hx,alto); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=rgba((k.c>=k.o)?VERDE:ROJO,0.95*alpha);
+      ctx.beginPath(); ctx.arc(hx,y(k.c),3,0,Math.PI*2); ctx.fill();
+      api.hotX=hx; api.hotY=y(k.c);
+    }
+
+    /* máscara de texto: se pinta el gráfico y luego se recorta a la forma de la
+       palabra. destination-in deja sólo lo que cae dentro del glifo. */
+    if(o.mascara){
+      ctx.globalCompositeOperation='destination-in';
+      ctx.fillStyle='#000';
+      var t=o.mascara, fs=alto*0.98;
+      ctx.font='700 '+fs+'px Archivo, "Inter Tight", sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.save(); ctx.translate(ancho/2,alto/2);
+      var w=ctx.measureText(t).width, lim=ancho*0.98;
+      if(w>lim) ctx.scale(lim/w,1);
+      ctx.fillText(t,0,0); ctx.restore();
+      ctx.globalCompositeOperation='source-over';
+    }
+    if(o.tras) o.tras(api);
+  }
+  var ult=performance.now();
+  function bucle(ahora){
+    var dt=Math.min(ahora-ult,60); ult=ahora;
+    scroll+=(dt/1000)*CW*vel;
+    while(scroll>=CW){ scroll-=CW; velas.push(siguiente()); velas.shift(); }
+    pintar(); requestAnimationFrame(bucle);
+  }
+  if(medir()) pintar();
+  if(window.ResizeObserver) new ResizeObserver(function(){ if(medir()) pintar(); }).observe(canvas);
+  window.addEventListener('scroll',function(){var r=canvas.getBoundingClientRect();izq=r.left;arr=r.top;},{passive:true});
+  if(!reducido) requestAnimationFrame(bucle);
+  api.repintar=pintar;
+  return api;
+}
+
+/* ── R1 · el titular es el gráfico ─────────────────────────────────────── */
+(function(){
+  var f=document.getElementById('r1f'); if(f) motor(f,{dim:.5,vel:.9});
+  var mc=document.getElementById('r1mask'); if(!mc) return;
+  var host={querySelector:function(){return mc}};
+  var api=motor(host,{dim:1,vel:1.05,mascara:'PRO',sinCruz:true,forzarHot:true,
+                      opaco:true,base:'rgba(23,207,99,0.42)'});
+  // las métricas del glifo cambian cuando entra Archivo: repintar al cargarla
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ if(api) api.repintar(); });
+})();
+
+/* ── R2 · la apertura ──────────────────────────────────────────────────── */
+(function(){
+  var f=document.getElementById('r2f'); if(!f) return;
+  motor(f,{dim:1,vel:.9});
+  var host=document.getElementById('r2stats'); if(!host||reducido) return;
+  var vs=[].slice.call(host.querySelectorAll('.v'));
+  var fin=vs.map(function(e){return parseInt(e.textContent,10)});
+  vs.forEach(function(e){e.textContent='0'});
+  setTimeout(function(){
+    var t0=performance.now(), dur=900;
+    (function paso(t){
+      var k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);
+      vs.forEach(function(el,i){ el.textContent=String(Math.round(fin[i]*e)); });
+      if(k<1) requestAnimationFrame(paso);
+    })(performance.now());
+  },700);
+})();
+
+/* ── R3 · el hero es un gráfico ────────────────────────────────────────── */
+(function(){
+  var f=document.getElementById('r3f'); if(!f) return;
+  var eje=document.getElementById('r3eje'), tag=document.getElementById('r3tag'),
+      cx=document.getElementById('r3cx'), hero=document.getElementById('r3hero');
+  var ult=0;
+  motor(f,{dim:.9,vel:.9,tras:function(api){
+    var ahora=performance.now();
+    if(ahora-ult<160||!api.y) return;         // el DOM no se toca a 60 fps
+    ult=ahora;
+    var min=api.min,max=api.max,h=api.alto(),html='';
+    for(var i=0;i<=5;i++){
+      var p=min+(max-min)*(i/5), yy=api.y(p);
+      if(yy<10||yy>h-10) continue;
+      html+='<b style="top:'+yy.toFixed(1)+'px">'+nf(p,2)+'</b>';
+    }
+    var pu=api.ultimo();
+    html+='<div class="ultimo" style="top:'+api.y(pu).toFixed(1)+'px">'+nf(pu,2)+'</div>';
+    eje.innerHTML=html;
+  }});
+  if(hero) hero.addEventListener('mousemove',function(e){
+    var r=hero.getBoundingClientRect(), y=e.clientY-r.top;
+    cx.style.top=y+'px'; tag.style.top=y+'px';
+    var fr=1-(y/r.height);
+    tag.textContent=nf(70+fr*60,2);
+  });
+})();
+
+/* ── R4 · tu vela ──────────────────────────────────────────────────────── */
+(function(){
+  var f=document.getElementById('r4f'); if(!f) return;
+  var m=document.getElementById('r4m');
+  motor(f,{dim:1,vel:.9,sesgoRaton:true,forzarHot:true,tras:function(api){
+    if(!m||api.hotX===undefined) return;
+    m.style.left=api.hotX+'px'; m.style.top=api.hotY+'px';
+  }});
+})();
+
+/* ── R5 · dos capas ────────────────────────────────────────────────────── */
+(function(){
+  var l=document.getElementById('r5lejos'), c=document.getElementById('r5cerca');
+  if(l) motor(l,{dim:.3,vel:.42,sinArea:true,sinCruz:true});
+  if(c) motor(c,{dim:.85,vel:.9,capital:true});
+})();
+
+/* ── R6 · medido ───────────────────────────────────────────────────────── */
+(function(){
+  var f=document.getElementById('r6f'); if(f) motor(f,{dim:.85,vel:.9});
+  var r=document.getElementById('r6r'), l=document.getElementById('r6l'); if(!r) return;
+  var marca=document.createElement('b'); marca.style.left='-10px';
+  function dibujar(){
+    var w=r.clientWidth||760, paso=8, n=Math.floor(w/paso), h='<div class="ax"></div>';
+    for(var i=0;i<=n;i++){
+      var cls=(i%10===0)?'mj':((i%5===0)?'md':'mn');
+      h+='<i class="'+cls+'" style="left:'+(i*paso)+'px"></i>';
+    }
+    r.innerHTML=h; r.appendChild(marca);
+    if(l) l.innerHTML='La escala mide esta portada: <b>'+nf(Math.round(w))+' px</b> · marca mayor cada 80 px';
+  }
+  dibujar();
+  if(window.ResizeObserver) new ResizeObserver(dibujar).observe(r);
+  r.parentElement.addEventListener('mousemove',function(e){
+    var b=r.getBoundingClientRect(), x=Math.max(0,Math.min(b.width,e.clientX-b.left));
+    marca.style.left=x+'px';
+    if(l) l.innerHTML='La escala mide esta portada: <b>'+nf(Math.round(x))+' px</b> de '+nf(Math.round(b.width))+' px';
+  });
+})();
+
+/* cierres de página: las velas del bloque final, en todas */
+[].slice.call(document.querySelectorAll('.cierre .velas')).forEach(function(el){ motor(el,{dim:.55,vel:.7}); });
+})();
+</script>
+<script>
+(function(){
+  var bs=[].slice.call(document.querySelectorAll('#sel button'));
+  bs.forEach(function(b){b.addEventListener('click',function(){
+    bs.forEach(function(o){
+      var on=o===b; o.setAttribute('aria-selected',on?'true':'false');
+      var p=document.getElementById(o.dataset.p); if(p) p.hidden=!on;
+    });
+    window.scrollTo({top:0,behavior:'auto'});
+    window.dispatchEvent(new Event('resize'));
+  });});
+})();</script>
