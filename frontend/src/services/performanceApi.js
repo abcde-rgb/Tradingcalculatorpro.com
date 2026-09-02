@@ -90,6 +90,22 @@ export async function exportTrades({ format = 'csv', ...filtros } = {}) {
   };
 }
 
+/**
+ * Riesgo a nivel de CUENTA: calor abierto, correlación y los topes de pérdida.
+ *
+ * Todo lo demás del diario razona operación a operación. Esto es lo que un
+ * operador de mesa mira primero: cuánto de la cuenta está en riesgo ahora mismo,
+ * cuánto de ese riesgo es en realidad la misma apuesta repetida, y si el tope
+ * del día o de la semana ya saltó.
+ *
+ * Los cuatro parámetros son los límites que el usuario se pone a sí mismo; si no
+ * se mandan, el backend usa los suyos.
+ */
+export async function getPortfolioRisk(params = {}) {
+  const { data } = await client.post('/performance/portfolio-risk', params);
+  return data;
+}
+
 export async function getTrade(id) {
   const { data } = await client.get(`/performance/trades/${id}`);
   return data;

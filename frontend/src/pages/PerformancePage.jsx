@@ -15,6 +15,7 @@ import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
 import { useAuthStore } from '@/lib/store';
 import TradeJournal from '@/components/performance/TradeJournal';
+import PortfolioRisk from '@/components/performance/PortfolioRisk';
 import AnalyticsDashboard from '@/components/performance/AnalyticsDashboard';
 import SetupPerformance from '@/components/performance/SetupPerformance';
 import SetupBuilder from '@/components/education/SetupBuilder';
@@ -229,12 +230,18 @@ export default function PerformancePage() {
           {!isAuthenticated ? (
             <AuthRequired t={t} />
           ) : (
+            <>
+            {/* Riesgo de CUENTA, antes que la analítica operación a operación:
+                es lo que un operador de mesa mira primero. La ruta y
+                `portfolio_risk.py` llevaban terminados y sin pantalla. */}
+            <div className="mb-8"><PortfolioRisk /></div>
             <AnalyticsDashboard
               refreshKey={refreshKey}
               onGoToJournal={() => setTab('journal')}
               onGoToSetups={() => setTab('setups')}
               onPickSetup={showSetupTrades}
             />
+            </>
           )}
         </TabsContent>
 
