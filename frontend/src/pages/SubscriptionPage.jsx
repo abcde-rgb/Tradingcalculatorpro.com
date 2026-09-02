@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
+import { usePlanPrices } from '@/hooks/usePlanPrices';
 import { useAuthStore } from '../lib/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,15 @@ function StatusBadge({ status }) {
   );
 }
 
+/**
+ * Los planes entre los que se puede cambiar sin pasar por caja.
+ *
+ * El vitalicio no está: es un pago único, no una cuota. Meterlo aquí es lo que
+ * habría creado en Stripe un precio recurrente de 500 € AL MES — ver la guarda
+ * de `change_plan_real` en `backend/missing_apis.py` y su test.
+ */
+const PLANES_CAMBIABLES = ['monthly', 'quarterly', 'annual'];
+
 export default function SubscriptionPage() {
   useSEO({ titleKey: 'seoSubscriptionTitle', descriptionKey: 'seoSubscriptionDesc', canonicalPath: '/subscription', noindex: true });
   const { t } = useTranslation();
@@ -63,7 +73,10 @@ export default function SubscriptionPage() {
   const [subscription, setSubscription] = useState(null);
   const [invoices, setInvoices]         = useState([]);
   const [loading, setLoading]           = useState(true);
+  const { precio } = usePlanPrices();
   const [cancelOpen, setCancelOpen]     = useState(false);
+  const [cambioOpen, setCambioOpen]     = useState(false);
+  const [cambiando, setCambiando]       = useState(null);   // id del plan en curso
 
   const [cancelLoading, setCancelLoading] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(false);
@@ -90,6 +103,48 @@ export default function SubscriptionPage() {
     if (!isAuthenticated) { navigate('/login'); return; }
     fetchData();
   }, [isAuthenticated, navigate, fetchData]);
+
+  /**
+   * Cambia el plan de verdad, con prorrateo de Stripe.
+   *
+   * El botón «Cambiar de plan» llevaba a `/pricing`, o sea, a comprar otra vez:
+   * el cliente pagaba el plan nuevo entero sin que se le descontara lo que le
+   * quedaba del viejo, y podía acabar con dos suscripciones. `POST
+   * /subscriptions/change-plan` ya existía —terminado y sin usar— y hace el
+   * cambio sobre la suscripción que ya hay, prorrateando.
+   *
+   * El vitalicio NO entra aquí: es un pago único, no un cambio de cuota, y el
+   * backend lo devuelve al checkout (que además es lo único que sabe cobrarlo
+   * bien — ver la guarda en `missing_apis.py`).
+   */
+  const handleCambioPlan = async (planId) => {
+    setCambiando(planId);
+    try {
+      const res = await fetch(`${API}/api/subscriptions/change-plan`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_plan_id: planId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.detail || '');
+
+      if (data.redirect_to_checkout) {
+        // No hay suscripción viva que modificar, o es un pago único: comprar.
+        toast.info(data.message || t('cambioPlanAlCheckout'));
+        setCambioOpen(false);
+        navigate(`/pricing?plan=${planId}`);
+        return;
+      }
+      toast.success(data.message || t('cambioPlanHecho'));
+      setCambioOpen(false);
+      fetchData();
+    } catch (err) {
+      toast.error(err?.message || t('cambioPlanError'));
+    } finally {
+      setCambiando(null);
+    }
+  };
 
   const handleCancel = async () => {
     setCancelLoading(true);
@@ -271,13 +326,13 @@ export default function SubscriptionPage() {
                       )
                     )}
 
-                    {/* Change plan → go to pricing */}
+                    {/* Cambio de plan REAL, con prorrateo. Antes esto era un
+                        enlace a /pricing: comprar otra vez, sin descontar lo
+                        que quedaba del plazo en curso. */}
                     {!isLifetime && (
-                      <Button variant="outline" asChild>
-                        <Link to="/pricing">
-                          <ArrowRightLeft className="h-4 w-4 mr-2" />
-                          {t('changePlanBtn')}
-                        </Link>
+                      <Button variant="outline" onClick={() => setCambioOpen(true)}>
+                        <ArrowRightLeft className="h-4 w-4 mr-2" />
+                        {t('changePlanBtn')}
                       </Button>
                     )}
 
@@ -371,6 +426,39 @@ export default function SubscriptionPage() {
         </div>
       </main>
       <Footer />
+
+      {/* ── Cambio de plan ── */}
+      <Dialog open={cambioOpen} onOpenChange={setCambioOpen}>
+        <DialogContent data-testid="cambio-plan-dialog">
+          <DialogHeader>
+            <DialogTitle>{t('changePlanBtn')}</DialogTitle>
+            <DialogDescription>{t('cambioPlanExplicacion')}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            {PLANES_CAMBIABLES
+              .filter((pid) => pid !== (subscription?.plan_id || user?.subscription_plan))
+              .map((pid) => (
+                <button
+                  key={pid}
+                  type="button"
+                  onClick={() => handleCambioPlan(pid)}
+                  disabled={cambiando !== null}
+                  data-testid={`cambio-plan-${pid}`}
+                  className="flex items-center justify-between gap-4 rounded-sharp border border-border
+                             bg-card px-4 py-3 text-left transition-colors duration-tick ease-out
+                             hover:border-primary/50 disabled:opacity-60"
+                >
+                  <span className="font-medium">{t(pid)}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono tabular-nums">{precio(pid)}</span>
+                    {cambiando === pid && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </span>
+                </button>
+              ))}
+          </div>
+          <p className="text-xs text-muted-foreground">{t('cambioPlanProrrateo')}</p>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Cancel Confirmation Dialog ── */}
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>

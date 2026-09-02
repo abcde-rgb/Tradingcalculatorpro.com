@@ -501,6 +501,25 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
     if payload.new_plan_id not in SUBSCRIPTION_PLANS:
         raise HTTPException(status_code=400, detail="Plan inválido")
 
+    # ⚠️ El vitalicio NO puede entrar por aquí.
+    #
+    # Más abajo, si no hay un Price de Stripe guardado, se crea uno al vuelo con
+    # `recurring={"interval": plan.get("stripe_interval", "month")}`. El plan
+    # vitalicio no tiene `stripe_interval` —es un pago único, `interval:
+    # "lifetime"`—, así que ese `.get` caía en el valor por defecto y habría
+    # creado un precio RECURRENTE DE 500 € AL MES, cobrándolo cada treinta días
+    # a quien creía estar pagando una sola vez.
+    #
+    # Un pago único no es un cambio de suscripción: es una compra. Se manda al
+    # checkout, que es lo que ya sabe cobrarlo bien.
+    if SUBSCRIPTION_PLANS[payload.new_plan_id].get("interval") == "lifetime":
+        return {
+            "ok": False,
+            "redirect_to_checkout": True,
+            "message": "El plan De Por Vida es un pago único, no un cambio de suscripción.",
+            "new_plan_id": payload.new_plan_id,
+        }
+
     user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -538,13 +557,48 @@ async def change_plan_real(payload: ChangePlanRequest, user: dict = Depends(_req
         price_key = f"stripe_price_{payload.new_plan_id}"
         stripe_price_id = await get_setting(price_key)
 
+        # El Price que la tabla de planes ya trae. Se miraba `app_settings` y NO
+        # esto, así que con el ajuste vacío se creaba un precio nuevo aunque el
+        # bueno estuviera ahí al lado.
         if not stripe_price_id:
-            # Create an ad-hoc price for this plan
+            stripe_price_id = new_plan.get("stripe_price_id")
+
+        if not stripe_price_id:
+            # Último recurso: crear el precio al vuelo.
+            #
+            # ⚠️ Aquí estaba el fallo de cobro. La línea era
+            # `recurring={"interval": new_plan.get("stripe_interval", "month")}`
+            # y **`stripe_interval` no está definido en ningún plan**, así que el
+            # `.get` caía SIEMPRE en el valor por defecto: el trimestral se
+            # habría cobrado a 45 € al mes en vez de al trimestre, y el anual a
+            # 200 € AL MES en vez de al año. Un cobro doce veces mayor que el
+            # anunciado.
+            #
+            # Stripe no tiene intervalo «quarter»: un trimestre son tres meses,
+            # y eso se dice con `interval_count`. El mapa es explícito y sin
+            # valor por defecto a propósito: un plan cuyo periodo no sepamos
+            # traducir NO se cobra a ver qué pasa, se rechaza.
+            PERIODOS = {
+                "month": ("month", 1),
+                "quarter": ("month", 3),
+                "year": ("year", 1),
+            }
+            periodo = PERIODOS.get(new_plan.get("interval"))
+            if not periodo:
+                logging.error(
+                    "change_plan_real: periodo no traducible a Stripe: %s",
+                    log_safe(new_plan.get("interval")),
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail="No se puede configurar el cobro de ese plan. Escríbenos.",
+                )
+            intervalo, veces = periodo
             price_obj = await asyncio.to_thread(
                 stripe.Price.create,
                 currency=new_plan["currency"].lower(),
                 unit_amount=int(new_plan["price"] * 100),
-                recurring={"interval": new_plan.get("stripe_interval", "month")},
+                recurring={"interval": intervalo, "interval_count": veces},
                 product_data={"name": f"Trading Calculator PRO — {new_plan['name']}"},
             )
             stripe_price_id = price_obj.id
