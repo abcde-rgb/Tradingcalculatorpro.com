@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { useSEO } from '@/hooks/useSEO';
-import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2, Download, Loader2 } from 'lucide-react';
+import { User, Mail, Crown, Calendar, LogOut, Key, Bell, Trash2, AlertTriangle, Eye, EyeOff, Settings2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import TwoFactorCard from '@/components/settings/TwoFactorCard';
 import PasskeysCard from '@/components/settings/PasskeysCard';
 import { useCloudPref } from '@/lib/cloudPrefs';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -279,7 +280,7 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground mt-0.5">{t('verifyEmailBannerDesc')}</p>
               </div>
               <Button size="sm" variant="outline" onClick={handleResendVerification} disabled={resendingVerify} className="shrink-0">
-                {resendingVerify && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                {resendingVerify && <CargaVelas className="w-3.5 h-3.5 mr-1.5" />}
                 {t('verifyEmailResendBtn')}
               </Button>
             </div>
@@ -341,7 +342,7 @@ export default function SettingsPage() {
                   disabled={savingProfile || !profileName.trim() || !profileDirty}
                   data-testid="profile-save-button"
                 >
-                  {savingProfile && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {savingProfile && <CargaVelas className="w-4 h-4 mr-2" />}
                   {t('settingsProfileSave')}
                 </Button>
               </div>
@@ -562,7 +563,7 @@ export default function SettingsPage() {
                   className="w-full justify-start"
                 >
                   {downloadingData
-                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ? <CargaVelas className="w-4 h-4 mr-2" />
                     : <Download className="w-4 h-4 mr-2" />}
                   {t('downloadMyData')}
                 </Button>

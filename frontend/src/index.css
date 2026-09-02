@@ -591,3 +591,129 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
     -moz-appearance: textfield;
 }
+
+/* ═══ INDICADORES DE ESPERA CON LA MARCA ═══════════════════════════════════
+   Las tres velas del monograma imprimiéndose por turno. Sustituyen al círculo
+   genérico de shadcn (`Loader2` + `animate-spin`), que era lo que más veces se
+   miraba en una sesión y no llevaba nada de la marca.
+
+   La geometría NO se copia aquí: sale de `BrandMark.jsx`, que es la fuente.
+   Esto es sólo el movimiento. */
+
+@keyframes tcpro-imprimir {
+
+    0%,
+    100% {
+        opacity: .18;
+        transform: translateY(2.5px);
+    }
+
+    18%,
+    52% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tc-vela {
+    animation: tcpro-imprimir 1.08s cubic-bezier(.22, 1, .36, 1) infinite;
+    transform-origin: center bottom;
+}
+
+.tc-vela--2 {
+    animation-delay: .13s;
+}
+
+.tc-vela--3 {
+    animation-delay: .26s;
+}
+
+/* Cinta superior de 2 px para cambios de ruta y refrescos de fondo. Se mueve
+   con `transform`, nunca con `width`: `width` recalcula el diseño en cada
+   fotograma y una barra de progreso que provoca reflujo cuesta más que la
+   espera que anuncia. */
+@keyframes tcpro-cinta {
+    0% {
+        transform: translateX(-100%) scaleX(.35);
+    }
+
+    50% {
+        transform: translateX(0) scaleX(.62);
+    }
+
+    100% {
+        transform: translateX(100%) scaleX(.35);
+    }
+}
+
+.tc-cinta-barra {
+    animation: tcpro-cinta 1.25s cubic-bezier(.65, 0, .35, 1) infinite;
+    transform-origin: left center;
+}
+
+@keyframes tcpro-latido {
+
+    0%,
+    100% {
+        opacity: .35;
+    }
+
+    50% {
+        opacity: .75;
+    }
+}
+
+.tc-esqueleto {
+    animation: tcpro-latido 1.4s ease-in-out infinite;
+}
+
+/* La única animación de hover de la cabecera, a propósito: al pasar el ratón
+   por el logotipo —o al llegar con el tabulador— las velas se reimprimen una
+   vez. */
+.tc-marca-viva .tc-v {
+    transform-origin: center bottom;
+}
+
+.tc-marca-viva:hover .tc-v,
+a:hover .tc-marca-viva .tc-v,
+a:focus-visible .tc-marca-viva .tc-v {
+    animation: tcpro-imprimir .78s cubic-bezier(.22, 1, .36, 1) 1;
+}
+
+.tc-marca-viva .tc-v--2 {
+    animation-delay: .09s;
+}
+
+.tc-marca-viva .tc-v--3 {
+    animation-delay: .18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    /* ⚠️ Igual que en `.marquesina`: la regla global de accesibilidad deja
+       toda animación en 0,01 ms con una sola iteración, y aplicada a esto
+       congelaría las velas a media impresión —dos de ellas casi
+       transparentes— con pinta de adorno roto. Así que aquí la animación no
+       se acelera, se QUITA, y las velas se quedan quietas y a plena
+       opacidad. Quien pide menos movimiento sigue enterándose de que se
+       está esperando: eso lo dice `role="status"` y su texto, no el
+       movimiento. */
+    .tc-vela,
+    .tc-cinta-barra,
+    .tc-esqueleto {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
+
+    .tc-cinta-barra {
+        transform: scaleX(1);
+        opacity: .6;
+    }
+
+    .tc-marca-viva:hover .tc-v,
+    a:hover .tc-marca-viva .tc-v,
+    a:focus-visible .tc-marca-viva .tc-v {
+        animation: none;
+    }
+}

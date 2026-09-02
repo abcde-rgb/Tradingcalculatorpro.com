@@ -18,6 +18,7 @@ import ProfileCompletionPrompt from "@/components/auth/ProfileCompletionPrompt";
 // Eagerly loaded — visible immediately on first paint
 import LandingPage from "@/pages/LandingPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import { CargaMarca } from '@/components/common/BrandLoading';
 
 // After each deploy the old hashed chunks disappear from GitHub Pages; a
 // browser holding a stale index.html then 404s when lazy-loading a route
@@ -82,7 +83,7 @@ const VerifyEmailPage    = lazyRetry(() => import("@/pages/VerifyEmailPage"));
 function PageLoader() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <CargaMarca className="w-16 h-16" etiqueta="Cargando" />
     </div>
   );
 }

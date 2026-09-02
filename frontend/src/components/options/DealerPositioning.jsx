@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Info, Loader2 } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Info } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { fetchPositioning, calculateAdvancedGreeks } from '../../services/optionsApi';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 // Compact money formatter for GEX magnitudes (they run into millions/billions).
 const compact = (v) => {
@@ -100,7 +101,7 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
 
         {loading && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
-            <Loader2 className="w-4 h-4 animate-spin" /> {t('loading')}
+            <CargaVelas className="w-4 h-4" /> {t('loading')}
           </div>
         )}
 

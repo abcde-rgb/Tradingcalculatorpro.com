@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Search, X, Clock, Flame, ArrowUpRight, ArrowDownRight,
-  Bitcoin, Coins, DollarSign, LineChart, Layers, Building2, BarChart3, Loader2,
-} from 'lucide-react';
+  Bitcoin, Coins, DollarSign, LineChart, Layers, Building2, BarChart3 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { usePriceStore } from '@/lib/store';
 import { CRYPTO_LIST, COMMODITIES } from '@/lib/constants';
 import { universalSearchAPI } from '@/services/optionsApi';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 // ─────────────────────────────────────────────────────────────────────
 // Local curated catalogs (instant offline matches, no network call)
@@ -507,7 +507,7 @@ const UniversalAssetSearch = ({
           autoComplete="off"
           spellCheck={false}
         />
-        {remoteLoading && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin mr-1" />}
+        {remoteLoading && <CargaVelas className="w-3.5 h-3.5 text-primary mr-1" />}
         {query && (
           <button
             type="button"

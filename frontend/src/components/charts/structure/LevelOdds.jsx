@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Dices, Loader2, AlertTriangle } from 'lucide-react';
+import { Dices, AlertTriangle } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 /**
  * Qué ha hecho ESTE activo desde montajes como el de ahora.
@@ -85,7 +86,7 @@ export default function LevelOdds({ symbol, interval, period, onFetch }) {
           data-testid="odds-measure-btn"
         >
           {estado === 'loading'
-            ? <span className="flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />{t('oddsMeasuring')}</span>
+            ? <span className="flex items-center gap-1"><CargaVelas className="w-3 h-3" />{t('oddsMeasuring')}</span>
             : t('oddsMeasure')}
         </button>
       </div>

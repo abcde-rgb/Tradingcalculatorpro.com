@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles, CornerDownLeft, Search, AlertTriangle, Loader2 } from 'lucide-react';
+import { Sparkles, CornerDownLeft, Search, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { useAuthStore } from '@/lib/store';
 import { buildEduIndex, searchEdu, clearEduIndex } from '@/lib/eduIndex';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -208,7 +209,7 @@ export default function EduAssistant({ onGoToTopic }) {
                   enlaces son la respuesta y esto es el comentario. */}
               {thinking && (
                 <p className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground" data-testid="edu-ask-thinking">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <CargaVelas className="w-3.5 h-3.5" />
                   {t('eduAskThinking')}
                 </p>
               )}

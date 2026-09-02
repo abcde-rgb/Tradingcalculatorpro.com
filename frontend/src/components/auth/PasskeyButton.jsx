@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Fingerprint, Loader2 } from 'lucide-react';
+import { Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n';
 import { useAuthStore } from '@/lib/store';
 import { isPasskeySupported, loginWithPasskey, isCancellation } from '@/lib/passkeys';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -66,7 +67,7 @@ export default function PasskeyButton() {
       data-testid="passkey-login"
     >
       {busy
-        ? <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+        ? <CargaVelas className="mr-2 w-4 h-4" />
         : <Fingerprint className="mr-2 w-4 h-4" />}
       {t('passkeyLogin')}
     </Button>

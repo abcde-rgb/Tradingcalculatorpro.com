@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Crown, Check, CreditCard, Wallet, ArrowRight, Loader2, Building, ShoppingCart, Zap, Coins, Globe } from 'lucide-react';
+import { Crown, Check, CreditCard, Wallet, ArrowRight, Building, ShoppingCart, Zap, Coins, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -13,6 +13,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { PlanPeriod } from '@/components/pricing/PlanPeriod';
 import { toast } from 'sonner';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -442,7 +443,7 @@ export default function PricingPage() {
                         data-testid="checkout-btn"
                       >
                         {isLoading ? (
-                          <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
+                          <><CargaVelas className="w-5 h-5 mr-2" /> {t('processing')}</>
                         ) : (
                           <>Pagar con PayPal <ArrowRight className="ml-2" /></>
                         )}
@@ -455,7 +456,7 @@ export default function PricingPage() {
                         data-testid="checkout-btn"
                       >
                         {isLoading ? (
-                          <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
+                          <><CargaVelas className="w-5 h-5 mr-2" /> {t('processing')}</>
                         ) : isPremium ? (
                           <>{t('alreadyPremiumButton')}</>
                         ) : selectedPlan !== 'lifetime' && hayPrueba ? (

@@ -84,6 +84,14 @@
   declarada antes del primer enlace (Directiva Omnibus) y `rel="sponsored"`. Enlazada
   desde el pie, `noindex`. Lo que se puede publicar de cada uno **lo decide el
   servidor**, no la plantilla → [`BROKERS_REFERIDOS.md`](./BROKERS_REFERIDOS.md).
+- **Indicadores de espera con la marca** (2026-09-02) en `components/common/BrandLoading.jsx`:
+  las tres velas del monograma imprimiéndose por turno, en lugar del `Loader2` genérico de
+  shadcn que ocupaba los 85 puntos de espera de la web. Cinco piezas —`CargaVelas`,
+  `CargaMarca`, `CargaProgreso`, `CintaCarga` y `EsqueletoVelas`—, con la geometría
+  **importada** de `BrandMark.jsx`, que es la fuente única. `CargaProgreso` está construida
+  pero **deliberadamente sin cablear**: sólo vale con avance medido de verdad, y hoy ninguna
+  espera de la web conoce su porcentaje; fingirlo sería inventarse un dato. Con movimiento
+  reducido la animación se **quita** (no se acelera), igual que en `.marquesina`.
 - **Calculadoras** en `components/calculators/` — hoy son el **modo básico** del
   dashboard, con conmutador.
 - **Simulador de escalera en margen cruzado** (2026-08-22): la decimoquinta herramienta
