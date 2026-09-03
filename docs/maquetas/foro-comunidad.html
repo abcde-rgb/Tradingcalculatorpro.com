@@ -1,0 +1,1419 @@
+<title>Seis Foros de Comunidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   Seis maquetas de foro de comunidad — TradingCalculator.Pro
+   Tokens REALES del producto (frontend/src/index.css). Oscuro primero,
+   porque es el tema por defecto de la aplicación.
+   Reglas de `identidad-visual`: un solo acento, filete de 1px en vez de
+   sombra, dos radios, cero degradados, cero blur, tabular-nums en todo
+   número. La regleta sólo donde MIDE algo (maquetas 4 y 6).
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#101319; --surface:#171B22; --raise:#1D222B; --rule:#262C36;
+  --ink:#E7E2D6; --muted:#949AA3; --faint:#6E747E;
+  --accent:#17CF63; --accent-ink:#08110B; --accent-soft:rgba(23,207,99,.12);
+  --long:#22C55E; --short:#F26969; --warn:#F59E0B; --info:#7FB0FB;
+  --short-soft:rgba(242,105,105,.10); --warn-soft:rgba(245,158,11,.12);
+  --r-sharp:2px; --r-soft:10px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#F7F6F2; --surface:#FBFAF9; --raise:#F1EEE8; --rule:#DEDAD3;
+    --ink:#171B25; --muted:#5F6670; --faint:#8A8F98;
+    --accent:#115F31; --accent-ink:#FFFFFF; --accent-soft:rgba(17,95,49,.10);
+    --long:#127A3C; --short:#B21A1A; --warn:#89550B; --info:#1763C4;
+    --short-soft:rgba(178,26,26,.08); --warn-soft:rgba(137,85,11,.10);
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#F7F6F2; --surface:#FBFAF9; --raise:#F1EEE8; --rule:#DEDAD3;
+  --ink:#171B25; --muted:#5F6670; --faint:#8A8F98;
+  --accent:#115F31; --accent-ink:#FFFFFF; --accent-soft:rgba(17,95,49,.10);
+  --long:#127A3C; --short:#B21A1A; --warn:#89550B; --info:#1763C4;
+  --short-soft:rgba(178,26,26,.08); --warn-soft:rgba(137,85,11,.10);
+  color-scheme:light;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:'Inter Tight',Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:15px; line-height:1.5; margin:0;
+}
+h1,h2,h3,h4,p,figure,ul,ol{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:var(--r-sharp)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+.display{font-family:'Archivo',system-ui,sans-serif;font-weight:700;letter-spacing:-.022em}
+.mono,.num{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ── Cromo del previsualizador (no forma parte del diseño propuesto) ── */
+.chrome{
+  position:sticky; top:0; z-index:60; background:var(--surface);
+  border-bottom:1px solid var(--rule); padding:10px 16px;
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+}
+.chrome .marca{font-family:'Archivo',system-ui,sans-serif;font-weight:700;font-size:13px;letter-spacing:.02em;white-space:nowrap}
+.chrome .marca span{color:var(--muted);font-family:'Inter Tight',sans-serif;font-weight:500;letter-spacing:0}
+.tabs{display:flex; gap:4px; flex-wrap:wrap; margin-left:auto}
+.tabs button{
+  background:none;border:1px solid transparent;border-radius:var(--r-sharp);
+  padding:5px 10px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:color .12s ease,border-color .12s ease;
+}
+.tabs button:hover{color:var(--ink);border-color:var(--rule)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--rule);background:var(--raise)}
+.tabs button b{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:var(--accent)}
+.chrome .util{display:flex;gap:4px}
+.chrome .util button{
+  background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-sharp);
+  padding:5px 9px;font-size:12px;color:var(--muted);cursor:pointer
+}
+.chrome .util button:hover{color:var(--ink)}
+.chrome .util button[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+
+.brief{
+  padding:14px 16px 16px; border-bottom:1px solid var(--rule); background:var(--paper);
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr); gap:8px 32px; align-items:start;
+}
+.brief h2{font-family:'Archivo',sans-serif;font-size:16px;letter-spacing:-.02em}
+.brief h2 em{font-style:normal;color:var(--faint);font-family:'IBM Plex Mono',monospace;font-size:12px;margin-right:8px}
+.brief p{color:var(--muted);font-size:13.5px;max-width:62ch}
+.brief ul{padding:0;list-style:none;display:grid;gap:5px;font-size:12.5px}
+.brief li{display:grid;grid-template-columns:74px 1fr;gap:10px;color:var(--muted)}
+.brief li b{font-weight:600;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding-top:1px}
+.brief li.si b{color:var(--long)} .brief li.no b{color:var(--short)}
+.brief li.motor b{color:var(--info)}
+.brief li.motor span{color:var(--ink)}
+@media (max-width:820px){.brief{grid-template-columns:1fr}}
+
+.escenario{padding:24px 16px 64px}
+.stage{
+  container-type:inline-size; container-name:foro;
+  background:var(--paper); border:1px solid var(--rule); border-radius:var(--r-soft);
+  overflow:clip; margin:0 auto; max-width:1240px; transition:max-width .2s ease;
+}
+.stage.movil{max-width:390px}
+.screen{display:none}
+.screen.on{display:block}
+.nota-ej{font-size:11px;color:var(--faint);text-align:center;padding:10px 16px 0}
+
+/* ── Primitivas compartidas ─────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;border:1px solid var(--rule);
+  background:var(--raise);color:var(--ink);border-radius:var(--r-sharp);
+  padding:7px 13px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;
+  transition:border-color .12s ease,background .12s ease;
+}
+.btn:hover{border-color:var(--faint)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:12px}
+.inp{
+  width:100%;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-sharp);
+  padding:8px 11px;font-size:13.5px;
+}
+.inp:hover{border-color:var(--faint)}
+.inp::placeholder{color:var(--faint)}
+
+.avatar{
+  width:38px;height:38px;border-radius:999px;flex:none;display:grid;place-items:center;
+  background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);
+  font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;color:var(--accent);letter-spacing:.02em;
+}
+.avatar.p{width:28px;height:28px;font-size:11px}
+.avatar.g{width:46px;height:46px;font-size:17px}
+/* Los participantes de un hilo se apilan: dicen cuántos son sin ocupar una fila. */
+.pila{display:flex;align-items:center}
+.pila .avatar{margin-left:-7px;box-shadow:0 0 0 2px var(--surface)}
+.pila .avatar:first-child{margin-left:0}
+.pila .mas{font-size:11px;color:var(--faint);margin-left:7px}
+
+.chip{
+  display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;
+  font-size:11px;font-weight:600;letter-spacing:.02em;border:1px solid transparent;white-space:nowrap;
+}
+.chip.ok{color:var(--long);background:var(--accent-soft);border-color:color-mix(in srgb,var(--long) 30%,transparent)}
+.chip.av{color:var(--warn);background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.chip.no{color:var(--short);background:var(--short-soft);border-color:color-mix(in srgb,var(--short) 30%,transparent)}
+.chip.neu{color:var(--muted);background:var(--raise);border-color:var(--rule)}
+/* Etiqueta de tema: filete, nunca relleno de color. Un acento, no un arcoíris. */
+.et{
+  display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule);border-radius:var(--r-sharp);
+  padding:1px 7px;font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;
+}
+.et.act{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.et .pt{width:5px;height:5px;border-radius:999px;background:currentColor;opacity:.7}
+
+/* La regleta: filete con marcas de calibre. Elemento firma del producto. */
+.regleta{height:9px;border-top:1px solid var(--rule);position:relative;overflow:hidden}
+.regleta::before{
+  content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px 9px);
+  mask-image:linear-gradient(to bottom,#000 0 4px,transparent 4px);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0 4px,transparent 4px);
+}
+.regleta.densa::before{background:repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px 5px)}
+
+/* Escala de la operación: stop → entrada → objetivo a distancia REAL.
+   Es la regleta midiendo lo que el usuario acaba de dimensionar. */
+.escala{position:relative;height:34px;margin-top:12px}
+.escala .via{position:absolute;left:0;right:0;top:14px;height:1px;background:var(--rule)}
+.escala .tramo{position:absolute;top:12px;height:5px}
+.escala .tramo.r{background:color-mix(in srgb,var(--short) 45%,transparent)}
+.escala .tramo.b{background:color-mix(in srgb,var(--long) 45%,transparent)}
+.escala .marca{position:absolute;top:5px;width:1px;height:19px;background:var(--ink)}
+.escala .et-esc{
+  position:absolute;top:22px;transform:translateX(-50%);font-size:10px;white-space:nowrap;
+  font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:var(--faint);
+}
+.escala .et-esc.rojo{color:var(--short)} .escala .et-esc.verde{color:var(--long)}
+
+.icono{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.icono.g{width:18px;height:18px}
+.icono.p{width:13px;height:13px}
+.met{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.met .n{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:500}
+.up{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+
+/* ══ 1 · TABLÓN — categorías a la izquierda, últimos hilos en tabla ══ */
+#f1{grid-template-columns:248px minmax(0,1fr);min-height:660px}
+#f1.on{display:grid}
+#f1 .lat{border-right:1px solid var(--rule);background:var(--surface);padding:16px 12px;display:grid;gap:18px;align-content:start}
+#f1 .lat h3{margin:0 6px 8px}
+#f1 .lat nav{display:grid;gap:1px}
+#f1 .lat nav a{
+  display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:8px 10px;text-decoration:none;
+  border-left:2px solid var(--rule);border-radius:0 var(--r-sharp) var(--r-sharp) 0;
+}
+#f1 .lat nav a:hover{background:var(--raise)}
+#f1 .lat nav a.act{background:var(--raise);border-left-color:var(--accent)}
+#f1 .lat nav a b{font-weight:500;font-size:13.5px}
+#f1 .lat nav a .c{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+#f1 .lat nav a .d{grid-column:1/-1;font-size:11.5px;color:var(--faint);line-height:1.35}
+#f1 .pral{min-width:0}
+#f1 .cab{padding:16px 22px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+#f1 .cab h1{font-family:'Archivo',sans-serif;font-size:20px;letter-spacing:-.025em}
+#f1 .filtros{display:flex;gap:2px;margin-left:auto}
+#f1 .filtros button{
+  background:none;border:1px solid transparent;border-bottom:2px solid transparent;
+  padding:5px 10px;font-size:13px;color:var(--muted);cursor:pointer;font-weight:500;
+}
+#f1 .filtros button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+#f1 table{width:100%;border-collapse:collapse}
+#f1 thead th{
+  text-align:right;padding:9px 14px;border-bottom:1px solid var(--rule);background:var(--surface);
+  font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);
+}
+#f1 thead th:first-child{text-align:left;padding-left:22px}
+#f1 tbody td{padding:13px 14px;border-bottom:1px solid var(--rule);vertical-align:middle;text-align:right}
+#f1 tbody td:first-child{text-align:left;padding-left:22px;width:100%}
+#f1 tbody tr:hover{background:var(--surface)}
+#f1 .tit{display:block;font-weight:500;font-size:14px;text-decoration:none;line-height:1.35}
+#f1 .tit:hover{color:var(--accent)}
+#f1 .sub{display:flex;align-items:center;gap:7px;margin-top:5px;flex-wrap:wrap}
+#f1 .cifra{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:13px}
+#f1 .cifra.q{color:var(--faint);font-size:12px}
+#f1 .fijado{color:var(--accent)}
+@container foro (max-width:900px){
+  #f1{grid-template-columns:1fr}
+  #f1 .lat{border-right:0;border-bottom:1px solid var(--rule)}
+  #f1 .lat nav{grid-auto-flow:column;grid-auto-columns:minmax(150px,max-content);overflow-x:auto}
+  #f1 .lat nav a .d{display:none}
+  #f1 .lat .bloque-perfil{display:none}
+  #f1 thead th:not(:first-child),#f1 tbody td:not(:first-child){display:none}
+  #f1 tbody td:first-child,#f1 thead th:first-child{padding-left:16px}
+}
+
+/* ══ 2 · FLUJO — una sola corriente de hilos, etiquetas en vez de foros ══ */
+#f2{grid-template-columns:200px minmax(0,1fr);min-height:660px}
+#f2.on{display:grid}
+#f2 .rail{border-right:1px solid var(--rule);padding:18px 10px;display:grid;gap:20px;align-content:start}
+#f2 .rail .nuevo{width:100%;justify-content:center}
+#f2 .rail nav{display:grid;gap:1px}
+#f2 .rail nav a{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--r-sharp);text-decoration:none;font-size:13.5px;color:var(--muted)}
+#f2 .rail nav a:hover{background:var(--surface);color:var(--ink)}
+#f2 .rail nav a.act{background:var(--surface);color:var(--ink);font-weight:500}
+#f2 .rail nav a .c{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint)}
+#f2 .rail .ets{display:flex;flex-wrap:wrap;gap:5px;padding:0 4px}
+#f2 .flujo{min-width:0}
+#f2 .compositor{
+  display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--rule);
+  position:sticky;top:0;background:var(--paper);z-index:2;
+}
+#f2 .hilo{
+  display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:0 14px;align-items:start;
+  padding:15px 22px;border-bottom:1px solid var(--rule);cursor:pointer;
+}
+#f2 .hilo:hover{background:var(--surface)}
+#f2 .hilo.sin-leer{border-left:2px solid var(--accent);padding-left:20px}
+#f2 .hilo h4{font-weight:500;font-size:14.5px;line-height:1.35}
+#f2 .hilo .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--muted)}
+#f2 .hilo .extracto{margin-top:7px;font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:74ch}
+#f2 .burbuja{
+  display:grid;place-items:center;min-width:44px;padding:5px 8px;border:1px solid var(--rule);
+  border-radius:var(--r-sharp);background:var(--surface);text-align:center;
+}
+#f2 .burbuja b{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:500;line-height:1.1}
+#f2 .burbuja span{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+#f2 .burbuja.viva{border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+#f2 .burbuja.viva b{color:var(--accent)}
+#f2 .cargar{padding:18px;text-align:center}
+@container foro (max-width:820px){
+  #f2{grid-template-columns:1fr}
+  #f2 .rail{border-right:0;border-bottom:1px solid var(--rule);grid-auto-flow:column;align-items:center;gap:10px;overflow-x:auto}
+  #f2 .rail nav{grid-auto-flow:column;grid-auto-columns:max-content}
+  #f2 .rail .ets{display:none}
+  #f2 .hilo{grid-template-columns:32px minmax(0,1fr);padding:14px 16px}
+  #f2 .hilo.sin-leer{padding-left:14px}
+  #f2 .burbuja{grid-column:2;justify-self:start;margin-top:9px;flex-direction:row}
+  #f2 .compositor{padding:12px 16px}
+}
+
+/* ══ 3 · PREGUNTAS — votos a la izquierda, respuesta aceptada marcada ══ */
+#f3{grid-template-columns:minmax(0,1fr) 268px;min-height:660px}
+#f3.on{display:grid}
+#f3 .col{min-width:0;border-right:1px solid var(--rule)}
+#f3 .cab{padding:16px 22px;border-bottom:1px solid var(--rule);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+#f3 .cab h1{font-family:'Archivo',sans-serif;font-size:20px;letter-spacing:-.025em}
+#f3 .q{display:grid;grid-template-columns:56px 62px minmax(0,1fr);gap:0 16px;padding:16px 22px;border-bottom:1px solid var(--rule)}
+#f3 .q:hover{background:var(--surface)}
+#f3 .voto{display:grid;justify-items:center;gap:1px;color:var(--muted)}
+#f3 .voto .n{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:17px;color:var(--ink);line-height:1.1}
+#f3 .voto .l{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+#f3 .voto button{background:none;border:0;padding:0;cursor:pointer;color:var(--faint);line-height:0}
+#f3 .voto button:hover{color:var(--accent)}
+#f3 .voto button.dado{color:var(--accent)}
+#f3 .resp{
+  display:grid;justify-items:center;align-content:center;gap:1px;border:1px solid var(--rule);
+  border-radius:var(--r-sharp);height:52px;align-self:start;
+}
+#f3 .resp b{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:500}
+#f3 .resp span{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+#f3 .resp.aceptada{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+#f3 .resp.aceptada b,#f3 .resp.aceptada span{color:var(--accent)}
+#f3 .q h4{font-weight:500;font-size:14.5px;line-height:1.35}
+#f3 .q h4 a{text-decoration:none}
+#f3 .q h4 a:hover{color:var(--accent)}
+#f3 .q .cuerpo{margin-top:6px;font-size:13px;color:var(--muted);max-width:74ch}
+#f3 .q .pie{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:var(--muted)}
+#f3 aside{padding:18px 16px;display:grid;gap:20px;align-content:start;background:var(--surface)}
+#f3 aside h3{margin-bottom:9px}
+#f3 .aceptada-caja{border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-left-width:3px;border-radius:var(--r-sharp);padding:12px 13px;background:var(--accent-soft)}
+#f3 .aceptada-caja p{font-size:12.5px;color:var(--ink);margin-top:7px}
+#f3 .seo{border:1px solid var(--rule);border-radius:var(--r-sharp);padding:12px 13px;background:var(--paper)}
+#f3 .seo code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--info);display:block;margin-top:6px;word-break:break-all}
+@container foro (max-width:900px){
+  #f3{grid-template-columns:1fr}
+  #f3 .col{border-right:0}
+  #f3 aside{border-top:1px solid var(--rule)}
+  #f3 .q{grid-template-columns:46px minmax(0,1fr);gap:0 12px;padding:14px 16px}
+  #f3 .resp{grid-column:1;grid-row:2;margin-top:10px;height:42px;width:46px}
+  #f3 .q h4,#f3 .q .cuerpo,#f3 .q .pie{grid-column:2}
+  #f3 .q .cuerpo{grid-row:2} #f3 .q .pie{grid-row:3}
+}
+
+/* ══ 4 · MURO — tarjetas con la operación adjunta ═════════════════ */
+#f4{min-height:660px}
+#f4 .cab{padding:16px 22px;border-bottom:1px solid var(--rule);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+#f4 .cab h1{font-family:'Archivo',sans-serif;font-size:20px;letter-spacing:-.025em}
+#f4 .cuerpo{display:grid;grid-template-columns:minmax(0,1fr) 252px}
+#f4 .muro{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border-right:1px solid var(--rule)}
+#f4 .post{background:var(--paper);padding:16px 18px;display:grid;gap:10px;align-content:start}
+#f4 .post:hover{background:var(--surface)}
+#f4 .autor{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted)}
+#f4 .autor b{color:var(--ink);font-weight:500;font-size:13px}
+#f4 .post h4{font-weight:600;font-size:15px;line-height:1.3}
+#f4 .post .extracto{font-size:13px;color:var(--muted)}
+#f4 .ficha-op{border:1px solid var(--rule);border-radius:var(--r-sharp);padding:10px 12px;background:var(--surface)}
+#f4 .ficha-op .fila1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+#f4 .ficha-op .sim{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13.5px;letter-spacing:.01em}
+#f4 .ficha-op .dir{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+#f4 .ficha-op .dir.l{color:var(--long)} #f4 .ficha-op .dir.c{color:var(--short)}
+#f4 .ficha-op dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:9px 0 0}
+#f4 .ficha-op dt{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+#f4 .ficha-op dd{margin:2px 0 0;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:12.5px}
+#f4 .acciones{display:flex;align-items:center;gap:14px;padding-top:2px}
+#f4 .acciones button{background:none;border:0;padding:0;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+#f4 .acciones button:hover{color:var(--accent)}
+#f4 .acciones button.dado{color:var(--accent)}
+#f4 aside{padding:18px 16px;display:grid;gap:20px;align-content:start;background:var(--surface)}
+#f4 aside h3{margin-bottom:9px}
+#f4 .tira{display:grid;gap:7px}
+#f4 .tira .l{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted)}
+#f4 .tira .l b{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:500}
+@container foro (max-width:1000px){#f4 .muro{grid-template-columns:1fr}}
+@container foro (max-width:820px){
+  #f4 .cuerpo{grid-template-columns:1fr}
+  #f4 .muro{border-right:0}
+  #f4 aside{border-top:1px solid var(--rule)}
+  #f4 .ficha-op dl{grid-template-columns:1fr 1fr}
+}
+
+/* ══ 5 · SALAS — canales, temas y mensajes en directo ═════════════ */
+#f5{grid-template-columns:186px 232px minmax(0,1fr);min-height:660px}
+#f5.on{display:grid}
+#f5 .canales{background:var(--surface);border-right:1px solid var(--rule);padding:14px 8px;display:grid;gap:16px;align-content:start}
+#f5 .canales nav{display:grid;gap:1px}
+#f5 .canales a{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:var(--r-sharp);text-decoration:none;font-size:13px;color:var(--muted)}
+#f5 .canales a:hover{background:var(--raise);color:var(--ink)}
+#f5 .canales a.act{background:var(--raise);color:var(--ink);font-weight:500}
+#f5 .canales a .h{font-family:'IBM Plex Mono',monospace;color:var(--faint)}
+#f5 .canales a .n{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10.5px;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 5px;font-weight:600}
+#f5 .temas{border-right:1px solid var(--rule);display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0}
+#f5 .temas .t-cab{padding:13px 14px;border-bottom:1px solid var(--rule)}
+#f5 .temas ul{list-style:none;padding:6px;display:grid;gap:1px;align-content:start;overflow:auto}
+#f5 .temas li a{display:grid;gap:3px;padding:9px 10px;border-radius:var(--r-sharp);text-decoration:none;border-left:2px solid transparent}
+#f5 .temas li a:hover{background:var(--surface)}
+#f5 .temas li a.act{background:var(--surface);border-left-color:var(--accent)}
+#f5 .temas li b{font-weight:500;font-size:13px;line-height:1.3}
+#f5 .temas li .m{display:flex;gap:8px;font-size:11.5px;color:var(--faint);align-items:center}
+#f5 .sala{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-width:0}
+#f5 .s-cab{padding:12px 20px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#f5 .s-cab h1{font-family:'Archivo',sans-serif;font-size:16px;letter-spacing:-.02em}
+#f5 .vivo{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--accent)}
+#f5 .vivo .pt{width:6px;height:6px;border-radius:999px;background:var(--accent);animation:latido 2.4s ease-in-out infinite}
+@keyframes latido{0%,100%{opacity:1}50%{opacity:.35}}
+#f5 .mensajes{padding:14px 20px;display:grid;gap:14px;align-content:start;overflow:auto}
+#f5 .msg{display:grid;grid-template-columns:28px minmax(0,1fr);gap:0 11px}
+#f5 .msg .l1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+#f5 .msg .l1 b{font-weight:600;font-size:13px}
+#f5 .msg .l1 time{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:11px;color:var(--faint)}
+#f5 .msg p{font-size:13.5px;margin-top:3px;max-width:70ch}
+#f5 .msg .cita{border-left:2px solid var(--rule);padding:3px 0 3px 10px;margin-top:7px;font-size:12.5px;color:var(--muted)}
+#f5 .msg .adj{margin-top:8px;border:1px solid var(--rule);border-radius:var(--r-sharp);padding:9px 11px;background:var(--surface);display:inline-flex;gap:16px;flex-wrap:wrap}
+#f5 .msg .adj div{display:grid;gap:2px}
+#f5 .msg .adj dt{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+#f5 .msg .adj dd{margin:0;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:12.5px}
+#f5 .escribir{padding:12px 20px;border-top:1px solid var(--rule);display:flex;gap:10px;align-items:center}
+#f5 .tecleando{font-size:11.5px;color:var(--faint);padding:0 20px 10px}
+@container foro (max-width:1000px){#f5{grid-template-columns:160px minmax(0,1fr)} #f5 .temas{display:none}}
+@container foro (max-width:720px){
+  #f5{grid-template-columns:1fr}
+  #f5 .canales{border-right:0;border-bottom:1px solid var(--rule)}
+  #f5 .canales nav{grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto}
+  #f5 .canales .bloque-pres{display:none}
+}
+
+/* ══ 6 · HILO DE OPERACIÓN — el foro pegado a la calculadora ══════ */
+#f6{grid-template-columns:minmax(0,1fr) 286px;min-height:660px}
+#f6.on{display:grid}
+#f6 .hilo{min-width:0;border-right:1px solid var(--rule)}
+#f6 .h-cab{padding:20px 24px 16px;border-bottom:1px solid var(--rule)}
+#f6 .h-cab .ruta{font-size:11.5px;color:var(--faint);display:flex;gap:6px;align-items:center;margin-bottom:8px}
+#f6 .h-cab h1{font-family:'Archivo',sans-serif;font-size:22px;letter-spacing:-.028em;line-height:1.22;text-wrap:balance;max-width:34ch}
+#f6 .h-cab .m{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:11px;font-size:12.5px;color:var(--muted)}
+#f6 .tarjeta-op{margin:18px 24px;border:1px solid var(--rule);border-radius:var(--r-soft);background:var(--surface);overflow:hidden}
+#f6 .tarjeta-op .t-cab{padding:13px 16px 11px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--rule)}
+#f6 .tarjeta-op .sim{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px}
+#f6 .tarjeta-op .dir{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--long)}
+#f6 .tarjeta-op .fuente{margin-left:auto;font-size:11px;color:var(--faint);display:inline-flex;align-items:center;gap:5px}
+#f6 .tarjeta-op .datos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--rule)}
+#f6 .tarjeta-op .datos > div{background:var(--surface);padding:11px 14px}
+#f6 .tarjeta-op dt{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+#f6 .tarjeta-op dd{margin:4px 0 0;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:15px}
+#f6 .tarjeta-op dd.rojo{color:var(--short)} #f6 .tarjeta-op dd.verde{color:var(--long)}
+#f6 .tarjeta-op .pie-esc{padding:6px 14px 14px}
+#f6 .respuestas{padding:4px 24px 24px;display:grid;gap:0}
+#f6 .r{display:grid;grid-template-columns:38px minmax(0,1fr);gap:0 14px;padding:16px 0;border-top:1px solid var(--rule)}
+#f6 .r .l1{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+#f6 .r .l1 b{font-weight:600;font-size:13.5px}
+#f6 .r .l1 time{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--faint)}
+#f6 .r p{font-size:13.5px;margin-top:6px;max-width:70ch}
+#f6 .variante{
+  margin-top:10px;border:1px solid var(--rule);border-left:2px solid var(--warn);border-radius:var(--r-sharp);
+  padding:10px 13px;background:var(--surface);display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end;
+}
+#f6 .variante div{display:grid;gap:2px}
+#f6 .variante dt{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+#f6 .variante dd{margin:0;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:13px}
+#f6 .variante .delta{margin-left:auto;font-size:11.5px;color:var(--warn)}
+#f6 .r .acc{display:flex;gap:14px;margin-top:9px}
+#f6 .r .acc button{background:none;border:0;padding:0;cursor:pointer;font-size:12px;color:var(--muted);display:inline-flex;gap:5px;align-items:center}
+#f6 .r .acc button:hover{color:var(--accent)}
+#f6 .responder{margin:0 24px 24px;border:1px solid var(--rule);border-radius:var(--r-soft);padding:13px 14px;display:grid;gap:10px}
+#f6 .responder textarea{width:100%;min-height:64px;resize:vertical;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-sharp);padding:9px 11px;font-size:13.5px}
+#f6 .responder .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#f6 aside{padding:18px 16px;display:grid;gap:20px;align-content:start;background:var(--surface)}
+#f6 aside h3{margin-bottom:9px}
+#f6 .calc{border:1px solid var(--rule);border-radius:var(--r-sharp);background:var(--paper);padding:12px 13px;display:grid;gap:9px}
+#f6 .calc .l{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted)}
+#f6 .calc .l span{min-width:0}
+/* La cifra no se parte: «1,0 % · 250 $» con el «$» solo en la línea de abajo
+   deja de leerse como una cantidad. */
+#f6 .calc .l b{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:500;white-space:nowrap;text-align:right}
+#f6 .rel{display:grid;gap:1px}
+#f6 .rel a{display:grid;gap:3px;padding:9px 10px;text-decoration:none;border-left:2px solid var(--rule);background:var(--paper)}
+#f6 .rel a:hover{border-left-color:var(--accent)}
+#f6 .rel b{font-weight:500;font-size:12.5px;line-height:1.3}
+#f6 .rel span{font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace}
+@container foro (max-width:940px){
+  #f6{grid-template-columns:1fr}
+  #f6 .hilo{border-right:0}
+  #f6 aside{border-top:1px solid var(--rule)}
+  #f6 .tarjeta-op .datos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #f6 .h-cab,#f6 .respuestas{padding-left:16px;padding-right:16px}
+  #f6 .tarjeta-op,#f6 .responder{margin-left:16px;margin-right:16px}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <path id="p-msg" d="M20 14.5a2 2 0 0 1-2 2H8l-4 3V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/>
+    <path id="p-et" d="M20.6 13.4 12.7 5.5A2 2 0 0 0 11.3 5H5a2 2 0 0 0-2 2v6.3c0 .5.2 1 .6 1.4l7.9 7.9a2 2 0 0 0 2.8 0l6.3-6.3a2 2 0 0 0 0-2.9zM7.5 7.5h.01"/>
+    <path id="p-marcador" d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    <path id="p-escudo" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    <path id="p-arriba" d="m6 15 6-6 6 6"/>
+    <path id="p-abajo" d="m6 9 6 6 6-6"/>
+    <path id="p-check" d="m20 6-11 11-5-5"/>
+    <path id="p-vela" d="M7 3v4M7 17v4M4.5 7h5v10h-5zM17 5v4M17 16v3M14.5 9h5v7h-5z"/>
+    <path id="p-reloj" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/>
+    <path id="p-hash" d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>
+    <path id="p-user" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+    <path id="p-ojo" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+    <path id="p-calc" d="M6 2h12a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM8 6h8v3H8zM8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/>
+    <path id="p-pin" d="M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z"/>
+    <path id="p-buscar" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"/>
+    <path id="p-enviar" d="m22 2-7 20-4-9-9-4z"/>
+    <path id="p-adj" d="M21.4 11.05 12.2 20.2a5 5 0 0 1-7.1-7.1l9.2-9.2a3.3 3.3 0 1 1 4.7 4.7l-9.2 9.2a1.7 1.7 0 0 1-2.4-2.4l8.5-8.5"/>
+    <path id="p-doc" d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7zM14 2v5h5M9 13h6M9 17h6"/>
+    <path id="p-mas" d="M12 5v14M5 12h14"/>
+    <path id="p-campana" d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>
+    <path id="p-der" d="m9 6 6 6-6 6"/>
+  </defs>
+</svg>
+
+<header class="chrome">
+  <div class="marca">Foro de la comunidad <span>· 6 maquetas, 6 motores</span></div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" aria-selected="true" data-v="f1"><b>01</b> Tablón</button>
+    <button role="tab" aria-selected="false" data-v="f2"><b>02</b> Flujo</button>
+    <button role="tab" aria-selected="false" data-v="f3"><b>03</b> Preguntas</button>
+    <button role="tab" aria-selected="false" data-v="f4"><b>04</b> Muro</button>
+    <button role="tab" aria-selected="false" data-v="f5"><b>05</b> Salas</button>
+    <button role="tab" aria-selected="false" data-v="f6"><b>06</b> Hilo de operación</button>
+  </div>
+  <div class="util">
+    <button id="btn-tema" aria-pressed="false" title="Cambiar de tema">Claro</button>
+    <button id="btn-movil" aria-pressed="false" title="Ver a 390 px de ancho">Móvil</button>
+  </div>
+</header>
+
+<section class="brief" id="brief">
+  <div>
+    <h2><em id="b-num">01</em><span id="b-nombre">Tablón</span></h2>
+    <p id="b-tesis"></p>
+  </div>
+  <ul>
+    <li class="motor"><b>Motor</b><span id="b-motor"></span></li>
+    <li class="si"><b>A favor</b><span id="b-si"></span></li>
+    <li class="no"><b>En contra</b><span id="b-no"></span></li>
+    <li><b>Coste</b><span id="b-coste"></span></li>
+  </ul>
+</section>
+
+<p class="nota-ej">Datos de ejemplo — ni las cifras ni los mensajes corresponden a cuentas u operaciones reales.</p>
+
+<div class="escenario">
+<div class="stage" id="stage">
+
+<!-- ═══════════ 1 · TABLÓN ═══════════ -->
+<section class="screen on" id="f1" aria-label="Maqueta 1: tablón por categorías">
+  <div class="lat">
+    <div>
+      <h3 class="up">Categorías</h3>
+      <nav>
+        <a href="#" class="act">
+          <b>Dimensionar y riesgo</b><span class="c">412</span>
+          <span class="d">Tamaño de posición, valor del pip, tope por operación</span>
+        </a>
+        <a href="#">
+          <b>Diario y métricas</b><span class="c">268</span>
+          <span class="d">R múltiplo, expectativa, curva de equity, drawdown</span>
+        </a>
+        <a href="#">
+          <b>Opciones y griegas</b><span class="c">197</span>
+          <span class="d">Estructuras, IV, delta, gamma, vencimientos</span>
+        </a>
+        <a href="#">
+          <b>Acción del precio</b><span class="c">331</span>
+          <span class="d">Estructura, BOS y CHoCH, FVG, zonas</span>
+        </a>
+        <a href="#">
+          <b>Errores y psicología</b><span class="c">154</span>
+          <span class="d">Saltarse el stop, sobreoperar, revancha</span>
+        </a>
+        <a href="#">
+          <b>Producto y avisos</b><span class="c">46</span>
+          <span class="d">Cambios, betas y fallos de la calculadora</span>
+        </a>
+      </nav>
+    </div>
+    <div class="bloque-perfil">
+      <h3 class="up">Tu actividad</h3>
+      <div style="display:grid;gap:6px;padding:0 6px;font-size:12.5px;color:var(--muted)">
+        <div style="display:flex;justify-content:space-between"><span>Temas abiertos</span><b class="mono" style="color:var(--ink);font-weight:500">7</b></div>
+        <div style="display:flex;justify-content:space-between"><span>Respuestas</span><b class="mono" style="color:var(--ink);font-weight:500">143</b></div>
+        <div style="display:flex;justify-content:space-between"><span>Marcadas útiles</span><b class="mono" style="color:var(--accent);font-weight:500">31</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pral">
+    <div class="cab">
+      <h1>Dimensionar y riesgo</h1>
+      <div class="filtros" role="tablist">
+        <button role="tab" aria-selected="true">Últimos</button>
+        <button role="tab" aria-selected="false">Sin responder</button>
+        <button role="tab" aria-selected="false">Más leídos</button>
+      </div>
+      <button class="btn pri"><svg class="icono"><use href="#p-mas"/></svg>Nuevo tema</button>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>Tema</th><th>Participantes</th><th>Respuestas</th><th>Vistas</th><th>Actividad</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <a href="#" class="tit"><svg class="icono p fijado" style="vertical-align:-1px;margin-right:5px"><use href="#p-pin"/></svg>EURGBP no te da el riesgo en euros: qué hacer con un cruce sin tu divisa</a>
+            <div class="sub"><span class="et"><span class="pt"></span>dimensionar</span><span class="et">forex</span><span class="chip ok"><svg class="icono p"><use href="#p-check"/></svg>Guía de la casa</span></div>
+          </td>
+          <td><div class="pila"><span class="avatar p">MI</span><span class="avatar p">ÁR</span><span class="avatar p">KT</span><span class="mas">+21</span></div></td>
+          <td><span class="cifra">84</span></td>
+          <td><span class="cifra q">6,2k</span></td>
+          <td><span class="cifra q">2 h</span></td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#" class="tit">«10 $/pip por lote» en USDJPY: el atajo que me costó 340 $ en una sola entrada</a>
+            <div class="sub"><span class="et"><span class="pt"></span>dimensionar</span><span class="et">forex</span></div>
+          </td>
+          <td><div class="pila"><span class="avatar p">DS</span><span class="avatar p">NB</span><span class="mas">+12</span></div></td>
+          <td><span class="cifra">47</span></td>
+          <td><span class="cifra q">3,1k</span></td>
+          <td><span class="cifra q">4 h</span></td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#" class="tit">58 % de aciertos y R medio −0,42. ¿Qué estoy midiendo mal?</a>
+            <div class="sub"><span class="et">diario</span><span class="et">métricas</span></div>
+          </td>
+          <td><div class="pila"><span class="avatar p">SL</span><span class="avatar p">MI</span><span class="avatar p">DS</span><span class="mas">+17</span></div></td>
+          <td><span class="cifra">61</span></td>
+          <td><span class="cifra q">2,8k</span></td>
+          <td><span class="cifra q">6 h</span></td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#" class="tit">Iron condor sobre SPX: ¿la pérdida máxima es de verdad anchura − crédito?</a>
+            <div class="sub"><span class="et">opciones</span><span class="et">spreads</span></div>
+          </td>
+          <td><div class="pila"><span class="avatar p">KT</span><span class="avatar p">ÁR</span><span class="mas">+8</span></div></td>
+          <td><span class="cifra">29</span></td>
+          <td><span class="cifra q">1,4k</span></td>
+          <td><span class="cifra q">9 h</span></td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#" class="tit">Cuántos toques pedís a la zona antes de dar por válido un CHoCH en H4</a>
+            <div class="sub"><span class="et">acción del precio</span><span class="et">estructura</span></div>
+          </td>
+          <td><div class="pila"><span class="avatar p">NB</span><span class="avatar p">SL</span><span class="avatar p">KT</span><span class="mas">+34</span></div></td>
+          <td><span class="cifra">112</span></td>
+          <td><span class="cifra q">5,0k</span></td>
+          <td><span class="cifra q">11 h</span></td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#" class="tit">Tres semanas moviendo el stop hacia abajo. Cómo lo cortasteis vosotros</a>
+            <div class="sub"><span class="et">psicología</span><span class="et">disciplina</span></div>
+          </td>
+          <td><div class="pila"><span class="avatar p">ÁR</span><span class="avatar p">DS</span><span class="mas">+26</span></div></td>
+          <td><span class="cifra">73</span></td>
+          <td><span class="cifra q">4,4k</span></td>
+          <td><span class="cifra q">1 d</span></td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#" class="tit">Cierres parciales en el diario: se abre la beta esta semana</a>
+            <div class="sub"><span class="et">producto</span><span class="chip neu">Equipo</span></div>
+          </td>
+          <td><div class="pila"><span class="avatar p">TC</span><span class="avatar p">MI</span><span class="mas">+5</span></div></td>
+          <td><span class="cifra">18</span></td>
+          <td><span class="cifra q">903</span></td>
+          <td><span class="cifra q">1 d</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 2 · FLUJO ═══════════ -->
+<section class="screen" id="f2" aria-label="Maqueta 2: flujo continuo de hilos">
+  <div class="rail">
+    <button class="btn pri nuevo"><svg class="icono"><use href="#p-mas"/></svg>Escribir</button>
+    <nav>
+      <a href="#" class="act"><svg class="icono"><use href="#p-msg"/></svg>Todo<span class="c">1.408</span></a>
+      <a href="#"><svg class="icono"><use href="#p-marcador"/></svg>Siguiendo<span class="c">23</span></a>
+      <a href="#"><svg class="icono"><use href="#p-campana"/></svg>Sin leer<span class="c">6</span></a>
+      <a href="#"><svg class="icono"><use href="#p-user"/></svg>Tuyos<span class="c">7</span></a>
+    </nav>
+    <div>
+      <h3 class="up" style="padding:0 6px 8px">Etiquetas</h3>
+      <div class="ets">
+        <span class="et act"><span class="pt"></span>dimensionar</span>
+        <span class="et">diario</span>
+        <span class="et">opciones</span>
+        <span class="et">futuros</span>
+        <span class="et">forex</span>
+        <span class="et">estructura</span>
+        <span class="et">psicología</span>
+        <span class="et">producto</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flujo">
+    <div class="compositor">
+      <span class="avatar">MI</span>
+      <input class="inp" placeholder="Escribe un tema… ¿qué te ha pasado hoy en el mercado?" aria-label="Nuevo tema">
+    </div>
+
+    <article class="hilo sin-leer">
+      <span class="avatar">KT</span>
+      <div>
+        <h4>Iron condor sobre SPX: ¿la pérdida máxima es de verdad anchura − crédito?</h4>
+        <p class="extracto">Vendo el 5.150/5.100 por abajo y el 5.500/5.550 por arriba, crédito 6,40. Yo lo apunto como 43,60 por contrato de riesgo, o sea 4.360 $, pero mi bróker me bloquea otra cifra distinta y no sé cuál llevar al diario.</p>
+        <div class="meta">
+          <span class="et">opciones</span><span class="et">spreads</span>
+          <span>·</span><span>Kenji T. abrió hace 9 h</span><span>·</span><span>última: Álvaro R. hace 12 min</span>
+        </div>
+      </div>
+      <div class="burbuja viva"><b>29</b><span>resp.</span></div>
+    </article>
+
+    <article class="hilo">
+      <span class="avatar">SL</span>
+      <div>
+        <h4>58 % de aciertos y R medio −0,42. ¿Qué estoy midiendo mal?</h4>
+        <p class="extracto">Gano más veces de las que pierdo y la cuenta baja. He revisado las 137 operaciones del trimestre y las ganadoras me salen a 0,6R de media contra 1,8R las perdedoras. ¿Es el stop o es que cierro antes de tiempo?</p>
+        <div class="meta">
+          <span class="et">diario</span><span class="et">métricas</span>
+          <span>·</span><span>Sofía L. abrió hace 6 h</span><span>·</span><span>última: hace 41 min</span>
+        </div>
+      </div>
+      <div class="burbuja"><b>61</b><span>resp.</span></div>
+    </article>
+
+    <article class="hilo sin-leer">
+      <span class="avatar">DS</span>
+      <div>
+        <h4>«10 $/pip por lote» en USDJPY: el atajo que me costó 340 $ en una sola entrada</h4>
+        <p class="extracto">Copié la tabla de un blog y dimensioné como si el pip valiera siempre 10 $. En USDJPY un lote son 1.000 ¥ por pip, que al cambio de ese día eran 6,36 $. Puse un 57 % más de tamaño del que creía.</p>
+        <div class="meta">
+          <span class="et act"><span class="pt"></span>dimensionar</span><span class="et">forex</span>
+          <span>·</span><span>Diego S. abrió hace 4 h</span><span>·</span><span>última: hace 8 min</span>
+        </div>
+      </div>
+      <div class="burbuja viva"><b>47</b><span>resp.</span></div>
+    </article>
+
+    <article class="hilo">
+      <span class="avatar">NB</span>
+      <div>
+        <h4>Cuántos toques pedís a la zona antes de dar por válido un CHoCH en H4</h4>
+        <p class="extracto">Con dos toques me entran muchos falsos; con tres llego tarde a la mitad. ¿Alguien lleva la estadística separada por marco temporal? Yo tengo 88 entradas etiquetadas y la diferencia de expectativa es menor de lo que esperaba.</p>
+        <div class="meta">
+          <span class="et">estructura</span><span class="et">acción del precio</span>
+          <span>·</span><span>Nuria B. abrió hace 11 h</span><span>·</span><span>última: hace 2 h</span>
+        </div>
+      </div>
+      <div class="burbuja"><b>112</b><span>resp.</span></div>
+    </article>
+
+    <article class="hilo">
+      <span class="avatar">ÁR</span>
+      <div>
+        <h4>Tres semanas moviendo el stop hacia abajo. Cómo lo cortasteis vosotros</h4>
+        <p class="extracto">Sé exactamente lo que hago y lo hago igual. Lo que me ha funcionado a medias es meter la orden de stop a la vez que la de entrada, pero sigo cancelándola. Busco métodos, no ánimos.</p>
+        <div class="meta">
+          <span class="et">psicología</span><span class="et">disciplina</span>
+          <span>·</span><span>Álvaro R. abrió ayer</span><span>·</span><span>última: hace 3 h</span>
+        </div>
+      </div>
+      <div class="burbuja"><b>73</b><span>resp.</span></div>
+    </article>
+
+    <div class="cargar"><button class="btn ghost">Cargar 20 más</button></div>
+  </div>
+</section>
+
+<!-- ═══════════ 3 · PREGUNTAS ═══════════ -->
+<section class="screen" id="f3" aria-label="Maqueta 3: preguntas y respuestas votadas">
+  <div class="col">
+    <div class="cab">
+      <h1>Preguntas</h1>
+      <span class="chip neu">1.960 · 78 % resueltas</span>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button class="btn ghost sm"><svg class="icono p"><use href="#p-buscar"/></svg>Buscar</button>
+        <button class="btn pri"><svg class="icono"><use href="#p-mas"/></svg>Preguntar</button>
+      </div>
+    </div>
+
+    <article class="q">
+      <div class="voto">
+        <button class="dado" aria-label="Votar a favor"><svg class="icono"><use href="#p-arriba"/></svg></button>
+        <span class="n">51</span><span class="l">votos</span>
+        <button aria-label="Votar en contra"><svg class="icono"><use href="#p-abajo"/></svg></button>
+      </div>
+      <div class="resp aceptada"><b>8</b><span>resp.</span></div>
+      <div>
+        <h4><a href="#">¿El apalancamiento entra en el P&amp;L de una operación de futuros?</a></h4>
+        <p class="cuerpo">Compro 2 MES a 5.612,25 con una cuenta apalancada 1:20 y cierro en 5.639,75. ¿Multiplico el resultado por el apalancamiento o no? Mi hoja de cálculo me da 27.500 $ y eso no puede ser.</p>
+        <div class="pie">
+          <span class="et">futuros</span><span class="et">p&amp;l</span><span class="et">apalancamiento</span>
+          <span>·</span><span class="avatar p">DS</span><span>Diego S. · hace 2 h</span>
+          <span class="chip ok"><svg class="icono p"><use href="#p-check"/></svg>Resuelta</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="q">
+      <div class="voto">
+        <button aria-label="Votar a favor"><svg class="icono"><use href="#p-arriba"/></svg></button>
+        <span class="n">34</span><span class="l">votos</span>
+        <button aria-label="Votar en contra"><svg class="icono"><use href="#p-abajo"/></svg></button>
+      </div>
+      <div class="resp aceptada"><b>5</b><span>resp.</span></div>
+      <div>
+        <h4><a href="#">Mi R sale «—» en una operación sin stop. ¿No debería ser 0?</a></h4>
+        <p class="cuerpo">Entré sin stop (mal, ya lo sé) y cerré en verde. El diario me pone un guion en la columna R en vez de un número, y la media del mes no la cuenta.</p>
+        <div class="pie">
+          <span class="et">diario</span><span class="et">métricas</span>
+          <span>·</span><span class="avatar p">SL</span><span>Sofía L. · hace 5 h</span>
+          <span class="chip ok"><svg class="icono p"><use href="#p-check"/></svg>Resuelta</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="q">
+      <div class="voto">
+        <button aria-label="Votar a favor"><svg class="icono"><use href="#p-arriba"/></svg></button>
+        <span class="n">22</span><span class="l">votos</span>
+        <button aria-label="Votar en contra"><svg class="icono"><use href="#p-abajo"/></svg></button>
+      </div>
+      <div class="resp aceptada"><b>3</b><span>resp.</span></div>
+      <div>
+        <h4><a href="#">¿Cuánto vale un pip en XAUUSD y por qué no es 10 $ como en EURUSD?</a></h4>
+        <p class="cuerpo">En el oro un movimiento de 0,01 me mueve la cuenta 1 $ por lote, no 10. Quiero entender de dónde sale para no depender de la calculadora.</p>
+        <div class="pie">
+          <span class="et">dimensionar</span><span class="et">metales</span>
+          <span>·</span><span class="avatar p">NB</span><span>Nuria B. · hace 1 d</span>
+          <span class="chip ok"><svg class="icono p"><use href="#p-check"/></svg>Resuelta</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="q">
+      <div class="voto">
+        <button aria-label="Votar a favor"><svg class="icono"><use href="#p-arriba"/></svg></button>
+        <span class="n">17</span><span class="l">votos</span>
+        <button aria-label="Votar en contra"><svg class="icono"><use href="#p-abajo"/></svg></button>
+      </div>
+      <div class="resp"><b>4</b><span>resp.</span></div>
+      <div>
+        <h4><a href="#">Un trimestre sin operaciones perdedoras: ¿el Sortino es infinito o no existe?</a></h4>
+        <p class="cuerpo">Catorce operaciones, ninguna en rojo. La desviación a la baja es 0 y la división no está definida. ¿Qué pone una plataforma seria en esa casilla?</p>
+        <div class="pie">
+          <span class="et">métricas</span><span class="et">estadística</span>
+          <span>·</span><span class="avatar p">KT</span><span>Kenji T. · hace 1 d</span>
+          <span class="chip av">Sin aceptar</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="q">
+      <div class="voto">
+        <button aria-label="Votar a favor"><svg class="icono"><use href="#p-arriba"/></svg></button>
+        <span class="n">8</span><span class="l">votos</span>
+        <button aria-label="Votar en contra"><svg class="icono"><use href="#p-abajo"/></svg></button>
+      </div>
+      <div class="resp"><b>1</b><span>resp.</span></div>
+      <div>
+        <h4><a href="#">La cadena viene marcada como «modelada»: ¿me puedo fiar del volumen?</a></h4>
+        <p class="cuerpo">Veo la banda de aviso arriba y las columnas de volumen e interés abierto vacías. ¿Es un fallo o está vacío a propósito?</p>
+        <div class="pie">
+          <span class="et">opciones</span><span class="et">datos</span>
+          <span>·</span><span class="avatar p">ÁR</span><span>Álvaro R. · hace 2 d</span>
+          <span class="chip av">Sin aceptar</span>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <aside>
+    <div>
+      <h3 class="up">Respuesta aceptada</h3>
+      <div class="aceptada-caja">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="avatar p">MI</span>
+          <b style="font-size:12.5px">Marta I.</b>
+          <span class="chip ok" style="margin-left:auto"><svg class="icono p"><use href="#p-check"/></svg>Aceptada</span>
+        </div>
+        <p>No entra. El P&amp;L es <span class="mono">(salida − entrada) × cantidad × multiplicador</span>, y en el MES el multiplicador es <span class="mono">5 $</span> por punto: es el tamaño del contrato, no la palanca. Tu operación son <span class="mono">27,50</span> puntos × 2 × 5 = <span class="mono">275 $</span>. El apalancamiento sólo decide cuánto margen te bloquean.</p>
+      </div>
+    </div>
+    <div>
+      <h3 class="up">Por qué esta forma nos conviene</h3>
+      <div class="seo">
+        <p style="font-size:12.5px;color:var(--muted)">Una pregunta con respuesta aceptada es exactamente lo que Google indexa como <b style="color:var(--ink)">FAQPage</b>. El sitio ya emite datos estructurados en 1.630 páginas: el foro entraría por la misma puerta.</p>
+        <code>{"@type":"QAPage","acceptedAnswer":{…}}</code>
+      </div>
+    </div>
+    <div>
+      <h3 class="up">Sin responder · 48 h</h3>
+      <div style="display:grid;gap:8px;font-size:12.5px">
+        <a href="#" style="text-decoration:none;color:var(--muted)">¿Cómo apunto un scale-out de tres tramos?</a>
+        <a href="#" style="text-decoration:none;color:var(--muted)">EURGBP en cuenta en dólares: ¿a qué cambio?</a>
+        <a href="#" style="text-decoration:none;color:var(--muted)">¿Gamma negativa cerca de vencimiento?</a>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<!-- ═══════════ 4 · MURO ═══════════ -->
+<section class="screen" id="f4" aria-label="Maqueta 4: muro de operaciones compartidas">
+  <div class="cab">
+    <h1>Operaciones de la comunidad</h1>
+    <div class="filtros" style="display:flex;gap:2px">
+      <span class="chip neu">Hoy</span><span class="chip neu">Cerradas</span><span class="chip neu">Con diario</span>
+    </div>
+    <button class="btn pri" style="margin-left:auto"><svg class="icono"><use href="#p-adj"/></svg>Compartir una operación</button>
+  </div>
+
+  <div class="cuerpo">
+    <div class="muro">
+      <article class="post">
+        <div class="autor"><span class="avatar p">MI</span><b>Marta I.</b><span>· hace 40 min</span></div>
+        <h4>Cerré el oro en el objetivo y me sobró la mitad del recorrido</h4>
+        <p class="extracto">Salí en 2.441 porque era mi 2R y el precio siguió otros 30 $. No me arrepiento del objetivo, me arrepiento de no tener escrito qué hago cuando la sesión de Londres abre con hueco.</p>
+        <div class="ficha-op">
+          <div class="fila1"><span class="sim">XAUUSD</span><span class="dir l">Largo</span><span class="chip ok" style="margin-left:auto">+2,01 R</span></div>
+          <dl>
+            <div><dt>Entrada</dt><dd>2.412,30</dd></div>
+            <div><dt>Stop</dt><dd class="mono" style="color:var(--short)">2.398,00</dd></div>
+            <div><dt>Objetivo</dt><dd class="mono" style="color:var(--long)">2.441,00</dd></div>
+            <div><dt>R:R</dt><dd>2,0</dd></div>
+          </dl>
+          <div class="regleta" style="margin-top:11px"></div>
+        </div>
+        <div class="acciones">
+          <button class="dado"><svg class="icono p"><use href="#p-msg"/></svg>31</button>
+          <button><svg class="icono p"><use href="#p-marcador"/></svg>Guardar</button>
+          <button><svg class="icono p"><use href="#p-calc"/></svg>Abrir en la mesa</button>
+        </div>
+      </article>
+
+      <article class="post">
+        <div class="autor"><span class="avatar p">DS</span><b>Diego S.</b><span>· hace 2 h</span></div>
+        <h4>Tres contratos de MES sobre la apertura, y esta vez con el stop puesto antes que la entrada</h4>
+        <p class="extracto">Lo del stop primero me lo dijeron aquí hace dos semanas en el hilo de disciplina. Va la tercera sesión seguida que lo cumplo y la diferencia no está en el resultado, está en que no miro la pantalla.</p>
+        <div class="ficha-op">
+          <div class="fila1"><span class="sim">MES · dic 26</span><span class="dir l">Largo</span><span class="chip neu" style="margin-left:auto">Abierta</span></div>
+          <dl>
+            <div><dt>Entrada</dt><dd>5.612,25</dd></div>
+            <div><dt>Stop</dt><dd class="mono" style="color:var(--short)">5.598,50</dd></div>
+            <div><dt>Objetivo</dt><dd class="mono" style="color:var(--long)">5.653,50</dd></div>
+            <div><dt>R:R</dt><dd>3,0</dd></div>
+          </dl>
+          <div class="regleta" style="margin-top:11px"></div>
+        </div>
+        <div class="acciones">
+          <button><svg class="icono p"><use href="#p-msg"/></svg>14</button>
+          <button><svg class="icono p"><use href="#p-marcador"/></svg>Guardar</button>
+          <button><svg class="icono p"><use href="#p-calc"/></svg>Abrir en la mesa</button>
+        </div>
+      </article>
+
+      <article class="post">
+        <div class="autor"><span class="avatar p">SL</span><b>Sofía L.</b><span>· hace 5 h</span></div>
+        <h4>Mi primer trimestre completo con el diario, y la conclusión es incómoda</h4>
+        <p class="extracto">137 operaciones. Acierto el 58 % y pierdo dinero. Las ganadoras me salen a 0,61 R y las perdedoras a −1,84 R: el problema no es entrar, es que cierro en verde a los diez minutos y en rojo a las tres horas.</p>
+        <div class="ficha-op">
+          <div class="fila1"><span class="sim">Trimestre · 137 op.</span><span class="chip no" style="margin-left:auto">−0,42 R medio</span></div>
+          <dl>
+            <div><dt>Aciertos</dt><dd>58,4 %</dd></div>
+            <div><dt>Ganadora media</dt><dd class="mono" style="color:var(--long)">+0,61 R</dd></div>
+            <div><dt>Perdedora media</dt><dd class="mono" style="color:var(--short)">−1,84 R</dd></div>
+            <div><dt>Expectativa</dt><dd class="mono" style="color:var(--short)">−0,41 R</dd></div>
+          </dl>
+        </div>
+        <div class="acciones">
+          <button class="dado"><svg class="icono p"><use href="#p-msg"/></svg>61</button>
+          <button><svg class="icono p"><use href="#p-marcador"/></svg>Guardar</button>
+        </div>
+      </article>
+
+      <article class="post">
+        <div class="autor"><span class="avatar p">NB</span><b>Nuria B.</b><span>· hace 8 h</span></div>
+        <h4>Corto en el euro contra el dato de empleo: salí antes del dato y me da igual lo que hiciera después</h4>
+        <p class="extracto">Regla propia: nada abierto en un dato de primer nivel. Cerré en 1,0791 con 1,5R y el par se fue a 1,0740 diez minutos más tarde. Publico la operación entera para que se vea que la regla también cuesta dinero.</p>
+        <div class="ficha-op">
+          <div class="fila1"><span class="sim">EURUSD</span><span class="dir c">Corto</span><span class="chip ok" style="margin-left:auto">+1,50 R</span></div>
+          <dl>
+            <div><dt>Entrada</dt><dd>1,08420</dd></div>
+            <div><dt>Stop</dt><dd class="mono" style="color:var(--short)">1,08760</dd></div>
+            <div><dt>Objetivo</dt><dd class="mono" style="color:var(--long)">1,07910</dd></div>
+            <div><dt>R:R</dt><dd>1,5</dd></div>
+          </dl>
+          <div class="regleta" style="margin-top:11px"></div>
+        </div>
+        <div class="acciones">
+          <button><svg class="icono p"><use href="#p-msg"/></svg>22</button>
+          <button><svg class="icono p"><use href="#p-marcador"/></svg>Guardar</button>
+          <button><svg class="icono p"><use href="#p-calc"/></svg>Abrir en la mesa</button>
+        </div>
+      </article>
+    </div>
+
+    <aside>
+      <div>
+        <h3 class="up">La comunidad hoy</h3>
+        <div class="tira">
+          <div class="l"><span>Miembros</span><b>3.412</b></div>
+          <div class="l"><span>En línea ahora</span><b style="color:var(--accent)">87</b></div>
+          <div class="l"><span>Operaciones compartidas</span><b>604</b></div>
+          <div class="l"><span>R medio publicado</span><b>+0,31</b></div>
+        </div>
+        <p style="font-size:11px;color:var(--faint);margin-top:9px;line-height:1.4">El R medio publicado sólo cuenta operaciones con stop declarado. Sin stop, el R es indefinido y no entra en la media.</p>
+      </div>
+      <div>
+        <h3 class="up">Etiquetas activas</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          <span class="et act"><span class="pt"></span>oro</span><span class="et">índices</span><span class="et">forex</span>
+          <span class="et">gestión</span><span class="et">disciplina</span><span class="et">opciones</span>
+        </div>
+      </div>
+      <div>
+        <h3 class="up">Normas en una línea</h3>
+        <p style="font-size:12.5px;color:var(--muted);line-height:1.45">Se comparten operaciones, no señales. Cada ficha lleva entrada, stop y salida <b style="color:var(--ink)">antes</b> de saber el resultado, o no se publica.</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ═══════════ 5 · SALAS ═══════════ -->
+<section class="screen" id="f5" aria-label="Maqueta 5: salas en directo por canal y tema">
+  <div class="canales">
+    <div>
+      <h3 class="up" style="padding:0 9px 8px">Canales</h3>
+      <nav>
+        <a href="#" class="act"><span class="h">#</span>apertura-europa<span class="n">3</span></a>
+        <a href="#"><span class="h">#</span>apertura-ny</a>
+        <a href="#"><span class="h">#</span>dimensionar</a>
+        <a href="#"><span class="h">#</span>opciones</a>
+        <a href="#"><span class="h">#</span>diario</a>
+        <a href="#"><span class="h">#</span>anuncios<span class="n">1</span></a>
+      </nav>
+    </div>
+    <div class="bloque-pres">
+      <h3 class="up" style="padding:0 9px 8px">En línea · 87</h3>
+      <div style="display:grid;gap:6px;padding:0 9px;font-size:12.5px;color:var(--muted)">
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:999px;background:var(--accent);flex:none"></span>Marta I.</div>
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:999px;background:var(--accent);flex:none"></span>Kenji T.</div>
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:999px;background:var(--warn);flex:none"></span>Diego S.</div>
+        <div style="display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:999px;background:var(--rule);flex:none"></span>Nuria B.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="temas">
+    <div class="t-cab"><h3 class="up">Temas de #apertura-europa</h3></div>
+    <ul>
+      <li><a href="#" class="act">
+        <b>DAX abre con hueco de 180 puntos</b>
+        <span class="m"><span class="mono">24</span> mensajes<span>·</span><span class="mono">hace 3 min</span></span>
+      </a></li>
+      <li><a href="#">
+        <b>El oro lleva 14 h pegado a 2.410</b>
+        <span class="m"><span class="mono">11</span> mensajes<span>·</span><span class="mono">hace 12 min</span></span>
+      </a></li>
+      <li><a href="#">
+        <b>Dato de empleo a las 14:30 — quién se queda fuera</b>
+        <span class="m"><span class="mono">7</span> mensajes<span>·</span><span class="mono">hace 1 h</span></span>
+      </a></li>
+      <li><a href="#">
+        <b>Resumen de ayer y qué queda abierto</b>
+        <span class="m"><span class="mono">19</span> mensajes<span>·</span><span class="mono">ayer</span></span>
+      </a></li>
+    </ul>
+  </div>
+
+  <div class="sala">
+    <div class="s-cab">
+      <h1><span class="mono" style="color:var(--faint)">#</span>apertura-europa</h1>
+      <span class="chip neu">DAX abre con hueco de 180 puntos</span>
+      <span class="vivo" style="margin-left:auto"><span class="pt"></span>Sesión de Fráncfort abierta</span>
+    </div>
+
+    <div class="mensajes">
+      <div class="msg">
+        <span class="avatar p">KT</span>
+        <div>
+          <div class="l1"><b>Kenji T.</b><time>09:02</time></div>
+          <p>Hueco de 180 puntos en el DAX y volumen de apertura por debajo de la media de 20 sesiones. Yo no toco el hueco hasta que haya un cierre de vela de 15 min dentro del rango de ayer.</p>
+        </div>
+      </div>
+
+      <div class="msg">
+        <span class="avatar p">MI</span>
+        <div>
+          <div class="l1"><b>Marta I.</b><time>09:04</time></div>
+          <div class="cita">Kenji T.: «no toco el hueco hasta que haya un cierre de 15 min dentro del rango de ayer»</div>
+          <p>Igual, pero con una condición más: que el hueco no se haya cerrado ya más de la mitad. Si se ha cerrado, la entrada de reversión pierde casi todo el recorrido y el R:R se cae por debajo de 1.</p>
+        </div>
+      </div>
+
+      <div class="msg">
+        <span class="avatar p">DS</span>
+        <div>
+          <div class="l1"><b>Diego S.</b><time>09:09</time></div>
+          <p>Yo he dimensionado ya por si acaso. Adjunto lo que me sale con el 1 % de la cuenta, por si alguien quiere revisarme el número antes de que abra el rango.</p>
+          <div class="adj">
+            <div><dt>Instrumento</dt><dd>MES · dic 26</dd></div>
+            <div><dt>Riesgo</dt><dd>1,0 % · 250 $</dd></div>
+            <div><dt>Stop</dt><dd>13,75 pts</dd></div>
+            <div><dt>Contratos</dt><dd>3</dd></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg">
+        <span class="avatar p">NB</span>
+        <div>
+          <div class="l1"><b>Nuria B.</b><time>09:11</time></div>
+          <p>Diego, 3 contratos × 13,75 puntos × 5 $ son 206,25 $, no 250. Te sobra margen para un cuarto o te falta stop. No es lo mismo redondear hacia arriba que hacia abajo cuando el que decide es el tope de riesgo.</p>
+        </div>
+      </div>
+
+      <div class="msg">
+        <span class="avatar p">ÁR</span>
+        <div>
+          <div class="l1"><b>Álvaro R.</b><time>09:14</time></div>
+          <p>Recordatorio para todos: a las 14:30 hay dato. Si alguien va a seguir dentro, que lo diga ahora en el tema del dato y no a las 14:29.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tecleando">Marta I. está escribiendo…</div>
+    <div class="escribir">
+      <input class="inp" placeholder="Mensaje a #apertura-europa" aria-label="Escribir mensaje">
+      <button class="btn ghost sm" title="Adjuntar un cálculo"><svg class="icono"><use href="#p-calc"/></svg></button>
+      <button class="btn pri sm"><svg class="icono"><use href="#p-enviar"/></svg>Enviar</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 6 · HILO DE OPERACIÓN ═══════════ -->
+<section class="screen" id="f6" aria-label="Maqueta 6: hilo anclado a una operación">
+  <div class="hilo">
+    <div class="h-cab">
+      <div class="ruta">
+        <a href="#" style="text-decoration:none">Comunidad</a><svg class="icono p"><use href="#p-der"/></svg>
+        <a href="#" style="text-decoration:none">Metales</a><svg class="icono p"><use href="#p-der"/></svg>
+        <span class="mono">XAUUSD</span>
+      </div>
+      <h1>¿Me estoy quedando corto de stop en el oro con la volatilidad de esta semana?</h1>
+      <div class="m">
+        <span class="avatar p">MI</span><b style="color:var(--ink);font-weight:500">Marta I.</b>
+        <span>· hace 40 min</span><span>·</span>
+        <span class="met"><svg class="icono p"><use href="#p-msg"/></svg><span class="n">31</span></span>
+        <span class="met"><svg class="icono p"><use href="#p-ojo"/></svg><span class="n">1.204</span></span>
+        <span class="et">oro</span><span class="et">stop</span><span class="et">volatilidad</span>
+      </div>
+    </div>
+
+    <div class="tarjeta-op">
+      <div class="t-cab">
+        <span class="sim">XAUUSD</span><span class="dir">Largo</span>
+        <span class="chip neu">0,17 lotes · 17 oz</span>
+        <span class="fuente"><svg class="icono p"><use href="#p-calc"/></svg>Calculado en la mesa · 3 sept, 09:18</span>
+      </div>
+      <div class="datos">
+        <div><dt>Entrada</dt><dd>2.412,30</dd></div>
+        <div><dt>Stop</dt><dd class="rojo">2.398,00</dd></div>
+        <div><dt>Objetivo</dt><dd class="verde">2.441,00</dd></div>
+        <div><dt>Riesgo</dt><dd class="rojo">243,10 $</dd></div>
+        <div><dt>R:R</dt><dd>2,0</dd></div>
+      </div>
+      <div class="pie-esc">
+        <!-- La regleta midiendo la operación: stop, entrada y objetivo a
+             distancia real. 2.398 → 2.441 son 43,00 $; la entrada cae al
+             33,3 % del recorrido, y eso es lo que se ve. -->
+        <div class="escala">
+          <div class="via"></div>
+          <div class="tramo r" style="left:6%;width:29.3%"></div>
+          <div class="tramo b" style="left:35.3%;width:58.7%"></div>
+          <div class="marca" style="left:6%"></div>
+          <div class="marca" style="left:35.3%"></div>
+          <div class="marca" style="left:94%"></div>
+          <span class="et-esc rojo" style="left:6%">2.398,00</span>
+          <span class="et-esc" style="left:35.3%">2.412,30</span>
+          <span class="et-esc verde" style="left:94%">2.441,00</span>
+        </div>
+        <div class="regleta densa" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <div class="respuestas">
+      <article class="r">
+        <span class="avatar">KT</span>
+        <div>
+          <div class="l1"><b>Kenji T.</b><time>hace 32 min</time><span class="chip ok"><svg class="icono p"><use href="#p-check"/></svg>Marcada útil</span></div>
+          <p>El stop no es corto por número, es corto por dónde está: 2.398 queda dentro del rango de la sesión asiática de anoche. Yo lo bajaría bajo el mínimo, a 2.392, aunque el R:R se resienta. Te adjunto la misma operación con ese stop.</p>
+          <div class="variante">
+            <div><dt>Stop</dt><dd style="color:var(--short)">2.392,00</dd></div>
+            <div><dt>Riesgo por oz</dt><dd>20,30</dd></div>
+            <div><dt>Tamaño</dt><dd>0,12 lotes</dd></div>
+            <div><dt>R:R</dt><dd>1,4</dd></div>
+            <span class="delta">−0,6 R frente al original · mismo riesgo en dinero</span>
+          </div>
+          <div class="acc">
+            <button><svg class="icono p"><use href="#p-arriba"/></svg>19</button>
+            <button><svg class="icono p"><use href="#p-msg"/></svg>Responder</button>
+            <button><svg class="icono p"><use href="#p-calc"/></svg>Abrir esta variante</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="r">
+        <span class="avatar">NB</span>
+        <div>
+          <div class="l1"><b>Nuria B.</b><time>hace 21 min</time></div>
+          <p>Ojo con una cosa que no se ve en la ficha: bajar el stop y mantener el riesgo en dinero <b>obliga</b> a reducir tamaño, y eso Kenji ya lo ha hecho (de 0,17 a 0,12). Si lo bajas sin tocar el tamaño, pasas de arriesgar 243 $ a 345 $ sin darte cuenta. Es el error que más veo aquí.</p>
+          <div class="acc">
+            <button><svg class="icono p"><use href="#p-arriba"/></svg>27</button>
+            <button><svg class="icono p"><use href="#p-msg"/></svg>Responder</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="r">
+        <span class="avatar">MI</span>
+        <div>
+          <div class="l1"><b>Marta I.</b><time>hace 8 min</time><span class="chip neu">Autora</span></div>
+          <p>Me quedo con la versión de Kenji. Anoto en el diario que el motivo del cambio fue el rango asiático, no la corazonada, que es justo lo que no sabía apuntar hasta ahora.</p>
+          <div class="acc">
+            <button><svg class="icono p"><use href="#p-arriba"/></svg>6</button>
+            <button><svg class="icono p"><use href="#p-msg"/></svg>Responder</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="responder">
+      <textarea placeholder="Responde con tu lectura. Si adjuntas un cálculo, se compara solo con el del hilo."></textarea>
+      <div class="bar">
+        <button class="btn sm"><svg class="icono p"><use href="#p-calc"/></svg>Adjuntar cálculo de la mesa</button>
+        <button class="btn sm"><svg class="icono p"><use href="#p-doc"/></svg>Operación del diario</button>
+        <button class="btn pri sm" style="margin-left:auto">Publicar respuesta</button>
+      </div>
+    </div>
+  </div>
+
+  <aside>
+    <div>
+      <h3 class="up">Tu mesa, ahora</h3>
+      <div class="calc">
+        <div class="l"><span>Capital</span><b>25.000 $</b></div>
+        <div class="l"><span>Riesgo por operación</span><b>1,0 % · 250 $</b></div>
+        <div class="l"><span>Con este stop</span><b>0,17 lotes</b></div>
+        <div class="l"><span>Si salta</span><b style="color:var(--short)">−243,10 $</b></div>
+        <div class="l"><span>Si llega al objetivo</span><b style="color:var(--long)">+487,90 $</b></div>
+        <button class="btn pri sm" style="justify-content:center;margin-top:2px">Cargar esta operación en la mesa</button>
+      </div>
+      <p style="font-size:11px;color:var(--faint);margin-top:9px;line-height:1.4">Se calcula con tu capital, no con el de quien publicó. La ficha del hilo no cambia.</p>
+    </div>
+    <div>
+      <h3 class="up">Otros hilos de XAUUSD</h3>
+      <div class="rel">
+        <a href="#"><b>El oro lleva 14 h pegado a 2.410</b><span>11 resp. · hace 12 min</span></a>
+        <a href="#"><b>¿Cuánto vale un pip en XAUUSD y por qué no es 10 $?</b><span>3 resp. · resuelta</span></a>
+        <a href="#"><b>Rango asiático como filtro: 60 sesiones medidas</b><span>44 resp. · hace 2 d</span></a>
+      </div>
+    </div>
+    <div>
+      <h3 class="up">Regla del hilo</h3>
+      <p style="font-size:12.5px;color:var(--muted);line-height:1.45">Una operación por hilo. Las variantes van dentro, no en hilos nuevos: así la discusión y la ficha no se separan nunca.</p>
+    </div>
+  </aside>
+</section>
+
+</div>
+</div>
+
+<script>
+(function () {
+  // Cada maqueta va emparejada con el motor de código abierto que la sirve
+  // «de fábrica». Elegir dibujo es, en la práctica, elegir motor.
+  var BRIEFS = {
+    f1: {
+      num: '01', nombre: 'Tablón',
+      tesis: 'Categorías a la izquierda con lo que contiene cada una, y a la derecha la lista de temas en tabla: participantes, respuestas, vistas y última actividad. Es la forma que cualquiera reconoce como «un foro» sin que nadie se la explique.',
+      motor: 'Discourse — GPLv2, Ruby on Rails + PostgreSQL + Redis. Enlaza tu login con DiscourseConnect: el usuario entra con la cuenta que ya tiene.',
+      si: 'Cero curva de aprendizaje y la mejor caja de herramientas de moderación que existe en abierto: colas de revisión, permisos por categoría, antispam, resúmenes por correo. Y cada tema es una URL indexable, que es donde ya está la fuerza del sitio.',
+      no: 'Las categorías se crean vacías y una categoría vacía desanima. Con menos de 300 miembros activos, seis foros se ven muertos y uno solo se ve pequeño. Además vive en su propio servidor: es una segunda pieza que mantener.',
+      coste: 'Bajo en producto, medio en infraestructura · contenedor propio con Postgres y Redis (~2 GB de RAM), subdominio y correo saliente'
+    },
+    f2: {
+      num: '02', nombre: 'Flujo',
+      tesis: 'Se eliminan las categorías. Hay una sola corriente de temas ordenada por actividad, y la clasificación la ponen las etiquetas. Arriba, un campo para escribir directamente: publicar cuesta un clic, no navegar hasta el foro correcto.',
+      motor: 'Flarum — MIT, PHP. Núcleo minúsculo y todo lo demás en extensiones. Alternativa con el mismo dibujo: NodeBB (GPLv3, Node.js), que sí habla PostgreSQL.',
+      si: 'Es la que mejor aguanta una comunidad pequeña: sin categorías vacías que delaten que acabas de empezar. La barra de escritura arriba multiplica la participación de los que sólo leen.',
+      no: 'Sin jerarquía, a partir de unos cientos de temas al día lo importante se hunde y las etiquetas se convierten en un caos que nadie poda. Flarum se apoya en MySQL/MariaDB, así que sumas una base de datos distinta a la del producto.',
+      coste: 'Bajo · hosting PHP compartido y poco más; el trabajo real es elegir y mantener las extensiones'
+    },
+    f3: {
+      num: '03', nombre: 'Preguntas',
+      tesis: 'No son conversaciones, son preguntas con respuesta. Votos a la izquierda, respuesta aceptada marcada en verde, y la comunidad ordena por utilidad en vez de por fecha. La pregunta de hace ocho meses sigue arriba si sigue siendo la buena.',
+      motor: 'Talkyard — código abierto, Scala + PostgreSQL, hace foro y preguntas a la vez. Alternativa clásica: Question2Answer (GPL, PHP + MySQL), o Discourse en modo preguntas.',
+      si: 'La única de las seis que produce SEO de verdad: una pregunta con respuesta aceptada es una página que Google entiende como QAPage. El sitio ya emite datos estructurados en 1.630 páginas, así que el foro entraría por una puerta que ya está abierta y captaría exactamente la búsqueda de cola larga que hoy se pierde.',
+      no: 'Mata la conversación: «¿qué opináis del oro esta semana?» no tiene respuesta aceptable y se queda huérfana. Y el voto necesita masa: con veinte usuarios, dos votos deciden qué es verdad.',
+      coste: 'Medio · el motor es fácil; lo caro es sembrar 40-60 preguntas buenas para que no abra vacío'
+    },
+    f4: {
+      num: '04', nombre: 'Muro',
+      tesis: 'Un muro de operaciones, no de temas. Cada tarjeta lleva quién, qué escribió y la ficha de la operación —entrada, stop, objetivo, R:R— debajo del texto. Se lee lo que hizo alguien, con los números al lado, sin abrir nada.',
+      motor: 'Forem — AGPLv3, Ruby on Rails; es el motor de dev.to. Más ligero para el mismo dibujo: NodeBB con vista de tarjetas (GPLv3, Node.js + PostgreSQL).',
+      si: 'Es lo que la gente ya hace en X y en Discord, pero con los datos estructurados en vez de en una captura de pantalla. Y da material que no tiene ningún competidor: 604 operaciones con entrada, stop y salida declarados ANTES del resultado.',
+      no: 'Un muro de operaciones se desliza hacia el postureo y hacia la señal encubierta. Necesita una norma dura desde el día uno —la ficha se publica antes de saber el resultado— y alguien que la haga cumplir.',
+      coste: 'Medio-alto · ningún motor trae la ficha de operación: hay que construir el adjunto y su validación aunque el foro sea de terceros'
+    },
+    f5: {
+      num: '05', nombre: 'Salas',
+      tesis: 'Chat, no foro: canales por sesión de mercado y, dentro de cada canal, temas con nombre para que la conversación no se convierta en un río. Se ve quién está conectado y se responde citando, con la sesión de mercado marcada arriba.',
+      motor: 'Zulip — Apache 2.0, Python/Django + PostgreSQL. Es el modelo canal + tema. Alternativa federada: Matrix con Element (Apache 2.0).',
+      si: 'Es el único formato que sirve durante la sesión, que es cuando el usuario está delante de la pantalla y necesita a alguien. Y comparte lenguaje con el backend: Python, Django y PostgreSQL.',
+      no: 'Lo dicho a las 09:04 no lo lee nadie a las 18:00, y el archivo indexable es mucho peor que el de un foro. Además el directo exige presencia: una sala vacía a las 11 de la mañana hace más daño que no tener sala.',
+      coste: 'Medio-alto · el motor es sólido, pero moderar en tiempo real y sostener la actividad diaria es trabajo de personas, no de código'
+    },
+    f6: {
+      num: '06', nombre: 'Hilo de operación',
+      tesis: 'El hilo no es un texto con una imagen: es una operación. La ficha va arriba con la regleta midiendo stop, entrada y objetivo a distancia real, y cada respuesta puede adjuntar su propia variante, que se compara sola con la original. La columna derecha recalcula esa operación con TU capital, no con el de quien la publicó.',
+      motor: 'Ninguno. Se construye sobre lo que ya hay: FastAPI + el shim de PostgreSQL para los hilos, y React dentro de la aplicación. Ningún foro de terceros puede leer la mesa de cálculo del usuario.',
+      si: 'Es lo único de esta lista que un competidor no puede copiar pegando un Discourse. Convierte el foro en una extensión de la calculadora —y la calculadora en la razón para volver al foro—, y las operaciones publicadas alimentan la analítica del producto.',
+      no: 'Todo lo que los otros cinco te dan hecho, aquí lo escribes tú: moderación, antispam, notificaciones, buscador, correo, denuncias, borrado RGPD. Y el foro pequeño sin herramientas de moderación se llena de basura en una semana.',
+      coste: 'Alto · 2-3 semanas de trabajo real, más el mantenimiento de la moderación para siempre'
+    }
+  };
+
+  var brief = {
+    num: document.getElementById('b-num'), nombre: document.getElementById('b-nombre'),
+    tesis: document.getElementById('b-tesis'), motor: document.getElementById('b-motor'),
+    si: document.getElementById('b-si'), no: document.getElementById('b-no'),
+    coste: document.getElementById('b-coste')
+  };
+
+  function mostrar(id) {
+    var pantallas = document.querySelectorAll('.screen');
+    for (var i = 0; i < pantallas.length; i++) pantallas[i].classList.toggle('on', pantallas[i].id === id);
+    var botones = document.querySelectorAll('#tabs button');
+    for (var j = 0; j < botones.length; j++) botones[j].setAttribute('aria-selected', String(botones[j].dataset.v === id));
+    var b = BRIEFS[id];
+    if (b) {
+      brief.num.textContent = b.num; brief.nombre.textContent = b.nombre;
+      brief.tesis.textContent = b.tesis; brief.motor.textContent = b.motor;
+      brief.si.textContent = b.si; brief.no.textContent = b.no; brief.coste.textContent = b.coste;
+    }
+    // El ancla lleva barra («#/f3») a propósito: si coincidiera con el id de
+    // la sección, el navegador saltaría a ella y dejaría la página desplazada
+    // por debajo del contenido. Pasó en la galería del panel de ajustes y las
+    // capturas salían en blanco sin que nada fallara.
+    try {
+      if (location.hash !== '#/' + id) history.replaceState(null, '', '#/' + id);
+    } catch (err) { /* file:// no siempre admite replaceState */ }
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-v]');
+    if (b) mostrar(b.dataset.v);
+  });
+
+  // Tema: sella data-theme en la raíz para ganar a la preferencia del sistema.
+  var raiz = document.documentElement;
+  var btnTema = document.getElementById('btn-tema');
+  function claroActivo() {
+    var sellado = raiz.getAttribute('data-theme');
+    if (sellado) return sellado === 'light';
+    return window.matchMedia('(prefers-color-scheme: light)').matches;
+  }
+  function pintarBotonTema() {
+    var claro = claroActivo();
+    btnTema.textContent = claro ? 'Oscuro' : 'Claro';
+    btnTema.setAttribute('aria-pressed', String(claro));
+    btnTema.title = claro ? 'Cambiar al tema oscuro' : 'Cambiar al tema claro';
+  }
+  btnTema.addEventListener('click', function () {
+    raiz.setAttribute('data-theme', claroActivo() ? 'dark' : 'light');
+    pintarBotonTema();
+  });
+  pintarBotonTema();
+
+  var btnMovil = document.getElementById('btn-movil');
+  btnMovil.addEventListener('click', function () {
+    var m = document.getElementById('stage').classList.toggle('movil');
+    btnMovil.setAttribute('aria-pressed', String(m));
+    btnMovil.textContent = m ? 'Escritorio' : 'Móvil';
+  });
+
+  // Las maquetas son estáticas: los enlaces no navegan, pero los grupos de
+  // pestañas y de filtros sí se marcan, porque si no parecen rotos.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('.screen a[href="#"]');
+    if (a) {
+      e.preventDefault();
+      var grupo = a.closest('nav, .rel, ul');
+      if (grupo && grupo.querySelector('a.act')) {
+        var hermanos = grupo.querySelectorAll('a');
+        for (var i = 0; i < hermanos.length; i++) hermanos[i].classList.toggle('act', hermanos[i] === a);
+      }
+    }
+    var pest = e.target.closest('[role="tablist"] button[role="tab"]:not([data-v])');
+    if (pest) {
+      var todas = pest.parentNode.querySelectorAll('button[role="tab"]');
+      for (var k = 0; k < todas.length; k++) todas[k].setAttribute('aria-selected', String(todas[k] === pest));
+    }
+    var voto = e.target.closest('#f3 .voto button, .acciones button, .acc button');
+    if (voto) voto.classList.toggle('dado');
+  });
+
+  // Estado por URL: #/f3 elige maqueta, ?tema=claro|oscuro y ?ancho=movil
+  // fijan tema y ancho. Sirve para enlazar una vista concreta a alguien.
+  var params = new URLSearchParams(location.search);
+  if (params.get('tema') === 'claro') { raiz.setAttribute('data-theme', 'light'); pintarBotonTema(); }
+  if (params.get('tema') === 'oscuro') { raiz.setAttribute('data-theme', 'dark'); pintarBotonTema(); }
+  if (params.get('ancho') === 'movil') { btnMovil.click(); }
+  function delHash() { return location.hash.replace(/^#\/?/, ''); }
+  // Cambiar sólo el ancla NO recarga la página, así que sin esto un enlace a
+  // «#/f6» pegado sobre «#/f1» no hacía nada. Se cazó fotografiando las seis
+  // de una tirada: salieron seis veces la primera y ningún error.
+  window.addEventListener('hashchange', function () {
+    var h = delHash();
+    if (BRIEFS[h]) mostrar(h);
+  });
+  var pedida = delHash();
+  mostrar(BRIEFS[pedida] ? pedida : 'f1');
+})();
+</script>

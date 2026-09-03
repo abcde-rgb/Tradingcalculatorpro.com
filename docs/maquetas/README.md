@@ -1,4 +1,17 @@
-# Maquetas — panel de configuración del cliente
+# Maquetas — elegir antes de tocar código
+
+Galerías de propuestas en HTML puro, sin dependencias, con los tokens reales del producto.
+Se abren en el navegador y sirven para **decidir la forma antes de escribir la primera
+línea**. Cada una lleva un selector arriba, conmutador de tema y vista móvil real.
+
+| Galería | Qué decide | Estado |
+|---|---|---|
+| [`panel-cliente.html`](./panel-cliente.html) | 6 rediseños de `/settings` | ✅ Elegida la 1 e implementada (2026-09-03) |
+| [`foro-comunidad.html`](./foro-comunidad.html) | 6 formas de foro de comunidad, cada una con su motor de código abierto | ⬜ Sin decidir. Contexto en [`FORO_COMUNIDAD.md`](../FORO_COMUNIDAD.md) |
+
+---
+
+## Panel de configuración del cliente
 
 Seis propuestas de rediseño de `/settings` para **elegir una antes de tocar código**.
 
@@ -76,3 +89,36 @@ Todo lo que la maqueta 1 enseñaba, más las tres secciones que iban marcadas
 - **Tema e idioma** dentro de Preferencias, sobre los mismos almacenes que el menú
   de la cabecera. `PREMIUM_THEMES` se subió a `lib/theme.js` para no tener una
   tercera copia de la lista.
+
+---
+
+## Foro de la comunidad
+
+Seis formas de dar a la web un foro propio. **Elegir dibujo es elegir motor**, así que
+cada maqueta va emparejada con el software de código abierto que la sirve de fábrica y
+lleva escrito su coste real:
+
+| # | Nombre | Motor de referencia | Lo que decide |
+|---|---|---|---|
+| 1 | **Tablón** | Discourse (GPLv2 · Rails + PostgreSQL) | Categorías + tabla de temas. Lo que todo el mundo reconoce como «un foro» |
+| 2 | **Flujo** | Flarum (MIT · PHP) / NodeBB (GPLv3 · Node) | Sin categorías: una corriente y etiquetas. Aguanta mejor una comunidad pequeña |
+| 3 | **Preguntas** | Talkyard / Question2Answer | Votos y respuesta aceptada. La única que produce SEO de verdad (`QAPage`) |
+| 4 | **Muro** | Forem (AGPLv3 · Rails) / NodeBB | Tarjetas con la ficha de la operación debajo del texto |
+| 5 | **Salas** | Zulip (Apache 2.0 · Django + PostgreSQL) | Chat por canal y tema durante la sesión de mercado |
+| 6 | **Hilo de operación** | Ninguno — propio sobre FastAPI + el shim | El hilo *es* una operación, y se recalcula con el capital de quien lee |
+
+La comparación de motores, las tres rutas de integración (subdominio con SSO, comentarios
+incrustados, foro propio) y la recomendación están en
+[`../FORO_COMUNIDAD.md`](../FORO_COMUNIDAD.md).
+
+### Qué se ha respetado
+
+Los mismos tokens y las mismas reglas que la otra galería: un solo acento, filete de 1 px
+en vez de sombra, dos radios, cero degradados, cero `blur-3xl`, `tabular-nums` en todo
+número y las tres familias del producto. **La regleta aparece en las maquetas 4 y 6**, que
+son las únicas donde mide algo: en la 6 marca stop, entrada y objetivo a distancia real
+sobre el recorrido (2.398 → 2.441 son 43,00 $, y la entrada cae al 33,3 %).
+
+Los datos son de ejemplo y así lo dice la propia página. Ninguna cifra sale de una cuenta
+real, y el R medio publicado de la maqueta 4 lleva escrito que **sólo cuenta operaciones
+con stop declarado**: sin stop el R es indefinido, no cero, que es invariante del producto.

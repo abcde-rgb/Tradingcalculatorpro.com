@@ -50,6 +50,7 @@ leen en el mismo momento ni con la misma intención.
 | [`CAPTAR_TRAFICO.md`](./CAPTAR_TRAFICO.md) | Canales de adquisición |
 | [`PROGRAMA_AFILIADOS.md`](./PROGRAMA_AFILIADOS.md) | Comisiones, tramos y solicitudes de pago |
 | [`ESTUDIO_UBICACION_WEB.md`](./ESTUDIO_UBICACION_WEB.md) | Dónde colocar cada cosa en la web |
+| [`FORO_COMUNIDAD.md`](./FORO_COMUNIDAD.md) | **Foro propio de la comunidad**: motores de código abierto comparados, las tres rutas de integración y por qué Pages no puede alojarlo. Con [6 maquetas](./maquetas/foro-comunidad.html). Sin decidir |
 
 ## 🧠 Contenido y formación
 

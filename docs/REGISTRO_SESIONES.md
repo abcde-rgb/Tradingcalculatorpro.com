@@ -6426,3 +6426,53 @@ cambios que nadie revisa.
 **Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
 PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
 ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.
+
+---
+
+## 2026-09-03 (2) — Foro de la comunidad: seis maquetas y la comparación de motores
+
+**Petición**: foros de código abierto para implementar en la web, un foro propio de la
+comunidad, con seis ejemplos en HTML.
+
+**Nada de esto está construido ni decidido.** Es material para elegir. No se ha tocado
+una sola línea de `backend/` ni de `frontend/`.
+
+- ✅ **Nuevo**: [`docs/maquetas/foro-comunidad.html`](./maquetas/foro-comunidad.html) —
+  seis maquetas en un solo fichero, sin dependencias, con el mismo cromo que la galería
+  del panel de ajustes: selector, conmutador de tema, vista móvil a 390 px por *container
+  queries* y estado enlazable (`#/f6`, `?tema=claro`, `?ancho=movil`).
+  **1 · Tablón** (Discourse) · **2 · Flujo** (Flarum/NodeBB) · **3 · Preguntas**
+  (Talkyard/Q2A) · **4 · Muro** (Forem/NodeBB) · **5 · Salas** (Zulip) ·
+  **6 · Hilo de operación** (propio, sobre FastAPI + el shim).
+- ✅ **Nuevo**: [`docs/FORO_COMUNIDAD.md`](./FORO_COMUNIDAD.md) — ocho motores comparados
+  por licencia, stack y **base de datos** (la columna que decide: Flarum y Q2A obligan a
+  una segunda base porque no hablan PostgreSQL), qué te da un motor que no vas a escribir
+  (moderación, antispam, correo, buscador, RGPD) y las tres rutas de integración.
+- ✅ Índice actualizado: `docs/README.md` § «Voy a captar usuarios» y
+  `docs/maquetas/README.md`, que pasa de documentar una galería a documentar dos.
+
+**Lo que decide de verdad**, y no es el dibujo: **GitHub Pages no puede alojar un foro**.
+Sirve ficheros y punto. Toda opción pasa por poner un servidor detrás, y eso pesa más en
+el coste que cualquier decisión de diseño. La recomendación escrita es empezar por un
+Discourse (o NodeBB, por afinidad con PostgreSQL) en subdominio con SSO contra el backend
+actual —que ya emite JWT, Google OAuth, 2FA y passkeys—, **dos categorías y no seis**, y
+construir de la maqueta 6 sólo el botón «Compartir esta operación»: es el 20 % que aporta
+el 80 % y no obliga a escribir un foro entero.
+
+**Errata cazada con la cámara, no leyendo el código**: al fotografiar las seis maquetas de
+una tirada salieron **seis veces la primera** y ningún error de consola. Cambiar sólo el
+ancla no recarga la página, así que `#/f6` pegado sobre `#/f1` no hacía nada. Se añadió un
+`hashchange`. La galería del panel de ajustes (`panel-cliente.html`) tiene el mismo hueco
+y se deja anotado aquí: allí no molesta porque se navega con las pestañas, pero un enlace
+compartido a `#/v4` tampoco cambia de maqueta.
+
+**Verificado**: `check-doc-links.py` (59 documentos, todos los enlaces resuelven),
+`gen-mapa.py --check`, y las seis maquetas fotografiadas con Chromium en los dos temas a
+1440 px y tres de ellas a 390 px — sin desbordamiento horizontal y sin errores de consola
+salvo el `ERR_CONNECTION_RESET` de Google Fonts, que es el sandbox sin red.
+
+**Lo que NO se ha comprobado**: ninguna versión, licencia ni requisito de los motores de
+la § 2 de `FORO_COMUNIDAD.md`. Este sandbox no tiene salida a internet, así que esa tabla
+sale de conocimiento previo y **hay que verificarla contra la web oficial de cada proyecto
+antes de decidir**. Lo que sí está comprobado contra el repo es todo lo que se afirma de
+nuestro lado (Pages estático, CSP de G-10, RGPD de G-15, el shim, el SSO posible).
