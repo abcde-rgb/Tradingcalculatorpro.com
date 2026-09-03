@@ -247,7 +247,7 @@ def get_stock_data(symbol: str) -> dict:
         return _get_fallback_stock_data(symbol)
 
 
-def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> list:
+def _fetch_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> list:
     """Historical OHLC rows from Yahoo's chart API (direct, curl_cffi Chrome).
 
     Returns ``[{date, ts, open, high, low, close, volume}]`` ascending by date.
@@ -299,6 +299,83 @@ def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> 
     except Exception as e:  # noqa: BLE001
         logger.error(f"Error fetching OHLC history for {log_safe(symbol)}: {log_safe(e)}")
         return []
+
+
+# ── Caché del histórico de velas ────────────────────────────────────────────
+#
+# Cada escaneo pedía a Yahoo la serie ENTERA. Diez usuarios mirando EURUSD eran
+# diez descargas de tres meses de velas, y por eso el refresco del navegador
+# tenía un suelo de un minuto: bajarlo no nos costaba a nosotros, le costaba al
+# proveedor. Compartiendo la descarga, N usuarios sobre el mismo símbolo y el
+# mismo escalón son UNA llamada por TTL, y el suelo puede bajar de verdad.
+#
+# El TTL se ata al tamaño de la vela, igual que el refresco del cliente: en una
+# serie sólo puede cambiar la vela en formación, así que un tercio de su
+# duración no se pierde nada. Suelo de 20 s para que un intradía rápido siga
+# siéndolo, techo de 300 s para que un gráfico diario no se quede clavado.
+#
+# **El fallo NO se cachea.** Una respuesta vacía significa que el proveedor
+# falló o que el símbolo no existe; guardarla dejaría el símbolo roto durante
+# todo el TTL aunque el proveedor se recuperase al segundo siguiente. Y un
+# fallo tampoco pisa lo que ya había: se devuelve vacío, como siempre, pero la
+# entrada buena sigue en su sitio para el próximo intento.
+_history_cache: dict = {}          # (símbolo, rango, intervalo) -> (filas, epoch)
+_HISTORY_TTL_FLOOR = 20
+_HISTORY_TTL_CEIL = 300
+
+
+def _history_ttl(interval: str) -> int:
+    """Cuántos segundos vale una descarga de este intervalo antes de repetirla.
+
+    Los minutos por vela salen de `timeframes`, que es la escalera pública: una
+    segunda tabla aquí se desviaría de ella en cuanto alguien añadiera un
+    escalón.
+    """
+    try:
+        import timeframes
+        tf = timeframes.get(interval)
+        minutos = tf.minutes if tf else 0
+    except Exception:  # noqa: BLE001
+        minutos = 0
+    if minutos <= 0:
+        return _HISTORY_TTL_CEIL
+    return max(_HISTORY_TTL_FLOOR, min(_HISTORY_TTL_CEIL, int(minutos * 60 / 3)))
+
+
+def _history_key(symbol: str, range_: str, interval: str) -> tuple:
+    """La clave lleva los TRES: dos escalones del mismo símbolo son series
+    distintas, y servir la de 5m como si fuera la diaria no da un error, da un
+    escaneo en silencio sobre las velas equivocadas."""
+    return ((symbol or "").upper().strip(), str(range_), str(interval))
+
+
+def get_ohlc_history(symbol: str, range_: str = "3mo", interval: str = "1d") -> list:
+    """Velas del símbolo, compartidas entre peticiones durante el TTL.
+
+    Misma firma y mismo contrato que antes —lista ascendente, `[]` si falla—,
+    así que todos los consumidores existentes ganan la caché sin tocarse.
+    """
+    clave = _history_key(symbol, range_, interval)
+    ahora = datetime.now(timezone.utc).timestamp()
+    guardado = _history_cache.get(clave)
+    if guardado and (ahora - guardado[1]) < _history_ttl(str(interval)):
+        return guardado[0]
+    filas = _fetch_ohlc_history(symbol, range_, interval)
+    if filas:
+        _history_cache[clave] = (filas, ahora)
+    return filas
+
+
+def history_fetched_at(symbol: str, range_: str, interval: str) -> Optional[float]:
+    """Cuándo se bajó DE VERDAD esta serie (epoch UTC), o None si nunca.
+
+    Con la descarga compartida, el momento de la petición y el del dato dejan de
+    coincidir. Publicar la hora de la petición como si fuera la del dato sería
+    justo la clase de cifra inventada que este producto no enseña, así que el
+    escáner publica ésta y la pantalla dice la antigüedad real.
+    """
+    guardado = _history_cache.get(_history_key(symbol, range_, interval))
+    return guardado[1] if guardado else None
 
 
 def _redondea_o_nada(valor) -> Optional[float]:

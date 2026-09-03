@@ -54,6 +54,7 @@ from stock_data import (
     get_available_expirations,
     get_cached_meta,
     get_ohlc_history,
+    history_fetched_at,
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
 from price_action import detect_structure, scan_levels, apply_confluence, strip_bars
@@ -7691,6 +7692,18 @@ async def education_structure_scan(
         rows, htf_read = await asyncio.gather(
             _fetch_bars(sym, rng, tf),
             _higher_timeframe_levels(sym, tf.interval if htf else None),
+        )
+        # Cuándo se bajaron DE VERDAD estas velas. Con la descarga compartida
+        # (`stock_data._history_cache`) el momento de la petición y el del dato
+        # ya no coinciden, y el escáner no puede publicar el primero como si
+        # fuera el segundo: `barsAgeSeconds` es lo que la pantalla enseña como
+        # antigüedad, y tiene que ser la de verdad.
+        bajado = history_fetched_at(sym, rng, tf.fetch_interval)
+        meta["barsFetchedAt"] = (
+            datetime.fromtimestamp(bajado, tz=timezone.utc).isoformat() if bajado else None
+        )
+        meta["barsAgeSeconds"] = (
+            max(0, int(datetime.now(timezone.utc).timestamp() - bajado)) if bajado else None
         )
         if not rows:
             # Misma FORMA que una respuesta completa, toda vacía: el cliente

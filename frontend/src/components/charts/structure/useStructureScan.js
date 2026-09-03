@@ -202,9 +202,17 @@ export default function useStructureScan(symbol) {
    * Nunca mientras la pestaña está oculta: un escáner en una pestaña de fondo
    * no lo mira nadie y sí gasta cuota.
    */
+  //
+  // El suelo bajó de 60 s a 20 s el 2026-09-03. No es que antes sobrara
+  // prudencia: cada escaneo se bajaba de Yahoo la serie ENTERA, así que el
+  // suelo protegía al PROVEEDOR, no al navegador. Desde que `stock_data`
+  // comparte la descarga con un TTL atado a la vela, N usuarios sobre el mismo
+  // símbolo y escalón son UNA llamada aguas arriba, y pedir más a menudo ya no
+  // le cuesta a nadie. El techo de 15 min se queda: un gráfico mensual no
+  // mejora por preguntar más.
   const refreshMs = Math.min(
     15 * 60 * 1000,
-    Math.max(60 * 1000, ((intervalMinutes(tfInterval) || 1440) * 60 * 1000) / 3),
+    Math.max(20 * 1000, ((intervalMinutes(tfInterval) || 1440) * 60 * 1000) / 3),
   );
 
   useEffect(() => {

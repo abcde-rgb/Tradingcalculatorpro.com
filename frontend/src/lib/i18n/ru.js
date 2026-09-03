@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "С какого из двух видов открывается панель.",
   "settingsThemeDesc": "Сохраняется в аккаунте: на телефоне вы увидите то же самое.",
   "settingsLanguageDesc": "Меняет интерфейс и публичные страницы.",
+  "structBarsFetched": "Свечи загружены",
 }

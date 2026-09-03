@@ -55,14 +55,18 @@ export default function ScanReading({ data }) {
   // Cuánto hace que se tomó la cotización viva. Una «cotización en vivo» de
   // hace veinte minutos sigue siendo mejor que el cierre de anteayer, pero
   // llamarla «ahora» sin decir la edad es lo mismo que no etiquetarla.
-  const edadLabel = (() => {
-    const s = data.referenceAgeSeconds;
+  //
+  // La MISMA escala para las dos cosas que envejecen en esta tarjeta —la
+  // cotización de referencia y las velas—: dos vocabularios distintos para
+  // «hace cuánto» dentro de la misma caja se leen como dos medidas distintas.
+  const edadTexto = (s) => {
     if (s == null) return null;
     if (s < 90) return t('structRefFresh');
     const min = Math.round(s / 60);
     if (min < 90) return t('structRefAgeMin').replace('{n}', String(min));
     return t('structRefAgeHours').replace('{n}', String(Math.round(min / 60)));
-  })();
+  };
+  const edadLabel = edadTexto(data.referenceAgeSeconds);
 
   // La fecha de la vela de la que sale el precio. Intradía se enseña con hora;
   // en diario o superior, la hora no aporta nada y estorba en la tarjeta.
@@ -202,6 +206,19 @@ export default function ScanReading({ data }) {
             <span>{t('structLvlResistance')}</span>
           </div>
         </div>
+      )}
+
+      {/* Cuándo se bajaron las VELAS, que no es la edad del precio de
+          referencia: desde que la descarga se comparte entre peticiones
+          (`stock_data._history_cache`), el momento de la petición y el del dato
+          dejaron de coincidir. El backend publica `barsAgeSeconds` y aquí se
+          enseña — publicar frescura que la pantalla ignora es exactamente el
+          error que ya se pagó una vez con `referenceSource`. */}
+      {data.barsAgeSeconds != null && (
+        <p className="text-[10px] text-muted-foreground" data-testid="struct-bars-age">
+          {t('structBarsFetched')}{' '}
+          <span className="font-mono">{edadTexto(data.barsAgeSeconds)}</span>
+        </p>
       )}
     </section>
   );

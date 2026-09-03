@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "Mit welcher der beiden Ansichten das Dashboard öffnet.",
   "settingsThemeDesc": "Im Konto gespeichert: auf dem Handy siehst du dasselbe.",
   "settingsLanguageDesc": "Ändert die Oberfläche und die öffentlichen Seiten.",
+  "structBarsFetched": "Kerzen geladen",
 }

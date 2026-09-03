@@ -6426,3 +6426,58 @@ cambios que nadie revisa.
 **Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
 PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
 ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.
+
+
+## 2026-09-03 (3) — El escáner comparte la descarga (y por fin dice de cuándo es el dato)
+
+Petición: «el escáner en tiempo real dentro de lo posible». Lo primero fue mirar,
+y **el auto-refresco ya existía** (`useStructureScan.js`): temporizador atado al
+tamaño de la vela, pausado con la pestaña oculta y re-escaneo al volver. Lo que
+faltaba estaba debajo.
+
+**El cuello de botella real.** `get_ohlc_history` bajaba de Yahoo la serie ENTERA
+en cada escaneo, sin caché: diez usuarios mirando EURUSD eran diez descargas de
+tres meses de velas. Por eso el suelo de refresco del navegador era de 60 s — no
+protegía al navegador, protegía al proveedor. `market_data.py` ya tenía el patrón
+bien hecho (TTL de 15 s con cascada), pero sólo para **cotizaciones**.
+
+**Lo hecho.**
+
+- `stock_data.py`: caché de histórico por `(símbolo, rango, intervalo)`, con
+  **TTL atado al tamaño de la vela** —un tercio de su duración, suelo 20 s, techo
+  300 s—, y los minutos por vela salidos de `timeframes` para no tener una
+  segunda tabla que se desvíe. `get_ohlc_history` conserva firma y contrato, así
+  que los cuatro consumidores (escáner de estructura, de patrones, confluencia y
+  backtest) ganan la caché sin tocarse.
+- **El fallo no se cachea ni pisa lo bueno.** Guardar una respuesta vacía dejaría
+  el símbolo roto durante todo el TTL aunque el proveedor se recuperase al
+  segundo siguiente.
+- `history_fetched_at()` + `barsFetchedAt`/`barsAgeSeconds` en el meta del
+  escaneo: con la descarga compartida, el momento de la petición y el del dato
+  dejan de coincidir, y publicar el primero como si fuera el segundo sería una
+  cifra inventada.
+- La pantalla lo **enseña** (`ScanReading`, `struct-bars-age`), reutilizando la
+  misma escala de antigüedad que ya tenía el precio de referencia. Publicar
+  frescura que la pantalla ignora es el error que este mismo módulo ya pagó una
+  vez con `referenceSource`.
+- Con la descarga compartida, el suelo del refresco baja de **60 s a 20 s**.
+
+**Las pruebas se sabotearon una a una** (`test_history_cache_unit.py`, 6 casos,
+con `_yahoo_get` mockeado porque aquí no hay red): sin consultar la caché, con el
+fallo cacheado, con la clave sin intervalo y con la marca de tiempo rejuvenecida
+al leer. Las cuatro se cazan. El primer arnés de sabotaje dio los cuatro por
+buenos **porque buscaba `failed` y pytest escribe `FAILED`** — el comprobador que
+no comprueba, esta vez en el propio comprobador.
+
+**Lo que esto NO es.** No es tiempo real: la fuente sigue siendo Yahoo, que en
+acciones de EE. UU. llega **diferida ~15 minutos**, y encima está G-16 (su
+licencia no permite redistribuir el dato en un producto de pago). Tiempo real de
+verdad exige o bien WebSocket de exchange para cripto —donde no hay ese problema—
+o bien un proveedor de pago para acciones y futuros. Las dos cosas están
+propuestas y sin decidir.
+
+**Verificado**: `py_compile`, **1226 passed / 114 skipped** (eran 1220: +6 de la
+caché) con el mismo fallo preexistente de `test_verify_full…` que pide un
+PostgreSQL local, ESLint 0 errores, `i18n-check` 0 huecos con la clave nueva en
+los 10 idiomas, `engine-check` 535/535, catálogo, rutas muertas, enlaces de doc y
+`npm run build`.

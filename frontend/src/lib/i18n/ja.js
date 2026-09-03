@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "ダッシュボードをどちらのビューで開くか。",
   "settingsThemeDesc": "アカウントに保存されます。スマートフォンでも同じ設定が反映されます。",
   "settingsLanguageDesc": "インターフェースと公開ページの両方が変わります。",
+  "structBarsFetched": "ローソク足の取得",
 }

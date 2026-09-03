@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "面板默认以哪个视图打开。",
   "settingsThemeDesc": "保存在账户里：在手机上看到的完全一样。",
   "settingsLanguageDesc": "同时改变界面和公开页面。",
+  "structBarsFetched": "K线已下载",
 }

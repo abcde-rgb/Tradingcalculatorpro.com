@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "Avec laquelle des deux vues le tableau de bord s'ouvre.",
   "settingsThemeDesc": "Enregistré dans votre compte : vous verrez la même chose sur mobile.",
   "settingsLanguageDesc": "Change l'interface et les pages publiques.",
+  "structBarsFetched": "Bougies téléchargées",
 }

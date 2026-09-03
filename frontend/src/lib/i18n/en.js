@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "Which of the two views the dashboard opens with.",
   "settingsThemeDesc": "Saved to your account: you will see the same on your phone.",
   "settingsLanguageDesc": "Changes the interface and the public pages.",
+  "structBarsFetched": "Bars fetched",
 }

@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "Con cuál de las dos vistas se abre el panel.",
   "settingsThemeDesc": "Se guarda en tu cuenta: lo verás igual en el móvil.",
   "settingsLanguageDesc": "Cambia la interfaz y las páginas públicas.",
+  "structBarsFetched": "Velas descargadas",
 }

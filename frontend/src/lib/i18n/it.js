@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "Con quale delle due viste si apre il pannello.",
   "settingsThemeDesc": "Salvato nel tuo account: lo vedrai uguale sul telefono.",
   "settingsLanguageDesc": "Cambia l'interfaccia e le pagine pubbliche.",
+  "structBarsFetched": "Candele scaricate",
 }

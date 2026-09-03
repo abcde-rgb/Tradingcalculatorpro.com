@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "أي العرضين تُفتح به اللوحة.",
   "settingsThemeDesc": "يُحفظ في حسابك: سترى الإعداد نفسه على الهاتف.",
   "settingsLanguageDesc": "يغيّر الواجهة والصفحات العامة.",
+  "structBarsFetched": "تم تنزيل الشموع",
 }

@@ -4931,4 +4931,5 @@ export default {
   "settingsDeskStartViewDesc": "Com qual das duas vistas abre o painel.",
   "settingsThemeDesc": "Guardado na tua conta: vais vê-lo igual no telemóvel.",
   "settingsLanguageDesc": "Muda a interface e as páginas públicas.",
+  "structBarsFetched": "Velas descarregadas",
 }
