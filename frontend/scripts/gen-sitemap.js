@@ -24,16 +24,27 @@ const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
 const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const LASTMOD = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
+// ⚠️ ESTE FICHERO YA NO LO EJECUTA NADIE, y lo que produce es PEOR que nada.
+//
+// El sitemap publicado lo genera `gen-seo-pages.js` en el `postbuild`, con las
+// ~1.687 URLs reales. Éste escribe 5 en `public/sitemap.xml`, que CRA copia
+// dentro de `build/` — donde el postbuild lo pisa. En el flujo normal no se
+// nota; en cualquier build que no llegue al postbuild se publica ÉSTE, y Search
+// Console ve el sitio encoger de 1.687 URLs a 5. Por eso `check-seo.js` falla
+// si `public/sitemap.xml` existe. Si necesitas cambiar el sitemap, cambia
+// `gen-seo-pages.js`.
+//
+// La lista se deja corregida para que no contradiga al generador de verdad si
+// alguien lo ejecuta por error. No para invitar a usarlo.
+//
 // [path, priority, changefreq]
 const PAGES = [
   ['/',            '1.0',  'weekly'],
-  ['/options',            '0.9',  'weekly'],
-  ['/options/strategies', '0.85', 'weekly'],
-  ['/education',   '0.9',  'weekly'],
-  // /performance NO va aquí: es una ruta premium (ProtectedRoute premiumOnly) y
-  // robots.txt la bloquea. Anunciarla en el sitemap mientras robots la prohíbe
-  // es una contradicción que Google marca en Search Console ("enviada pero
-  // bloqueada por robots.txt") y que resta autoridad al resto del sitemap. La
+  // /education, /options y /options/strategies NO van aquí, ni /performance:
+  // los cuatro son `ProtectedRoute premiumOnly` en `src/App.js` y mandan a
+  // /login a quien no ha entrado. Anunciar en el sitemap una URL que robots.txt
+  // prohíbe es la contradicción que Search Console marca como «enviada pero
+  // bloqueada por robots.txt», y resta autoridad al resto del sitemap. La
   // referencia pública del diario, cuando exista, irá con ruta propia sin muro.
   ['/pricing',     '0.85', 'monthly'],
   ['/about',       '0.7',  'monthly'],

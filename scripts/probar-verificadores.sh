@@ -1572,7 +1572,37 @@ probar_inverso "un .venv o node_modules no cambia el recuento" \
 if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"
 
-  SEO_PAG=$(find frontend/build -path '*/learn/*' -name index.html | head -1)
+  # La página de muestra tiene que ser una página DE VERDAD, y en un idioma que
+  # no sea el español ni el árabe. Los tres requisitos han costado un susto:
+  #
+  #  · **Ni un puente.** Desde que los slugs se traducen, cada URL vieja queda
+  #    publicada como redirección (`canonical` + `meta refresh`) y también casa
+  #    con `*/learn/*`. `find … | head -1` cogió una, y como a los puentes no se
+  #    les aplica el examen normal —no son páginas—, SEIS sabotajes salieron
+  #    «SOBREVIVE» sobre comprobaciones que funcionaban perfectamente. Es
+  #    exactamente el modo de fallo que BUG-078 dejó documentado: el dato de
+  #    prueba desfasado, no la comprobación. `grep -L` los descarta.
+  #  · **Español no**, porque el sabotaje de `<html lang>` lo pone a "es": sobre
+  #    una página española no cambiaría nada.
+  #  · **Árabe no**, porque su etiqueta lleva `dir="rtl"` y el `sed` del mismo
+  #    sabotaje no casaría.
+  #
+  # Se fija la carpeta (`de/learn`) y no el fichero: los slugs salen del título
+  # traducido, así que una ruta escrita a mano se pudriría a la primera revisión
+  # de la traducción alemana.
+  SEO_PAG=$(find frontend/build/de/learn -name index.html -print0 2>/dev/null \
+    | xargs -0 grep -L 'http-equiv="refresh"' 2>/dev/null | sort | head -1)
+  if [ -z "$SEO_PAG" ]; then
+    echo "  ⚠️  no hay ninguna página real bajo build/de/learn/: recompila con 'cd frontend && npm run build'"
+    FALLOS=$((FALLOS + 1))
+  fi
+
+  # Un puente cualquiera (los que dejó la traducción de slugs) y el hub ruso.
+  # Por la misma razón que arriba: se buscan, no se escriben.
+  SEO_PUENTE=$(find frontend/build/ru/learn -name index.html -print0 2>/dev/null \
+    | xargs -0 grep -l 'http-equiv="refresh"' 2>/dev/null | sort | head -1)
+  SEO_HUB=frontend/build/ru/learn/index.html
+  SEO_REGEN="(cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp)
   TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL")
   cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
@@ -1682,7 +1712,7 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   probar "una ruta pública del SPA sin fichero propio (vuelve a ser un 404)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "rm -rf frontend/build/pricing" \
-    "$SEO_REST; (cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+    "$SEO_REST; eval $SEO_REGEN"
 
   # El icono de los resultados de búsqueda. Ninguna de las 1.640 páginas lo
   # declaraba, y por eso el sitio salía en Yandex con el globo genérico.
@@ -1695,14 +1725,15 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   # inventa el resumen con el texto de la página — en la rusa de
   # `operar-noticias` eligió el descargo legal del pie, y eso es lo que Yandex
   # publicaba como descripción del tema.
+  # El cebo es un LITERAL de 158 caracteres que acaba a media palabra
+  # («…Handelsalltagskennz»), que es exactamente lo que producía el
+  # `.slice(0, 158)` del generador. Literal y no calculado a propósito: un cebo
+  # que se construye con python multilínea dentro de una cadena de bash es la
+  # fragilidad que costó BUG-078, y un cebo que no se aplica es indistinguible
+  # de un verificador que no verifica.
   probar "una description cortada a media palabra" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "python3 -c \"
-import pathlib, re
-p = pathlib.Path('$SEO_PAG'); t = p.read_text(encoding='utf-8')
-m = re.search(r'<meta name=\\\"description\\\" content=\\\"([^\\\"]*)\\\"', t)
-cebo = (m.group(1) + ' palabras de relleno para pasar de ciento cincuenta caracteres y quedar cortada justo aq')[:158]
-p.write_text(t.replace(m.group(0), '<meta name=\\\"description\\\" content=\\\"' + cebo + '\\\"', 1), encoding='utf-8')\"" \
+    "grep -q 'name=\"description\"' $SEO_PAG && sed -i 's|<meta name=\"description\" content=\"[^\"]*\"|<meta name=\"description\" content=\"Algorithmischer Handel bedeutet, Regeln in Code zu fassen: Ein Programm prueft den Markt und fuehrt aus, ohne Muedigkeit und ohne Zweifel, Handelsalltagskennz\"|' $SEO_PAG" \
     "$SEO_REST"
 
   probar "un og:locale sin territorio (Open Graph lo descarta)" \
@@ -1714,12 +1745,8 @@ p.write_text(t.replace(m.group(0), '<meta name=\\\"description\\\" content=\\\"'
   # cuyo refresh no coinciden manda dos señales distintas y no transfiere nada.
   probar "una página puente con canonical y refresh discordantes" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "python3 -c \"
-import pathlib
-p = pathlib.Path('frontend/build/ru/learn/operar-noticias/index.html')
-t = p.read_text(encoding='utf-8')
-p.write_text(t.replace('<link rel=\\\"canonical\\\" href=\\\"', '<link rel=\\\"canonical\\\" href=\\\"https://tradingcalculator.pro/otra-cosa/#', 1), encoding='utf-8')\"" \
-    "$SEO_REST; (cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+    "sed -i 's|<link rel=\"canonical\" href=\"|<link rel=\"canonical\" href=\"https://tradingcalculator.pro/otra-cosa/#|' $SEO_PUENTE" \
+    "$SEO_REST; eval $SEO_REGEN"
 
   # La huerfandad, que es lo que tenía a las 1.640 compitiendo desde cero:
   # alcanzables sólo por el sitemap, sin un enlace desde ninguna página con
@@ -1727,8 +1754,8 @@ p.write_text(t.replace('<link rel=\\\"canonical\\\" href=\\\"', '<link rel=\\\"c
   # esa página vuelve a estar suelta.
   probar "una página que ningún hub enlaza (huérfana otra vez)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "sed -i 's|<li><a href=\"https://tradingcalculator.pro/ru/learn/torgovlya-na-novostyah/\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|' frontend/build/ru/learn/index.html" \
-    "$SEO_REST; (cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+    "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|g' $SEO_HUB" \
+    "$SEO_REST; eval $SEO_REGEN"
 
   # robots.txt resuelve por coincidencia MÁS LARGA. `Disallow: /options` +
   # `Allow: /options/strategies/` deja fuera la pantalla premium y dentro las
