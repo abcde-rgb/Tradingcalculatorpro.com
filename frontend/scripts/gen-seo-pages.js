@@ -748,15 +748,86 @@ CALCS.forEach((c, i) => {
 // no pueden divergir, y `i18n-check.js` ya garantiza que los diez idiomas
 // tienen el juego completo.
 //
+// ─── De dónde salen los conceptos ─────────────────────────────────
+//
+// De `tradingEducationContent.js`, que es EXACTAMENTE la estructura que la
+// aplicación pinta dentro del módulo. Cada tema tiene ahí un `get…(t)` que
+// devuelve su contenido con claves i18n; llamándolo con la `t` del idioma que
+// toca sale el mismo texto que ve un suscriptor, traducido, sin inventar nada y
+// sin posibilidad de divergir del módulo.
+//
+// El emparejamiento tema → getter **no se escribe a mano**: se descubre
+// llamando a cada getter con `t = identidad` y comparando el `title` que
+// devuelve con el `tk` del tema. Una tabla de 75 entradas escrita a mano se
+// pudre en cuanto alguien renombra un getter, y se pudre EN SILENCIO — la
+// página no fallaría, simplemente saldría corta, que es el fallo que este
+// generador existe para no cometer.
+const EDU_SRC = fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'tradingEducationContent.js'), 'utf8');
+const EDU = (() => {
+  const nombres = [...EDU_SRC.matchAll(/export const (\w+)\s*=/g)].map((m) => m[1]);
+  const cuerpo = EDU_SRC.replace(/export\s+const/g, 'const').replace(/export\s+default[^;]*;/g, '');
+  return new Function(`${cuerpo}\nreturn {${nombres.join(',')}};`)();
+})();
+
+const GETTER_DE_TEMA = (() => {
+  const mapa = {};
+  for (const [nombre, fn] of Object.entries(EDU)) {
+    if (typeof fn !== 'function') continue;
+    let forma;
+    try { forma = fn((k) => k); } catch { continue; }
+    if (forma && !Array.isArray(forma) && typeof forma.title === 'string') mapa[forma.title] = nombre;
+  }
+  return mapa;
+})();
+
+/**
+ * Recorre la estructura del módulo y recoge sus pares concepto/explicación.
+ *
+ * Acepta las dos formas que conviven en el fichero: `{name, desc}` —los módulos
+ * compactos— y `{title, description}` —los principios de Dow, los conceptos de
+ * gestión de riesgo—. Deduplica, porque hay estructuras que citan el mismo
+ * bloque dos veces, y limita la profundidad: ahí dentro hay objetos anidados de
+ * varios niveles y un recorrido sin tope se puede ir en un ciclo.
+ */
+function recogerConceptos(nodo, salida = [], vistos = new Set(), prof = 0) {
+  if (!nodo || prof > 6) return salida;
+  if (Array.isArray(nodo)) { for (const n of nodo) recogerConceptos(n, salida, vistos, prof + 1); return salida; }
+  if (typeof nodo !== 'object') return salida;
+  const nombre = nodo.name ?? nodo.title;
+  const desc = nodo.desc ?? nodo.description;
+  if (typeof nombre === 'string' && typeof desc === 'string' && nombre.trim() && desc.trim()) {
+    const clave = `${nombre}|${desc}`;
+    if (!vistos.has(clave)) { vistos.add(clave); salida.push({ name: nombre, desc }); }
+  }
+  for (const v of Object.values(nodo)) if (v && typeof v === 'object') recogerConceptos(v, salida, vistos, prof + 1);
+  return salida;
+}
+
 // El prefijo sale del propio `tk` del tema (`ntTitle` → `nt`). Cuando dos temas
 // comparten principio, gana el prefijo MÁS LARGO: si no, `sm` (sentimiento) se
 // llevaría claves de `smc` (smart money concepts).
+//
+// Esto es el PLAN B, para los temas cuyo contenido no vive en
+// `tradingEducationContent.js` sino dentro de su propio componente JSX.
 const PREFIJOS_TEMA = TOPICS
   .map((tp) => (tp.tk.match(/^(.*?)(Title|Tab)$/) || [])[1])
   .filter(Boolean)
   .sort((a, b) => b.length - a.length);
 
 function conceptosDe(tp, lang) {
+  // 1 · la fuente buena: la estructura que pinta el módulo.
+  const getter = GETTER_DE_TEMA[tp.tk];
+  if (getter) {
+    const conceptos = recogerConceptos(EDU[getter]((k) => T[lang][k] || ''))
+      // El primer par suele ser el título y la entradilla del propio módulo,
+      // que ya salen como <h1> y `lead` de la página. Repetirlos sería
+      // duplicado dentro de la misma página.
+      .filter((c) => c.name !== T[lang][tp.tk] && c.desc !== T[lang][tp.ik]);
+    if (conceptos.length) return conceptos;
+  }
+
+  // 2 · plan B por convenio de claves, para los temas que se pintan con un
+  // componente propio y no tienen estructura de datos que leer.
   const prefijo = (tp.tk.match(/^(.*?)(Title|Tab)$/) || [])[1];
   if (!prefijo) return [];
   const re = new RegExp(`^${prefijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([A-Z0-9]\\w*)Name$`);

@@ -351,13 +351,16 @@ p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8'
 p.write_text(t.replace('42 patrones chartistas y 30 patrones',
                        '42 patrones chartistas y 27 patrones', 1), encoding='utf-8')\""
 
+  # ⚠️ El cebo apuntaba a `<li><a href="/education">Academia de trading</a></li>`,
+  # línea que dejó de existir cuando el <noscript> pasó a enlazar los hubs
+  # públicos (`/learn/`, `/tools/`…) en vez de las rutas con muro. El `replace`
+  # no encontraba su texto, escribía el fichero igual y salía con 0: el arnés
+  # cantaba «SOBREVIVE» sobre una comprobación perfecta. Es literalmente
+  # BUG-078 otra vez, así que ahora el `grep -q` hace fallar el sabotaje —y
+  # decirlo— si el ancla vuelve a moverse.
   probar "el <noscript> del shell enlazando una ruta que robots.txt prohíbe" \
     "(cd frontend && node scripts/engine-check.js)" \
-    "python -c \"
-import pathlib
-p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
-p.write_text(t.replace('<li><a href=\\\"/education\\\">Academia de trading</a></li>',
-                       '<li><a href=\\\"/dashboard\\\">Dashboard</a></li>', 1), encoding='utf-8')\""
+    "grep -q '<li><a href=\"/learn/\">' frontend/public/index.html && sed -i '0,\|<li><a href=\"/learn/\">[^<]*</a></li>|s||<li><a href=\"/dashboard\">Dashboard</a></li>|' frontend/public/index.html"
 
   probar "el <noscript> del shell desapareciendo del todo" \
     "(cd frontend && node scripts/engine-check.js)" \

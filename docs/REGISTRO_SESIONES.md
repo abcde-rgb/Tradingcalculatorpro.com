@@ -6515,3 +6515,45 @@ mira las rutas principales. Correrlo tras el despliegue.
    daban 404 hay que pedir su reindexación a mano.
 3. Las 949 URLs viejas quedan como puente. Cuando haya un CDN delante (Cloudflare)
    conviene convertirlas en **301 de verdad** y retirar los puentes.
+
+### 2026-09-03 (cont.) — G-42: la academia deja de ser delgada (94 → 453 palabras)
+
+El dueño pidió atacarlo en la misma sesión. La primera pasada publicaba los
+conceptos adivinando la familia de claves i18n por el prefijo del tema
+(`ntTitle` → `nt…Name`/`…Desc`), y eso sólo cubría 57 de 75: los otros 18 no
+siguen ese convenio.
+
+**La fuente correcta era otra, y estaba a la vista**: `tradingEducationContent.js`
+declara la estructura EXACTA que la aplicación pinta dentro de cada módulo, con
+sus claves i18n. Llamando a su `get…(t)` con la `t` del idioma sale el mismo
+texto que ve un suscriptor, traducido, sin adivinar y sin poder divergir del
+módulo.
+
+Y el emparejamiento tema→getter **no se escribe a mano**: se descubre llamando a
+cada getter con `t = identidad` y comparando el `title` que devuelve con el `tk`
+del tema. **72 de 75 se emparejan solos.** Una tabla escrita a mano se pudriría
+al primer renombrado, y en silencio: la página no fallaría, sólo saldría corta.
+
+Comprobado antes de cambiar nada que el getter no PIERDE contenido frente a la
+heurística: sólo un tema (`wyckoff`) daba un par menos, y el del getter es el
+autoritativo. La heurística se queda como plan B.
+
+- Conceptos publicados: **4.300 → 6.360**
+- Mediana de la academia: **94 → 453 palabras** (750 páginas)
+- Páginas delgadas: **166 → 43**
+
+Quedan 5 temas (`session-phases`, `strategies`, `harmonic-patterns`,
+`time-impact`, `pre-trade-protocol`) cuyo contenido vive dentro de un componente
+JSX y no en datos: **G-42**, reescrito con estas cifras.
+
+**Y un fallo del arnés, del mismo tipo que ya documenta BUG-078**: el sabotaje
+«el `<noscript>` del shell enlazando una ruta que robots.txt prohíbe» buscaba
+`<li><a href="/education">Academia de trading</a></li>`, línea que desapareció
+al repuntar el `<noscript>` a los hubs públicos. El `replace` no encontraba su
+texto, escribía el fichero igual y salía con 0, así que el arnés cantaba
+«SOBREVIVE» sobre una comprobación perfecta. Ahora lleva `grep -q` delante: si
+el ancla se mueve otra vez, el sabotaje falla y lo dice.
+
+Verificado: `npm run build` real, `check-seo.js` en verde (2.635 páginas, 1.687
+URLs), `eslint` 0 errores, `check-doc-links`. Traducciones comprobadas en ru y
+ja para los temas nuevos: 0 pares vacíos.
