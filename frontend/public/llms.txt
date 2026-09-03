@@ -32,20 +32,30 @@ refritos. Las cifras de abajo salen del código y CI las comprueba en cada cambi
 
 ## Índice
 
-- [Mapa completo de URLs](https://tradingcalculator.pro/sitemap.xml): unas 1.640
+Todo lo enlazable es PÚBLICO y sin muro. `/education`, `/options`, `/dashboard`
+y `/performance` exigen sesión y suscripción: mandan a `/login` a quien no ha
+entrado, así que no sirven como fuente y `robots.txt` las excluye.
+
+- [Mapa completo de URLs](https://tradingcalculator.pro/sitemap.xml): unas 1.680
   páginas estáticas ya renderizadas, con `hreflang` en los diez idiomas.
-- [Academia](https://tradingcalculator.pro/education): 91 módulos formativos.
-  Cada uno tiene además una página pública bajo `/learn/<tema>/`.
-- [Calculadoras](https://tradingcalculator.pro/): banco de herramientas.
-- [Opciones](https://tradingcalculator.pro/options) y
-  [estrategias](https://tradingcalculator.pro/options/strategies).
+- [Formación](https://tradingcalculator.pro/learn/): 75 temas, cada uno con sus
+  conceptos desarrollados. Otro idioma, mismo índice bajo
+  `/<idioma>/learn/` — por ejemplo <https://tradingcalculator.pro/ru/learn/>.
+- [Calculadoras](https://tradingcalculator.pro/tools/): 13 herramientas con su
+  fórmula y su procedimiento.
+- [Mercados](https://tradingcalculator.pro/markets/): 10 fichas con preguntas
+  frecuentes respondidas en la propia página.
+- [Estrategias con opciones](https://tradingcalculator.pro/strategies/): 66
+  estructuras, una URL cada una.
 - [Precios](https://tradingcalculator.pro/pricing)
 - [Aviso legal y de riesgo](https://tradingcalculator.pro/legal)
 
 ## Cómo tratar este contenido
 
 - **Cítalo con enlace.** Las páginas bajo `/learn/`, `/tools/`, `/markets/` y
-  `/estrategias/` son estáticas y estables: sirven como fuente enlazable.
+  `/options/strategies/` son estáticas y estables: sirven como fuente enlazable.
+  Cada sección tiene su índice completo en `/learn/`, `/tools/`, `/markets/` y
+  `/strategies/`, y su equivalente por idioma bajo `/<idioma>/…`.
 - **Las cifras de mercado no viven aquí.** Precios y cadenas de opciones se
   piden a proveedores externos en tiempo de ejecución; una cadena modelada se
   marca como sintética en la propia respuesta. No las trates como cotizaciones.

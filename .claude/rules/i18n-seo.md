@@ -28,15 +28,52 @@ hay nada que escribir a mano.
 Los nombres nuevos van **en literal** (los términos del sector no se traducen) y `tr()`
 resuelve literal o clave i18n indistintamente.
 
-## ⚠️ El JSON-LD anuncia `price: "0"` con muro de pago duro (G-28)
+## ⚠️ GitHub Pages devuelve 404 en toda ruta sin fichero físico
 
-`gen-seo-pages.js` emite `offers: { price:'0', priceCurrency:'EUR' }` en las páginas de
-calculadora, y sus títulos dicen «Gratis» / «Free». Pero desde el 2026-08-02 **todo el
-contenido está tras el muro de pago**, y `public/index.html` declara ofertas de
-17/45/200 €.
+**La regla más cara de este repositorio, y la más invisible.** Pages sólo sirve
+`index.html` en la RAÍZ. Cualquier otra ruta que no tenga su propio fichero recibe
+`404.html` — **con estado HTTP 404**. El workflow copia ahí el shell del SPA, así que la
+persona ve la web perfecta y el rastreador ve un 404 y no indexa. Siete rutas llevaban
+así desde siempre, anunciadas en el sitemap (BUG-081).
 
-Son dos declaraciones contradictorias del mismo producto para Google, y un destino que no
-cumple lo que promete el título. Si tocas el generador, arréglalo.
+Por eso `gen-seo-pages.js` escribe un `build/<ruta>/index.html` real para cada ruta
+pública del SPA (`RUTAS_SPA`). **Si añades una ruta pública a `src/App.js` y quieres que
+se indexe, añádela también ahí.** Si no, será un 404 para Google y nadie se enterará.
+
+Y al revés: **nunca escribas un fichero estático sobre una ruta que sirve el SPA**. Le
+robarías la pantalla a quien recargue esa URL. Es la razón de que el hub de estrategias
+viva en `/strategies/` y no en `/options/strategies/`, que es `OptionsStrategiesIndexPage`.
+
+## Lo que tiene muro NO va al sitemap
+
+`/education`, `/options`, `/options/strategies`, `/dashboard`, `/performance` y `/plan`
+son `ProtectedRoute` en `src/App.js`: mandan a `/login` a quien no ha entrado. Anunciarlas
+sólo consigue que Google indexe una pantalla de acceso. Están en `robots.txt` y fuera del
+sitemap; su contenido público vive en las páginas estáticas, que no tienen muro.
+
+⚠️ `robots.txt` resuelve por **coincidencia más larga**, no por orden. Por eso
+`Disallow: /options` convive con `Allow: /options/strategies/`: sin ese `Allow`, el
+`Disallow` se llevaría por delante las 66 fichas públicas de estrategia.
+
+## Hubs, slugs y páginas puente
+
+- **Los cuatro hubs** (`/learn/`, `/tools/`, `/markets/`, `/strategies/`, y sus
+  `/<idioma>/…`) son el esqueleto: sin ellos las 1.680 páginas son huérfanas, alcanzables
+  sólo por el sitemap —que descubre, pero no reparte autoridad—. `check-seo.js` falla si
+  una página se queda sin hub que la enlace.
+- **El slug sale del título traducido**, no del español. Cirílico transliterado; zh/ja/ar
+  caen al inglés. **`es` no se deriva nunca**: es el único idioma con indexación
+  consolidada y moverlo sería tirarla.
+- **Al cambiar un slug se publica una página puente** en la URL vieja (`canonical` +
+  `meta refresh`). Pages no sirve cabeceras, así que un 301 de verdad es imposible. Los
+  puentes **no van al sitemap** y no pueden pisar una página real: el generador aborta si
+  chocan.
+
+## La description se recorta con `recortar()`, no con `slice()`
+
+Un `.slice(0, 158)` parte la última palabra, y entonces el buscador **descarta la
+descripción** y se inventa el resumen con el texto de la página. Pasó: Yandex publicaba el
+descargo legal del pie como si fuera la descripción del tema (BUG-083).
 
 ## Nada de dominios a mano
 

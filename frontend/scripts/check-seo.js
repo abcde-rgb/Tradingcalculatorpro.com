@@ -125,12 +125,50 @@ function idiomaDe(rel) {
   return PREFIJOS.has(primero) ? PREFIJOS.get(primero) : 'es';
 }
 
+// ── páginas puente ──────────────────────────────────────────────────────────
+// Al traducir los slugs por idioma, cada URL vieja se queda publicada como
+// puente: `meta refresh` a cero + `canonical` al destino. GitHub Pages no
+// sirve cabeceras, así que un 301 de verdad es imposible y esto es lo más
+// fuerte que se puede emitir.
+//
+// No se les aplica el examen normal —no son páginas, son redirecciones— pero
+// tampoco se les perdona: un puente que apunte a una URL que no existe es un
+// 404 con dos pasos, y un puente que además esté en el sitemap le pide a
+// Google que indexe una redirección. Las dos cosas se comprueban abajo.
+const puentes = new Map();   // rel → destino
+const esPuente = (html) => /<meta http-equiv="refresh"/i.test(html);
+
+function revisarPuente(fichero, html, rel) {
+  const destino = attr(html, /<meta http-equiv="refresh" content="0;\s*url=([^"]+)"/i);
+  const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
+  if (!destino) { anota('puente sin destino', rel, 'el meta refresh no trae URL'); return; }
+  if (!mismoOrigen(destino, DOMAIN)) anota('puente a otro dominio', rel, destino);
+  if (!canonical) anota('puente sin canonical', rel, 'sólo el refresh no transfiere la señal');
+  else if (unaBarra(canonical) !== unaBarra(destino))
+    anota('puente con canonical y refresh discordantes', rel, `${canonical} ≠ ${destino}`);
+  // Un puente NO puede llevar noindex: contradiría al canonical y le diría a
+  // Google que no siga la mudanza.
+  const robots = attr(html, /<meta name="robots" content="([^"]*)"/);
+  if (robots && /noindex/i.test(robots)) anota('puente con noindex', rel, robots);
+  puentes.set(rel, unaBarra(destino));
+}
+
 // ── el examen de una página ─────────────────────────────────────────────────
 function revisar(fichero) {
   const html = fs.readFileSync(fichero, 'utf8');
   const rel = path.relative(BUILD, path.dirname(fichero)).split(path.sep).join('/');
   const propia = urlDe(fichero);
   const lang = idiomaDe(rel);
+
+  if (esPuente(html)) { revisarPuente(fichero, html, rel); return null; }
+
+  // 0 · icono declarado
+  //
+  // Ninguna de las 1.640 páginas lo traía, y por eso el sitio salía en Yandex
+  // con el globo genérico en vez de su marca. El favicon de la raíz no basta:
+  // el buscador lee el que declara la página que ha indexado, y aquí las
+  // páginas que se indexan son éstas, no la portada.
+  if (!/<link rel="icon"/i.test(html)) anota('sin favicon declarado', rel, '');
 
   // 1 · canonical
   const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
@@ -140,8 +178,16 @@ function revisar(fichero) {
     anota('canonical NO auto-referente', rel, `dice ${canonical}`);
 
   // 2 · hreflang
-  const alt = [...html.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)"/g)];
-  if (alt.length) {
+  const alt = [...html.matchAll(/<link rel="alternate" hreflang="([^"]+)"\s+href="([^"]+)"/g)];
+  // Un `x-default` SOLO y auto-referente no es un juego incompleto: es la
+  // declaración correcta de una página que tiene UNA versión para todo el
+  // mundo. Es el caso de las rutas de aplicación (`/pricing/`, `/about/`…):
+  // la SPA traduce en cliente, así que no existe `/en/pricing/` que declarar.
+  // Exigirles los diez idiomas empujaría justo al error que `public/index.html`
+  // documenta — diez URLs sirviendo el mismo HTML.
+  const soloXDefault = alt.length === 1 && alt[0][1] === 'x-default'
+    && unaBarra(alt[0][2]) === unaBarra(propia);
+  if (alt.length && !soloXDefault) {
     const vistos = alt.map((m) => m[1]);
     const faltan = [...HREFLANGS].filter((h) => !vistos.includes(h));
     const dup = vistos.filter((h, i) => vistos.indexOf(h) !== i);
@@ -162,6 +208,19 @@ function revisar(fichero) {
   if (!titulo || !titulo.trim()) anota('sin <title>', rel, '');
   const desc = attr(html, /<meta name="description" content="([^"]*)"/);
   if (!desc || !desc.trim()) anota('sin description', rel, '');
+  // Una descripción cortada a media palabra la descarta el buscador y se
+  // inventa el resumen con el texto de la página. Pasó: las 1.640 salían de un
+  // `.slice(0, 158)` y la rusa de `operar-noticias` terminaba en «счётом. И»
+  // —arranque de «Используйте»—, así que Yandex publicaba en su lugar el
+  // descargo legal del pie. Se exige que acabe en puntuación, en «…» o en una
+  // palabra entera.
+  else if (/[\p{L}\p{N}]$/u.test(desc) && desc.length >= 150)
+    anota('description cortada a media palabra', rel, `…${desc.slice(-28)}`);
+
+  // og:locale con el formato que exige Open Graph (`idioma_TERRITORIO`).
+  const ogLoc = attr(html, /<meta property="og:locale" content="([^"]*)"/);
+  if (ogLoc && !/^[a-z]{2}_[A-Z]{2}$/.test(ogLoc))
+    anota('og:locale mal formado', rel, `"${ogLoc}" — toca algo como "ru_RU"`);
 
   // 6 · JSON-LD que parsee
   for (const m of html.matchAll(
@@ -199,7 +258,7 @@ if (ficheros.length === 0) {
   process.exit(1);
 }
 
-const generadas = new Set(ficheros.map(revisar));
+const generadas = new Set(ficheros.map(revisar).filter(Boolean));
 
 // 5 · sitemap ↔ ficheros, en las dos direcciones
 const SITEMAP = path.join(BUILD, 'sitemap.xml');
@@ -239,6 +298,42 @@ if (!fs.existsSync(SITEMAP)) {
   for (const u of norm) if (!enSitemap.has(u))
     anota('página generada que el sitemap no anuncia', rutaDe(u), '');
 
+  // Los puentes, contra el sitemap y contra las páginas de verdad.
+  for (const [rel, destino] of puentes) {
+    if (enSitemap.has(unaBarra(`${DOMAIN}/${rel}/`)))
+      anota('el sitemap anuncia una página puente', rel,
+            'una redirección no se indexa: sobra del sitemap');
+    if (!norm.has(destino))
+      anota('puente hacia una URL que no existe', rel, `→ ${destino}`);
+    else if (!enSitemap.has(destino))
+      anota('puente hacia una URL que el sitemap no anuncia', rel, `→ ${destino}`);
+  }
+
+  // Ninguna sección puede quedarse sin su hub, y ninguna página sin hub que la
+  // enlace: eso es lo que convertía las 1.640 en huérfanas —alcanzables sólo
+  // por el sitemap, que descubre pero no reparte autoridad—. Se comprueba que
+  // cada página real está citada por el hub de su idioma y su sección.
+  const enlazadas = new Set();
+  for (const f of ficheros) {
+    const rel = path.relative(BUILD, path.dirname(f)).split(path.sep).join('/');
+    const trozos = rel.split('/');
+    const esHub = trozos.length <= 2 && /^(learn|tools|markets|strategies)$/.test(trozos[trozos.length - 1]);
+    if (!esHub) continue;
+    for (const m of fs.readFileSync(f, 'utf8').matchAll(/<li><a href="([^"]+)"/g))
+      enlazadas.add(unaBarra(m[1]));
+  }
+  if (enlazadas.size === 0) {
+    anota('no hay ni un hub de sección', 'build/', 'las páginas vuelven a ser huérfanas');
+  } else {
+    for (const u of norm) {
+      const ruta = rutaDe(u).replace(/^\/|\/$/g, '');
+      const trozos = ruta.split('/');
+      // La portada, las rutas del SPA y los propios hubs no cuelgan de un hub.
+      if (trozos.length <= 2) continue;
+      if (!enlazadas.has(u)) anota('página huérfana: ningún hub la enlaza', ruta, '');
+    }
+  }
+
   // Ninguna URL del sitemap puede estar prohibida en robots.txt.
   //
   // Existe porque pasó: `/performance` es premium y robots la bloqueaba, pero el
@@ -248,29 +343,55 @@ if (!fs.existsSync(SITEMAP)) {
   // bloqueada por robots.txt» y resta autoridad al resto del sitemap.
   //
   // Se leen las reglas del grupo `*`, que es el que aplica a los rastreadores de
-  // buscador. Prefijo simple, que es como funciona robots.txt.
+  // buscador, y se resuelven COMO LAS RESUELVE UN RASTREADOR: gana la regla
+  // cuyo patrón case más largo, sea `Allow` o `Disallow`; a igual longitud gana
+  // `Allow`. Es lo que dice la especificación y lo que hacen Google, Bing y
+  // Yandex.
+  //
+  // Antes sólo se miraban los `Disallow` y se comparaba el prefijo a pelo. Con
+  // eso, `Disallow: /options` + `Allow: /options/strategies/` —la pareja que
+  // deja fuera la pantalla premium y dentro las 66 fichas públicas— se leía
+  // como «las 66 están prohibidas», y el verificador denunciaba 660 páginas
+  // perfectamente indexables. Un verificador que dice que algo está roto
+  // cuando no lo está se acaba desactivando, y con él se va la comprobación
+  // que sí servía.
+  //
+  // También se ha quitado el borrado del prefijo de idioma. `robots.txt` casa
+  // rutas LITERALES: `Disallow: /options` no cubre `/en/options/…`, y fingir
+  // que sí era inventarse una prohibición que ningún rastreador aplica.
   const ROBOTS = path.join(BUILD, 'robots.txt');
   if (!fs.existsSync(ROBOTS)) {
     anota('falta robots.txt', 'build/robots.txt', '');
   } else {
     const lineas = fs.readFileSync(ROBOTS, 'utf8').split('\n').map((l) => l.trim());
-    const prohibidas = [];
+    const reglas = [];               // { permite, patron }
     let enComodin = false;
     for (const l of lineas) {
       const ua = l.match(/^User-agent:\s*(.+)$/i);
       if (ua) { enComodin = ua[1].trim() === '*'; continue; }
       if (!enComodin) continue;
-      const d = l.match(/^Disallow:\s*(\S+)\s*$/i);
-      if (d && d[1] !== '/') prohibidas.push(d[1]);
+      const r = l.match(/^(Allow|Disallow):\s*(\S*)\s*$/i);
+      if (r && r[2]) reglas.push({ permite: /^allow$/i.test(r[1]), patron: r[2] });
     }
+    // Coincidencia de un patrón de robots.txt: prefijo, con `*` como comodín y
+    // `$` como final de ruta. Devuelve la longitud del patrón, o -1.
+    const casa = (patron, ruta) => {
+      const anclado = patron.endsWith('$');
+      const cuerpo = anclado ? patron.slice(0, -1) : patron;
+      const re = new RegExp(`^${cuerpo.split('*').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}${anclado ? '$' : ''}`);
+      return re.test(ruta) ? patron.length : -1;
+    };
     for (const loc of enSitemap) {
       const ruta = rutaDe(loc);
-      const sinIdioma = ruta.replace(
-        new RegExp(`^/(${LANGS.map(([l]) => l).filter((l) => l !== 'es').join('|')})(?=/|$)`), '');
-      const choca = prohibidas.find((d) => sinIdioma === d || sinIdioma.startsWith(`${d}/`)
-        || sinIdioma === `${d}/`);
-      if (choca)
-        anota('el sitemap anuncia una URL que robots.txt prohíbe', ruta, `Disallow: ${choca}`);
+      let mejor = null;
+      for (const r of reglas) {
+        const n = casa(r.patron, ruta);
+        if (n < 0) continue;
+        // A igual longitud manda el `Allow`, como en la especificación.
+        if (!mejor || n > mejor.n || (n === mejor.n && r.permite)) mejor = { n, ...r };
+      }
+      if (mejor && !mejor.permite)
+        anota('el sitemap anuncia una URL que robots.txt prohíbe', ruta, `Disallow: ${mejor.patron}`);
     }
   }
 

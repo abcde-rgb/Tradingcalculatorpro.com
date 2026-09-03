@@ -13,6 +13,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+/**
+ * URL del índice estático de una sección en el idioma activo.
+ *
+ * Las genera `scripts/gen-seo-pages.js` en el `postbuild`: `/learn/` para
+ * español y `/<idioma>/learn/` para el resto, y lo mismo con `tools`,
+ * `markets` y `strategies`. Son HTML plano servido por GitHub Pages, así que
+ * se navegan con `<a>` — un `<Link>` de React Router las buscaría entre las
+ * rutas de la SPA y caería en la pantalla de 404.
+ *
+ * ⚠️ Si cambia el esquema de rutas del generador, cambia aquí. `check-seo.js`
+ * comprueba que los hubs existen y que enlazan a todas sus páginas, pero no
+ * puede saber si este pie apunta a ellos: es la SPA, no el build estático.
+ */
+const hubEstatico = (locale, seccion) =>
+  `${locale && locale !== 'es' ? `/${locale}` : ''}/${seccion}/`;
+
 // Official X (formerly Twitter) logo — lucide-react still ships the old bird icon
 const XLogo = (props) => (
   <svg
@@ -116,6 +132,31 @@ export function Footer() {
                   la página lo dice y explica por qué, y el día que se configure
                   el primer bróker queda publicada sin tocar nada más. */}
               <li><Link to="/brokers" className="hover:text-primary transition-colors" data-testid="footer-brokers">{t('brokersTitle')}</Link></li>
+            </ul>
+          </div>
+
+          {/* Índices públicos — el ÚNICO camino desde la aplicación hacia las
+              ~1.680 páginas estáticas que genera `scripts/gen-seo-pages.js`.
+
+              Hasta ahora no salía de la SPA ni un solo enlace hacia ellas: un
+              buscador las conocía por el sitemap, que sirve para DESCUBRIR pero
+              no reparte autoridad, así que las 1.680 competían desde cero
+              mientras la portada acumulaba la suya sin repartirla. Eso es lo
+              que convierte un montón de páginas en un sitio.
+
+              Van con <a> y no con <Link>: son HTML estático servido por
+              GitHub Pages, no rutas de React Router. Un <Link> las trataría
+              como ruta de la SPA y acabaría en la pantalla de 404.
+
+              Y apuntan al idioma activo, que es donde está el contenido en el
+              idioma de quien lo está leyendo. */}
+          <div>
+            <h4 className="font-bold mb-4 text-sm uppercase tracking-wider text-foreground/90">{t('resources')}</h4>
+            <ul className="space-y-2.5 text-sm text-muted-foreground">
+              <li><a href={hubEstatico(locale, 'learn')} className="hover:text-primary transition-colors" data-testid="footer-hub-learn">{t('educationCenter')}</a></li>
+              <li><a href={hubEstatico(locale, 'tools')} className="hover:text-primary transition-colors" data-testid="footer-hub-tools">{t('footerHubTools')}</a></li>
+              <li><a href={hubEstatico(locale, 'markets')} className="hover:text-primary transition-colors" data-testid="footer-hub-markets">{t('footerHubMarkets')}</a></li>
+              <li><a href={hubEstatico(locale, 'strategies')} className="hover:text-primary transition-colors" data-testid="footer-hub-strategies">{t('footerHubStrategies')}</a></li>
             </ul>
           </div>
 

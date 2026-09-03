@@ -115,7 +115,17 @@
         <!-- ─────────── Search Engine Verification ─────────── -->
         <meta name="google-site-verification" content="%REACT_APP_GSC_VERIFICATION%" />
         <meta name="msvalidate.01" content="%REACT_APP_BING_VERIFICATION%" />
-        <!-- <meta name="yandex-verification" content="TU_CODIGO_YANDEX" /> -->
+        <!-- Yandex. Estaba comentado con un `TU_CODIGO_YANDEX` de plantilla, o
+             sea inservible: para activarlo había que editar el HTML y volver a
+             desplegar. Ahora sale de una variable como las otras dos, así que
+             se pone desde los secretos del repositorio y ya.
+
+             Importa más de lo que parece aquí: el sitio publica 168 páginas en
+             ruso y Yandex ya las indexa. Sin la propiedad verificada en Yandex
+             Webmaster no se puede enviar el sitemap, ni ver por qué consultas
+             aparece, ni pedir que rastree el favicon — que es la vía por la que
+             el icono deja de ser el globo genérico en sus resultados. -->
+        <meta name="yandex-verification" content="%REACT_APP_YANDEX_VERIFICATION%" />
         <!-- <meta name="p:domain_verify" content="TU_CODIGO_PINTEREST" /> -->
         <!-- <meta name="facebook-domain-verification" content="TU_CODIGO_META" /> -->
 
@@ -431,11 +441,20 @@
             <p>Contenido educativo. No es asesoramiento financiero: operar conlleva riesgo
                de pérdida de capital.</p>
             <ul>
-                <li><a href="/education">Academia de trading</a></li>
-                <li><a href="/options">Opciones y griegas</a></li>
-                <li><a href="/options/strategies">Estrategias de opciones</a></li>
-                <li><a href="/pricing">Precios</a></li>
-                <li><a href="/about">Qué es TradingCalculator.Pro</a></li>
+                <!-- Estos enlaces apuntan a los ÍNDICES ESTÁTICOS, no a las rutas
+                     de la aplicación. `/education`, `/options` y
+                     `/options/strategies` son `ProtectedRoute premiumOnly`:
+                     mandan a /login a quien no ha entrado, así que un bot sin
+                     JavaScript los seguía hasta una pantalla de acceso —y desde
+                     que robots.txt los prohíbe, ni eso—. Los hubs de abajo son
+                     públicos, existen como HTML plano y llevan a las 1.680
+                     páginas. Es la única salida real de esta portada. -->
+                <li><a href="/learn/">Academia de trading: 75 temas</a></li>
+                <li><a href="/tools/">Calculadoras: 13 herramientas</a></li>
+                <li><a href="/markets/">Mercados: 10 fichas</a></li>
+                <li><a href="/strategies/">Estrategias de opciones: 66 estructuras</a></li>
+                <li><a href="/pricing/">Precios</a></li>
+                <li><a href="/about/">Qué es TradingCalculator.Pro</a></li>
                 <li><a href="/sitemap.xml">Mapa completo del sitio</a></li>
             </ul>
             <p>Las calculadoras necesitan JavaScript, pero el contenido educativo está

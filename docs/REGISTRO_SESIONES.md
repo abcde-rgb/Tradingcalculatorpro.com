@@ -6426,3 +6426,92 @@ cambios que nadie revisa.
 **Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
 PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
 ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.
+
+---
+
+### 2026-09-03 — El SEO no fallaba: devolvía 404. Cinco bugs y 1.680 páginas indexables
+
+Lo trajo el dueño con una captura de Yandex buscando «trading calculator pro»: el
+sitio salía con **el globo genérico** en vez de su logo, con una sola página de
+resultado —`/ru/learn/operar-noticias/`, un slug español bajo una URL rusa— y con
+una descripción que no era la del tema sino **el descargo legal del pie**.
+
+Cada una de esas tres rarezas era la punta de un fallo distinto, y al tirar del
+hilo apareció uno más gordo que ninguno de los tres.
+
+**BUG-081 — siete de las ocho rutas principales devolvían HTTP 404.** GitHub Pages
+sólo sirve `index.html` en la raíz; cualquier otra ruta sin fichero físico recibe
+`404.html` **con estado 404**, y el workflow copia ahí el shell del SPA. La persona
+ve la web perfecta y el rastreador ve un 404. `/pricing`, `/education`, `/options`,
+`/options/strategies`, `/about`, `/contact` y `/legal`, **las siete anunciadas en el
+sitemap**, tres con las prioridades más altas del sitio. Explica por qué sólo
+aparecían páginas estáticas profundas. Ningún verificador podía verlo:
+`check-seo.js` mira ficheros en disco, donde no hay códigos de estado, y
+`check-seo-en-vivo.js` —que sí pide las URLs de verdad— muestreaba con `i % paso`
+sobre 1.648 URLs y saltaba justo las ocho primeras. Su comentario decía que ésas
+«son las que nunca fallan».
+
+**BUG-082 — las 1.640 páginas eran huérfanas.** No salía ni un enlace de la
+aplicación hacia ninguna. El sitemap descubre, pero no reparte autoridad.
+
+**BUG-083 — descripción cortada a media palabra y contenido delgado.** El
+`.slice(0, 158)` partía la última palabra; el buscador descartaba la descripción y
+se inventaba el resumen con el texto de la página, que eran **94 palabras** de las
+que unas 40 eran del tema. Lo más sustancioso que encontraba era el descargo.
+
+**BUG-084 — `useSEO` deshacía en runtime el arreglo de `hreflang` que
+`public/index.html` documenta** en quince líneas de comentario. Duraba lo que
+tardaba React en montar.
+
+**BUG-085 — `check-seo.js` leía `robots.txt` ignorando los `Allow`**, y por eso
+denunciaba 660 páginas buenas en cuanto se usó la pareja `Disallow: /options` +
+`Allow: /options/strategies/`.
+
+#### Lo que se ha hecho
+
+- **Las seis rutas públicas del SPA tienen fichero propio** y devuelven 200, con
+  título, descripción, canonical y `x-default` propios. Las tres con muro
+  (`premiumOnly` → `/login`) **salen del sitemap y entran en `robots.txt`**: un 200
+  ahí sólo serviría para indexar una pantalla de acceso.
+- **40 hubs de sección** (`/learn/`, `/tools/`, `/markets/`, `/strategies/` × 10
+  idiomas). Toda página está a **dos saltos de la portada**. El pie de la SPA los
+  enlaza en el idioma activo.
+- **Slugs traducidos**, decisión del dueño. Se derivan del título ya traducido;
+  el cirílico se translitera (`/ru/learn/torgovlya-na-novostyah/`) y zh/ja/ar caen
+  al inglés. **El español no se mueve**: es el único con indexación consolidada.
+  Las 949 URLs que cambian quedan publicadas como **página puente** con `canonical`
+  + `meta refresh` — lo más fuerte que permite Pages, que no sirve cabeceras.
+- **4.300 conceptos publicados** desde `lib/i18n/*.edu.js`, que ya estaban
+  traducidos a los diez idiomas y sólo se pintaban dentro de la aplicación. Las
+  páginas de academia pasan de 94 a ~240 palabras. No se ha escrito ni una línea
+  de contenido nuevo: misma fuente que el módulo, así que no pueden divergir.
+- **Favicon declarado** en las 1.680 páginas, y la verificación de Yandex
+  Webmaster cableada por variable de entorno (estaba comentada con un
+  `TU_CODIGO_YANDEX` de plantilla, o sea inservible).
+
+#### Lo que se ha verificado, y con qué
+
+`npm run build` real, y sobre ese build: `check-seo.js` en verde (2.635 páginas,
+1.687 URLs), `i18n-check` (7.431 claves × 10, 0 crudas), `engine-check` (535/535),
+`eslint src scripts` (0 errores), `check-enlaces-academia`, `check-edu-index`,
+`gen-instruments-js --check`, `gen-mapa --check`, `gen-asistente --check`,
+`check-rutas-muertas`, `check-doc-links`. Siete sabotajes nuevos en
+`probar-verificadores.sh`, todos cazados.
+
+#### Lo que NO se ha podido comprobar aquí, y hay que mirar tras desplegar
+
+El sandbox **no tiene salida a internet**: no se ha podido pedir ni una URL del
+sitio publicado. Que `/pricing/` devuelva 200 está comprobado sobre el `build/`
+—el fichero existe—, pero **el 404 era un comportamiento del servidor**, así que la
+prueba definitiva es el workflow `seo-en-vivo.yml`, que sí corre con red y ahora sí
+mira las rutas principales. Correrlo tras el despliegue.
+
+#### Lo operativo, que no está en este commit
+
+1. Verificar la propiedad en **Yandex Webmaster** y poner
+   `REACT_APP_YANDEX_VERIFICATION` en los secretos del repositorio. Sin eso no se
+   le puede enviar el sitemap ni pedir que rastree el favicon.
+2. En **Search Console**, reenviar `sitemap.xml`: 1.687 URLs, y las que antes
+   daban 404 hay que pedir su reindexación a mano.
+3. Las 949 URLs viejas quedan como puente. Cuando haya un CDN delante (Cloudflare)
+   conviene convertirlas en **301 de verdad** y retirar los puentes.

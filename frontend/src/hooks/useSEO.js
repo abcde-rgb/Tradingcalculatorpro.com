@@ -27,7 +27,10 @@ const LOCALE_META = {
   it: { og: 'it_IT', html: 'it', dir: 'ltr' },
 };
 
-const SUPPORTED_LOCALES = Object.keys(LOCALE_META);
+// `LOCALE_META` sigue usándose para `og:locale`, `<html lang>` y la dirección
+// del texto. La lista de códigos suelta ya no: las alternativas `hreflang` por
+// idioma las emite `gen-seo-pages.js` en las páginas que de verdad tienen una
+// URL por idioma. Ver `syncHreflangAlternates`.
 
 /**
  * useSEO — per-page, fully i18n-aware SEO updater.
@@ -61,9 +64,16 @@ export function useSEO({
 
     const fullTitle = localizedTitle ? `${localizedTitle} | ${BRAND}` : BRAND;
     const path = canonicalPath || (typeof window !== 'undefined' ? window.location.pathname : '/');
-    // Canonical always points to the bare path (no ?lang param) — search engines
-    // pick the correct locale via hreflang alternates below.
-    const canonical = `${ORIGIN}${path}`;
+    // Canonical always points to the bare path (no ?lang param).
+    //
+    // Con barra final, y no es un detalle de estilo. Desde que cada ruta
+    // pública tiene su propio `build/<ruta>/index.html` —sin eso GitHub Pages
+    // devolvía 404 a los rastreadores—, quien sirve `/pricing` es un
+    // directorio: Pages redirige `/pricing` a `/pricing/` con un 301. Si el
+    // canonical dijera `/pricing`, estaría apuntando a una URL que redirige a
+    // la que lo declara, y el sitemap (que anuncia `/pricing/`) diría una
+    // tercera cosa. Las tres señales tienen que decir lo mismo.
+    const canonical = `${ORIGIN}${conBarra(path)}`;
 
     document.title = fullTitle;
     document.documentElement.setAttribute('lang', meta.html);
@@ -89,39 +99,48 @@ export function useSEO({
 }
 
 /**
- * Replace the existing rel="alternate" hreflang link list to point every locale
- * to the **current path** (instead of the static `/` from index.html). This is
- * what makes Google, Bing and Yandex serve the right localised version for
- * each user's region on every route — not just the homepage.
+ * Mantiene el juego de `hreflang` de la ruta actual.
+ *
+ * ⚠️ Aquí se emitían diez alternativas `?lang=xx` sobre la misma URL, y eso es
+ * EXACTAMENTE lo que `public/index.html` había quitado —con un comentario de
+ * quince líneas explicando por qué— el día que se arregló la portada. El
+ * arreglo duraba lo que tardaba React en montar: este hook borraba las
+ * alternativas estáticas del HTML y las repoblaba con las `?lang=`.
+ *
+ * El motivo por el que no valen sigue siendo el mismo: la SPA traduce en
+ * CLIENTE, así que `/pricing?lang=de` devuelve byte por byte el mismo HTML que
+ * `/pricing`. Google canonicaliza las diez a una sola, descarta las
+ * alternativas y encima se contradicen con el `canonical`, que apunta a la URL
+ * desnuda. El resultado neto no eran diez idiomas indexados: era presupuesto de
+ * rastreo gastado y dos señales peleándose.
+ *
+ * Las páginas que SÍ tienen una URL por idioma —las 1.680 que genera
+ * `gen-seo-pages.js`, bajo `/en/…`, `/ru/…`— emiten su propio juego correcto en
+ * el HTML, y este hook no llega a ellas: son HTML plano, sin React.
+ *
+ * Aquí, por tanto, sólo se declara `x-default` hacia la propia URL.
  */
 function syncHreflangAlternates(path) {
   const head = document.head;
-  // Remove any previously-added hreflang link nodes managed by this hook.
   head.querySelectorAll('link[rel="alternate"][data-i18n-managed="true"]').forEach((n) => n.remove());
-
-  // Also drop the static index.html alternates so we don't have stale hreflang
-  // values pointing to `/` from the homepage when the user is on /options etc.
   head.querySelectorAll('link[rel="alternate"][hreflang]:not([data-i18n-managed])').forEach((n) => n.remove());
 
-  for (const code of SUPPORTED_LOCALES) {
-    const link = document.createElement('link');
-    link.setAttribute('rel', 'alternate');
-    link.setAttribute('hreflang', LOCALE_META[code].html);
-    link.setAttribute('data-i18n-managed', 'true');
-    link.setAttribute(
-      'href',
-      code === 'es' ? `${ORIGIN}${path}` : `${ORIGIN}${path}?lang=${code}`,
-    );
-    head.appendChild(link);
-  }
-
-  // x-default → Spanish (the project's default locale).
   const xDefault = document.createElement('link');
   xDefault.setAttribute('rel', 'alternate');
   xDefault.setAttribute('hreflang', 'x-default');
   xDefault.setAttribute('data-i18n-managed', 'true');
-  xDefault.setAttribute('href', `${ORIGIN}${path}`);
+  xDefault.setAttribute('href', `${ORIGIN}${conBarra(path)}`);
   head.appendChild(xDefault);
+}
+
+// Barra final en toda ruta que no sea un fichero. Ver el comentario del
+// `canonical`: es lo que mantiene de acuerdo al canonical, al sitemap y a la
+// URL que GitHub Pages sirve de verdad.
+function conBarra(path) {
+  if (!path || path === '/') return '/';
+  if (path.endsWith('/')) return path;
+  if (/\.[a-z0-9]{2,5}$/i.test(path)) return path;   // /og-image.png y similares
+  return `${path}/`;
 }
 
 function setMeta(selector, attr, value) {

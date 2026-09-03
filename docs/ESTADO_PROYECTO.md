@@ -140,8 +140,12 @@
   página. *No* OxaPay ni MaxelPay: ambas se probaron y se retiraron; no queda código de
   ninguna.
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
-- **Analítica/SEO**: GA4 + GTM + GSC/Bing, `sitemap.xml`, `robots.txt`, `og-image`,
-  `manifest.json` (PWA), hook `useSEO`.
+- **Analítica/SEO**: GA4 + GTM + GSC/Bing/Yandex, `sitemap.xml` (1.687 URLs),
+  `robots.txt`, `llms.txt`, `og-image`, `manifest.json` (PWA), hook `useSEO`.
+  **1.680 páginas estáticas** que genera el `postbuild` (13 calculadoras, 75 temas
+  de academia, 10 mercados y 66 estrategias × 10 idiomas) más **40 hubs** de
+  sección que las enlazan, y **6 rutas del SPA con fichero propio** — sin ese
+  fichero GitHub Pages les devolvía 404 a los buscadores (BUG-081).
 - **Todo el contenido es de pago.** No hay secciones abiertas dentro de la app:
   `/education`, `/options*`, `/news`, `/dashboard` y `/performance` exigen
   suscripción activa (`ProtectedRoute premiumOnly`). Fuera del muro sólo quedan
@@ -399,6 +403,7 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-09-03 | SEO: siete rutas devolvían 404, 1.680 páginas huérfanas y slugs traducidos (BUG-081…085) |
 | 2026-08-31 (cont. 7) | BUG-075: "el correo no funciona ni magic link" — causa doble |
 | 2026-08-31 (cont. 6) | Cinco patrones de vela más, investigados contra TrendSpider |
 | 2026-08-31 (cont. 5) | Panel admin: navegación por secciones + limpieza de colores |

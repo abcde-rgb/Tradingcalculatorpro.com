@@ -1671,19 +1671,81 @@ p = pathlib.Path('frontend/build/index.html'); t = p.read_text(encoding='utf-8')
 p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\"" \
     "$SEO_REST"
 
-  # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)
-  # están en el sitemap a propósito y las sirve la SPA sin página estática. Si
-  # el verificador las denunciara, el arreglo evidente —relajar la regla de
-  # «URL anunciada que no existe»— dejaría de detectar las que sí faltan.
-  #
-  # ⚠️ El dominio de este cebo tiene que ser el de producción. Se escribió con
-  # `abcde-rgb.github.io` y tras el cutover del 2026-08-28 dejó de ser una ruta
-  # de app para ser un dominio ajeno: el verificador la marcaba —con razón— y
-  # el arnés lo cantó como falso positivo. El dato de prueba se había quedado
-  # desfasado, no la comprobación.
-  probar_inverso "una ruta de app en el sitemap sin página propia no es un fallo" \
+  # ── Lo que hacía que el sitio no se indexara, y ningún verificador miraba ──
+
+  # EL fallo. GitHub Pages sólo sirve `index.html` en la raíz: cualquier ruta
+  # sin fichero propio recibe `404.html` **con estado 404**, y el workflow copia
+  # ahí el shell del SPA. La persona ve la web perfecta; el rastreador ve un
+  # 404. `/pricing`, `/about`, `/contact` y `/legal` llevaban así desde siempre,
+  # anunciadas en el sitemap. Borrar el fichero reproduce exactamente ese
+  # estado.
+  probar "una ruta pública del SPA sin fichero propio (vuelve a ser un 404)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/options/strategies</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "rm -rf frontend/build/pricing" \
+    "$SEO_REST; (cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+
+  # El icono de los resultados de búsqueda. Ninguna de las 1.640 páginas lo
+  # declaraba, y por eso el sitio salía en Yandex con el globo genérico.
+  probar "una página sin favicon declarado" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i '/rel=\"icon\"/d' $SEO_PAG" \
+    "$SEO_REST"
+
+  # La descripción cortada a media palabra. El buscador la descarta y se
+  # inventa el resumen con el texto de la página — en la rusa de
+  # `operar-noticias` eligió el descargo legal del pie, y eso es lo que Yandex
+  # publicaba como descripción del tema.
+  probar "una description cortada a media palabra" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "python3 -c \"
+import pathlib, re
+p = pathlib.Path('$SEO_PAG'); t = p.read_text(encoding='utf-8')
+m = re.search(r'<meta name=\\\"description\\\" content=\\\"([^\\\"]*)\\\"', t)
+cebo = (m.group(1) + ' palabras de relleno para pasar de ciento cincuenta caracteres y quedar cortada justo aq')[:158]
+p.write_text(t.replace(m.group(0), '<meta name=\\\"description\\\" content=\\\"' + cebo + '\\\"', 1), encoding='utf-8')\"" \
+    "$SEO_REST"
+
+  probar "un og:locale sin territorio (Open Graph lo descarta)" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|property=\"og:locale\" content=\"\\([a-z][a-z]\\)_[A-Z][A-Z]\"|property=\"og:locale\" content=\"\\1\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # Las páginas puente de los slugs traducidos. Un puente cuyo canonical y
+  # cuyo refresh no coinciden manda dos señales distintas y no transfiere nada.
+  probar "una página puente con canonical y refresh discordantes" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "python3 -c \"
+import pathlib
+p = pathlib.Path('frontend/build/ru/learn/operar-noticias/index.html')
+t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('<link rel=\\\"canonical\\\" href=\\\"', '<link rel=\\\"canonical\\\" href=\\\"https://tradingcalculator.pro/otra-cosa/#', 1), encoding='utf-8')\"" \
+    "$SEO_REST; (cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+
+  # La huerfandad, que es lo que tenía a las 1.640 compitiendo desde cero:
+  # alcanzables sólo por el sitemap, sin un enlace desde ninguna página con
+  # autoridad. Los hubs son el esqueleto; si uno deja de citar a una página,
+  # esa página vuelve a estar suelta.
+  probar "una página que ningún hub enlaza (huérfana otra vez)" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<li><a href=\"https://tradingcalculator.pro/ru/learn/torgovlya-na-novostyah/\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|' frontend/build/ru/learn/index.html" \
+    "$SEO_REST; (cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+
+  # robots.txt resuelve por coincidencia MÁS LARGA. `Disallow: /options` +
+  # `Allow: /options/strategies/` deja fuera la pantalla premium y dentro las
+  # 66 fichas públicas. Sin ese `Allow`, el `Disallow` se lleva las 66 — que
+  # es justo lo que el sitemap anuncia.
+  probar "el Allow que salva las 66 fichas de estrategia, borrado" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i '/^Allow: \\/options\\/strategies\\/\$/d' frontend/build/robots.txt" \
+    "cp frontend/public/robots.txt frontend/build/robots.txt; $SEO_REST"
+
+  # El otro lado: una página puente NO va en el sitemap, y eso no es un fallo.
+  # Anunciar una redirección le pide a Google que indexe una redirección. Si el
+  # verificador lo denunciara, el arreglo evidente —meter los puentes en el
+  # sitemap— sería peor que el problema.
+  probar_inverso "una página generada fuera del sitemap no es un fallo si es un puente" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "test -f frontend/build/ru/learn/operar-noticias/index.html && grep -q 'http-equiv=\"refresh\"' frontend/build/ru/learn/operar-noticias/index.html" \
     "$SEO_REST"
 else
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"

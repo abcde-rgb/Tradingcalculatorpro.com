@@ -40,6 +40,11 @@ jobs:
           REACT_APP_GTM_ID: ${{ secrets.REACT_APP_GTM_ID }}
           REACT_APP_GSC_VERIFICATION: ${{ secrets.REACT_APP_GSC_VERIFICATION }}
           REACT_APP_BING_VERIFICATION: ${{ secrets.REACT_APP_BING_VERIFICATION }}
+          # Yandex Webmaster. El sitio publica 168 páginas en ruso y Yandex ya
+          # las indexa; sin la propiedad verificada no se le puede enviar el
+          # sitemap ni pedir que rastree el favicon. Si el secreto no está, el
+          # meta sale vacío y no pasa nada.
+          REACT_APP_YANDEX_VERIFICATION: ${{ secrets.REACT_APP_YANDEX_VERIFICATION }}
           # Google AdSense. Van como VARIABLES del repositorio, no secretos: el
           # ID de editor y los de bloque viajan en el HTML de cada página, no
           # hay nada que ocultar. Si no están definidas, el build sale SIN
