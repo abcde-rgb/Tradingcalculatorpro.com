@@ -1605,6 +1605,13 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   SEO_PUENTE=$(find frontend/build/ru/learn -name index.html -print0 2>/dev/null \
     | xargs -0 grep -l 'http-equiv="refresh"' 2>/dev/null | sort | head -1)
   SEO_HUB=frontend/build/ru/learn/index.html
+  # ⚠️ Se usa como `$SEO_REGEN`, SIN `eval` delante. La cadena de restauración
+  # se construye con comillas dobles en la llamada, así que la variable ya está
+  # expandida cuando `probar()` la evalúa: un `eval` extra dejaría
+  # `eval (cd frontend && …)`, que es un error de sintaxis de bash. La
+  # regeneración no corría, el sabotaje del 404 dejaba residuo y los seis casos
+  # siguientes fallaban con «no pasa ni ANTES de sabotear». Lo cazó la
+  # comprobación post-restauración de `probar()`.
   SEO_REGEN="(cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp)
   TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL")
@@ -1715,7 +1722,7 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   probar "una ruta pública del SPA sin fichero propio (vuelve a ser un 404)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "rm -rf frontend/build/pricing" \
-    "$SEO_REST; eval $SEO_REGEN"
+    "$SEO_REST; $SEO_REGEN"
 
   # El icono de los resultados de búsqueda. Ninguna de las 1.640 páginas lo
   # declaraba, y por eso el sitio salía en Yandex con el globo genérico.
@@ -1749,7 +1756,7 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   probar "una página puente con canonical y refresh discordantes" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|<link rel=\"canonical\" href=\"|<link rel=\"canonical\" href=\"https://tradingcalculator.pro/otra-cosa/#|' $SEO_PUENTE" \
-    "$SEO_REST; eval $SEO_REGEN"
+    "$SEO_REST; $SEO_REGEN"
 
   # La huerfandad, que es lo que tenía a las 1.640 compitiendo desde cero:
   # alcanzables sólo por el sitemap, sin un enlace desde ninguna página con
@@ -1758,7 +1765,7 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   probar "una página que ningún hub enlaza (huérfana otra vez)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|g' $SEO_HUB" \
-    "$SEO_REST; eval $SEO_REGEN"
+    "$SEO_REST; $SEO_REGEN"
 
   # robots.txt resuelve por coincidencia MÁS LARGA. `Disallow: /options` +
   # `Allow: /options/strategies/` deja fuera la pantalla premium y dentro las
