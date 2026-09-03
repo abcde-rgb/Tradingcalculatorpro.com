@@ -3,7 +3,7 @@ import { Menu, X, Moon, Sun, Globe, LogOut, User, Crown, ChevronDown, Shield, Be
 import { Button } from '@/components/ui/button';
 import BrandMark from '@/components/common/BrandMark';
 import { useAuthStore } from '@/lib/store';
-import { useThemeStore } from '@/lib/theme';
+import { useThemeStore, PREMIUM_THEMES } from '@/lib/theme';
 import { useTranslation, languages } from '@/lib/i18n';
 import { pickLocale } from '@/lib/cloudPrefs';
 import { FlagIcon, LOCALE_FLAG } from '@/components/common/FlagIcon';
@@ -18,19 +18,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-/**
- * Los temas premium, en un solo sitio.
- *
- * Estaban escritos dentro del menú de escritorio, así que el menú móvil no los
- * tenía: no era una decisión, era una copia que faltaba. Con la lista aquí,
- * añadir un tema lo añade en los dos.
- */
-const PREMIUM_THEMES = [
-  { id: 'gold',   labelKey: 'goldMode',   sw: 'linear-gradient(135deg,#181614,#c9a24a 70%,#e8c46a)' },
-  { id: 'crypto', labelKey: 'cryptoMode', sw: 'linear-gradient(135deg,#0a0912,#f7931a 55%,#8b5cf6)' },
-  { id: 'forex',  labelKey: 'forexMode',  sw: 'linear-gradient(135deg,#060b16,#1e8f5a 60%,#3b82f6)' },
-  { id: 'nasdaq', labelKey: 'nasdaqMode', sw: 'linear-gradient(135deg,#05070a,#00c2ff)' },
-];
 
 export function Header() {
   const location = useLocation();

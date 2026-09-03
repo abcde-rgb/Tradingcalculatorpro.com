@@ -241,7 +241,7 @@ export default function AdminPage() {
         try { motivo = (await mRes.clone().json()).detail || ''; } catch { /* sin cuerpo */ }
         toast.error(motivo || 'Los administradores deben activar la verificación en dos pasos.',
                     { duration: 9000 });
-        navigate('/settings', { state: { need2fa: true } });
+        navigate('/settings?s=seguridad', { state: { need2fa: true } });
         return;
       }
       if (!mRes.ok || !uRes.ok) {

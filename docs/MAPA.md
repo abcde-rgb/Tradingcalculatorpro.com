@@ -20,7 +20,7 @@
 | **Rutas sin consumidor en el frontend** | **33** |
 | Ficheros de test · funciones de test | 68 · 1137 |
 | Rutas del frontend (`App.js`) | 29 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,404 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,428 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -409,7 +409,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/education/` | 88 | 14,669 |
 | `components/integrations/` | 2 | 194 |
 | `components/landing/` | 5 | 600 |
-| `components/layout/` | 2 | 590 |
+| `components/layout/` | 2 | 577 |
 | `components/options/` | 36 | 8,011 |
 | `components/performance/` | 8 | 3,892 |
 | `components/performance/form/` | 6 | 724 |
@@ -417,7 +417,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 317 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 31 | 1,763 |
-| `pages/` | 23 | 17,173 |
+| `pages/` | 23 | 17,570 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -428,16 +428,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 10,445 |
 | `frontend/src/pages/EducationPage.jsx` | 5,813 |
-| `frontend/src/lib/i18n/ar.js` | 4,911 |
-| `frontend/src/lib/i18n/de.js` | 4,911 |
-| `frontend/src/lib/i18n/en.js` | 4,911 |
-| `frontend/src/lib/i18n/es.js` | 4,911 |
-| `frontend/src/lib/i18n/fr.js` | 4,911 |
-| `frontend/src/lib/i18n/it.js` | 4,911 |
-| `frontend/src/lib/i18n/ja.js` | 4,911 |
-| `frontend/src/lib/i18n/pt.js` | 4,911 |
-| `frontend/src/lib/i18n/ru.js` | 4,911 |
-| `frontend/src/lib/i18n/zh.js` | 4,911 |
+| `frontend/src/lib/i18n/ar.js` | 4,935 |
+| `frontend/src/lib/i18n/de.js` | 4,935 |
+| `frontend/src/lib/i18n/en.js` | 4,935 |
+| `frontend/src/lib/i18n/es.js` | 4,935 |
+| `frontend/src/lib/i18n/fr.js` | 4,935 |
+| `frontend/src/lib/i18n/it.js` | 4,935 |
+| `frontend/src/lib/i18n/ja.js` | 4,935 |
+| `frontend/src/lib/i18n/pt.js` | 4,935 |
+| `frontend/src/lib/i18n/ru.js` | 4,935 |
+| `frontend/src/lib/i18n/zh.js` | 4,935 |
 
 ## Verificadores del repositorio
 
