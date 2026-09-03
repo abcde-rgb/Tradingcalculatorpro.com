@@ -260,6 +260,42 @@ jobs:
       #
       # La holgura es en KB ABSOLUTOS, no en porcentaje: con un 8 % sobre una
       # pantalla de 1 MB caben 80 KB de librería nueva sin que salte nada.
+      # Las dos sondas de abajo abren un navegador de verdad, y `entorno.js` lo
+      # busca bajo `PLAYWRIGHT_BROWSERS_PATH` o `/opt/pw-browsers`. Esa ruta
+      # existe en el sandbox donde se escribieron —viene con Chromium
+      # preinstalado— y NO en el runner de GitHub, así que las dos morían con
+      # «No encuentro Chromium bajo /opt/pw-browsers» ANTES de medir nada: el
+      # presupuesto de peso y la CSP llevaban rojos en todos los PR, y el rojo
+      # no decía nada del código que se estaba revisando.
+      #
+      # El `npm install playwright-core` que hacen esos pasos no lo arregla:
+      # `playwright-core` es justamente el paquete que NO descarga navegadores.
+      # Y `playwright install` tampoco es la salida — descarga ~150 MB en cada
+      # tanda para usar un navegador que el runner ya trae.
+      #
+      # `entorno.js` ya tenía prevista la salida (`QA_CHROMIUM`); lo que faltaba
+      # era rellenarla. Va por `$GITHUB_ENV` y no con un `export` dentro de cada
+      # `run:` porque cada paso es un shell distinto: exportarlo en el de peso no
+      # llegaría al de la CSP.
+      #
+      # ⚠️ PORTADO DEL PR #224, que arregla esto y sigue sin fusionar. No es un
+      # cambio de este PR: se trae para que su job de frontend deje de morir por
+      # un motivo ajeno al diff. Cuando #224 entre en main, este bloque queda
+      # idéntico al que ya estará ahí y no hace nada.
+      - name: Localizar el Chromium del runner
+        working-directory: .
+        run: |
+          ruta="$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)"
+          # Sin la guarda, un runner sin Chrome dejaría `QA_CHROMIUM` VACÍO, que
+          # `entorno.js` trata como «no configurado» y vuelve al mismo error con
+          # otra cara. Que falle aquí y diga por qué.
+          if [ -z "$ruta" ]; then
+            echo "::error::No hay Chromium en el runner. Las sondas de navegador (peso, CSP) lo necesitan."
+            exit 1
+          fi
+          echo "QA_CHROMIUM=$ruta" >> "$GITHUB_ENV"
+          echo "Chromium del runner: $ruta"
+
       - name: Presupuesto de peso por pantalla
         working-directory: .
         run: |
