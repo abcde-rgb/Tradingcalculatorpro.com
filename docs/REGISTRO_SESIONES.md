@@ -6335,3 +6335,35 @@ y sin errores de consola nuevos, y las seis piezas renderizadas de verdad con
 React + el CSS compilado y fotografiadas en claro y oscuro. Comprobado además que
 `tc-arco`/`tcpro-arco` **no aparecen en el CSS compilado**: la sección excluida
 no ha entrado por la puerta de atrás.
+
+
+## 2026-09-03 — Seis paneles de ajustes para elegir uno
+
+`/settings` son 673 líneas y **ocho tarjetas apiladas** en una columna de 672 px, todas
+con el mismo peso: la seguridad está partida en tres tarjetas seguidas que no se leen
+como un bloque, y la zona de peligro va detrás de «Acciones» con el mismo aspecto. Antes
+de rediseñar a ciegas, seis propuestas completas para que el propietario elija:
+[`docs/maquetas/panel-cliente.html`](./maquetas/panel-cliente.html) — consola con rail,
+cabecera con pestañas, hoja de datos sin tarjetas, panel con estado de la cuenta, cajón
+con buscador y rejilla de módulos. Cada una con lo que gana, lo que pierde y lo que
+cuesta escrito en la propia página.
+
+**No toca código de producción.** Es un fichero estático en `docs/maquetas/`, con los
+tokens reales de `index.css`, las tres familias del producto y las reglas de
+`identidad-visual` (un acento, filete de 1 px, dos radios, cero degradados,
+`tabular-nums`).
+
+Tres cosas que se anotaron por el camino:
+
+- **Tema e idioma no están en Ajustes** (viven en la cabecera) y la cuenta de la mesa
+  tampoco (vive en el dashboard). En las maquetas van marcados `propuesta`: decidir eso
+  es aparte de decidir el diseño.
+- **El ancla `#v5` dejaba la página desplazada al final** y las capturas salían en
+  blanco sin que nada fallara —el mismo modo de fallo que el smoke visual de agosto—. Se
+  cambió a `#/v5`, que no coincide con ningún `id` y no provoca salto.
+- **`#v1{display:grid}` ganaba por especificidad a `.screen{display:none}`**, así que
+  dos maquetas se pintaban a la vez, una encima de otra. Sólo se vio al mirar la captura;
+  el fichero cargaba «bien».
+
+La vista móvil del previsualizador usa **container queries**, no media queries: al
+estrechar el escenario a 390 px la maqueta reflow-ea de verdad en vez de encogerse.
