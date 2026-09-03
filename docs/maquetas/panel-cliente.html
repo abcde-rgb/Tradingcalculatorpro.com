@@ -116,7 +116,7 @@ a{color:inherit}
 .btn.peligro{color:var(--short);border-color:var(--short);background:transparent}
 .btn.peligro:hover{background:var(--short-soft)}
 .btn.sm{padding:5px 10px;font-size:12px}
-.campo{display:grid;gap:6px}
+.campo{display:grid;gap:6px;align-content:start}
 .campo > label{font-size:12px;font-weight:500;color:var(--muted)}
 .inp{
   width:100%;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-sharp);
@@ -366,6 +366,7 @@ a{color:inherit}
 #v5 .item small{color:var(--muted);font-size:12px}
 #v5 .res{display:none;font-size:12px;color:var(--faint);padding:8px 26px 0}
 #v5 .filtrando .res{display:block}
+#v5 .filtrando .menu button[aria-selected="true"]{background:none;color:var(--muted);font-weight:400}
 #v5 .oculto{display:none!important}
 #v5 .marcado{background:var(--accent-soft);border-radius:2px}
 @container panel (max-width:780px){
@@ -1154,6 +1155,10 @@ a{color:inherit}
   if (params.get('tema') === 'claro') { raiz.setAttribute('data-theme', 'light'); pintarBotonTema(); }
   if (params.get('tema') === 'oscuro') { raiz.setAttribute('data-theme', 'dark'); pintarBotonTema(); }
   if (params.get('ancho') === 'movil') { btnMovil.click(); }
+  // ?q=riesgo deja el buscador de la maqueta 5 ya filtrando, que es su estado
+  // característico: sin ver eso, el cajón no se puede juzgar.
+  var q = params.get('q');
+  if (q) { caja.value = q; caja.dispatchEvent(new Event('input')); }
   var pedida = location.hash.replace(/^#\/?/, '');
   if (BRIEFS[pedida]) mostrar(pedida);
 })();
