@@ -6476,3 +6476,90 @@ la § 2 de `FORO_COMUNIDAD.md`. Este sandbox no tiene salida a internet, así qu
 sale de conocimiento previo y **hay que verificarla contra la web oficial de cada proyecto
 antes de decidir**. Lo que sí está comprobado contra el repo es todo lo que se afirma de
 nuestro lado (Pages estático, CSP de G-10, RGPD de G-15, el shim, el SSO posible).
+
+---
+
+## 2026-09-03 (3) — La comunidad, construida: foro propio con seudónimos y traducción
+
+**Petición**: «hazlo todo, que sea 100 % real, no quiero comentarios inventados,
+traducción automática, 100 % seguro, que puedan añadir análisis, dividir por activos
+y productos, ordenar por vistas/likes/comentarios/nuevo, feed de a quien sigues,
+seudónimo para no exponer datos, haz que funcione», más seis maquetas nuevas con el
+lenguaje de getlayers.ai.
+
+### Lo construido
+
+- ✅ **`backend/forum.py`** — 1.178 líneas, 19 rutas, ocho colecciones por el shim.
+  Router inyectado desde `server.py` con el patrón de `admin_routes.py`.
+  Seudónimos, hilos por activo/producto/categoría/etiqueta, seis órdenes,
+  seguimiento entre miembros, reacciones deduplicadas, vistas con huella salada por
+  día, análisis adjunto con **R:R calculado en el servidor**, traducción con el SDK
+  de Anthropic (cacheada por hash del contenido) y cola de moderación.
+- ✅ **Frontend** — `/community` y `/community/:threadId` **sin `ProtectedRoute`**
+  (se lee sin cuenta: cada hilo es una URL indexable), `services/forumApi.js`,
+  cuatro componentes en `components/community/`, la cola de moderación dentro del
+  panel admin, y **102 claves i18n en los diez idiomas** con paridad verificada.
+- ✅ **Nada sembrado.** El foro se publica vacío y su estado vacío lo dice con todas
+  las letras. Era el punto explícito del encargo.
+
+### Dos fallos reales encontrados por las pruebas, no por leer el código
+
+1. **RGPD**: borrar la cuenta **no borraba los hilos**. `forum_threads` guarda a su
+   autor en `author_id` y `forum_follows` tiene dos referencias; el bucle de
+   `delete_account` buscaba sólo `{"user_id": …}`. Es el hueco G-15 con otro nombre
+   de campo, y el endpoint respondía 200. Lo cazó `tests/e2e/api/comunidad.py`
+   consultando PostgreSQL **después** del borrado. Arreglada la CAUSA:
+   `_USER_OWNER_FIELDS` declara los campos de propiedad que no son `user_id`, y
+   borrado, purga y export los heredan.
+2. **`gen-mapa.py` no detectaba el prefijo de `forum.py`**. `prefijos_de_router`
+   medía la DISTANCIA entre el `import` del constructor y su `prefix=` (400
+   caracteres), y una función de treinta líneas en medio bastó para romperlo: el
+   mapa publicó `/api/threads` en vez de `/api/forum/threads` y
+   `check-rutas-muertas.py` dio por muertas seis rutas vivas. Ahora se ancla en la
+   LLAMADA que monta el router, no en la distancia. **Sabotaje añadido** a
+   `probar-verificadores.sh`, como manda la ley del repo.
+
+### Siete sabotajes, y el que se escapó
+
+Se saboteó `forum.py` a propósito siete veces. **Seis se cazaron. El séptimo no**:
+«el cliente puede fijar sus propios contadores» pasaba porque Pydantic descarta lo no
+declarado —protección **por accidente**, que desaparecería el día que alguien añadiera
+`views` al modelo—. Se arregló con `extra="forbid"` en los modelos de escritura y un
+test **estructural** sobre `model_fields`; repetido el sabotaje, entonces sí lo cazó.
+
+### Decisiones que no se deshacen sin leer `DECISIONES.md`
+
+Identidad pública = sólo el seudónimo · seudónimo obligatorio antes del primer
+mensaje · orden numérico en Python (el shim ordena TEXTO: 9 va antes que 10) ·
+**límite de escritura por cuenta y no por IP** (el cubo por IP es lo que obligó a
+quitar el límite de `/auth/register`; detrás de un NAT diez personas se comen la
+cuota de las demás) · el foro **no se purga por impago**.
+
+### Las seis maquetas nuevas
+
+[`docs/maquetas/comunidad-layers.html`](./maquetas/comunidad-layers.html) — seis
+registros visuales (cinemático, técnico, lujo, brutalista, calma, producto) sobre
+**exactamente la misma maquetación y el mismo contenido**, para que la comparación
+mida diseño y no maquetación. Cada ficha dice **qué decisión de `identidad-visual`
+rompe**: cinco de las seis exigen cambiar el sistema de diseño entero. Se implementó
+la sexta, «Producto», que no rompe ninguna.
+
+⚠️ **getlayers.ai está bloqueado** por la política de red del sandbox (`EGRESS_BLOCKED`)
+y no se pudo abrir. Los moods salen de su vocabulario público (dark/light × luxe,
+technical, brutalist, calm…), obtenido por búsqueda: **no se ha copiado ninguna
+plantilla suya**.
+
+### Verificado
+
+`py_compile` de los 37 módulos · **pytest: 1.328 pasan, 0 fallan** (incluido el test
+del shim que fallaba en las dos sesiones anteriores, porque ahora hay un PostgreSQL
+vivo) · ESLint 0 errores · i18n 7.530 claves × 10 idiomas sin huecos · engine-check ·
+paridad del catálogo · `gen-mapa --check` · `check-rutas-muertas` · `check-doc-links` ·
+`npm run build` + 1.648 URLs de sitemap · **sonda de API contra PostgreSQL real: 26
+comprobaciones, repetible** · **sonda de navegador en Chromium: 16 comprobaciones,
+escritorio y móvil, cero errores de JavaScript**.
+
+**Lo que NO se ha hecho**: desplegar. Ni notificaciones, ni antispam automático, ni
+buscador de texto completo, ni paginación más allá de la ventana de 600 candidatos
+—que la respuesta declara con `windowExhausted` en vez de mentir sobre el total—.
+Todo listado en `FORO_COMUNIDAD.md` § 8.

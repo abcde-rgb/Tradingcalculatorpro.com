@@ -116,6 +116,10 @@ export function Footer() {
                   la página lo dice y explica por qué, y el día que se configure
                   el primer bróker queda publicada sin tocar nada más. */}
               <li><Link to="/brokers" className="hover:text-primary transition-colors" data-testid="footer-brokers">{t('brokersTitle')}</Link></li>
+              {/* La comunidad se lee sin cuenta y sus hilos son URLs indexables:
+                  enlazarla desde el pie es lo que hace que existan para un
+                  buscador. Se enlaza vacía a propósito — la página lo dice. */}
+              <li><Link to="/community" className="hover:text-primary transition-colors" data-testid="footer-community">{t('comunidadTitulo')}</Link></li>
             </ul>
           </div>
 

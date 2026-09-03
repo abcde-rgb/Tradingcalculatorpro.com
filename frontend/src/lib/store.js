@@ -6,7 +6,10 @@ import { bumpData } from '@/lib/dataVersion';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
 
-const DEMO_TOKEN = 'demo-token';
+// Se exporta para que las pantallas nuevas no escriban una tercera copia del
+// literal: el sentinel del modo demo tiene que ser el MISMO en las guardas del
+// store y en las de quien consume la API (CLAUDE.md § Autenticación pt. 4).
+export const DEMO_TOKEN = 'demo-token';
 
 const t = (key) => useI18nStore.getState().t(key);
 

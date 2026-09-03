@@ -1,0 +1,597 @@
+<title>Seis Registros de la Comunidad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   Seis REGISTROS de la comunidad — TradingCalculator.Pro
+   ───────────────────────────────────────────────────────────────────
+   Los seis pintan EXACTAMENTE el mismo contenido y la misma estructura.
+   Lo único que cambia es el registro visual: color, tipografía, densidad
+   y peso del filete. Así la comparación mide diseño y no maquetación —
+   si cada uno enseñara hilos distintos, se elegiría por el contenido.
+
+   Los moods salen del vocabulario de getlayers.ai (dark/light × luxe,
+   technical, brutalist, calm…). El sandbox no tiene salida a internet y
+   ese dominio está bloqueado por la política de red, así que NO se ha
+   copiado ninguna plantilla suya: se traduce el lenguaje, no el código.
+
+   Cada registro lleva escrito en su ficha qué decisión de
+   `identidad-visual` rompe. Ninguno se puede adoptar «sin más»: cinco de
+   los seis exigen cambiar el sistema de diseño del producto, y el sexto
+   es el sistema tal y como está hoy implementado.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root{
+  --paper:#101319; --surface:#171B22; --raise:#1D222B; --rule:#262C36;
+  --ink:#E7E2D6; --muted:#949AA3; --faint:#6E747E;
+  --accent:#17CF63; --accent-ink:#08110B; --accent-soft:rgba(23,207,99,.12);
+  --long:#22C55E; --short:#F26969;
+  --r-sharp:2px; --r-soft:10px;
+  --display:'Archivo',system-ui,sans-serif;
+  --texto:'Inter Tight',Inter,-apple-system,'Segoe UI',sans-serif;
+  --datos:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --peso-filete:1px;
+  --aire:22px;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--texto);font-size:15px;line-height:1.5;margin:0}
+h1,h2,h3,h4,p,ul,ol,dl,dd,figure{margin:0}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.mono,.num{font-family:var(--datos);font-variant-numeric:tabular-nums}
+
+/* ── Cromo del previsualizador (no es parte de ninguna propuesta) ── */
+.chrome{position:sticky;top:0;z-index:60;background:#171B22;color:#E7E2D6;border-bottom:1px solid #262C36;padding:10px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-family:'Inter Tight',sans-serif}
+.chrome .marca{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;white-space:nowrap}
+.chrome .marca span{color:#949AA3;font-family:'Inter Tight',sans-serif;font-weight:500}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.tabs button{background:none;border:1px solid transparent;border-radius:2px;padding:5px 10px;font-size:12.5px;font-weight:500;color:#949AA3;cursor:pointer;display:flex;align-items:center;gap:6px}
+.tabs button:hover{color:#E7E2D6;border-color:#262C36}
+.tabs button[aria-selected="true"]{color:#E7E2D6;border-color:#262C36;background:#1D222B}
+.tabs button b{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:#17CF63}
+.util{display:flex;gap:4px}
+.util button{background:#101319;border:1px solid #262C36;border-radius:2px;padding:5px 9px;font-size:12px;color:#949AA3;cursor:pointer}
+.util button:hover{color:#E7E2D6}
+.util button[aria-pressed="true"]{color:#17CF63;border-color:#17CF63}
+
+.brief{padding:14px 16px 16px;border-bottom:1px solid #262C36;background:#101319;color:#E7E2D6;font-family:'Inter Tight',sans-serif;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:8px 32px;align-items:start}
+.brief h2{font-family:'Archivo',sans-serif;font-size:16px;letter-spacing:-.02em}
+.brief h2 em{font-style:normal;color:#6E747E;font-family:'IBM Plex Mono',monospace;font-size:12px;margin-right:8px}
+.brief p{color:#949AA3;font-size:13.5px;max-width:62ch}
+.brief ul{padding:0;list-style:none;display:grid;gap:5px;font-size:12.5px}
+.brief li{display:grid;grid-template-columns:82px 1fr;gap:10px;color:#949AA3}
+.brief li b{font-weight:600;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#6E747E;padding-top:1px}
+.brief li.si b{color:#22C55E} .brief li.no b{color:#F26969} .brief li.rompe b{color:#F59E0B}
+.brief li.rompe span{color:#E7E2D6}
+@media (max-width:820px){.brief{grid-template-columns:1fr}}
+.nota-ej{font-size:11px;color:#6E747E;text-align:center;padding:10px 16px 0;font-family:'Inter Tight',sans-serif;background:#101319}
+
+.escenario{padding:24px 16px 64px;background:#101319}
+.stage{container-type:inline-size;container-name:foro;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:var(--r-soft);overflow:clip;margin:0 auto;max-width:1240px;transition:max-width .2s ease}
+.stage.movil{max-width:390px}
+
+/* ══════════════════════════════════════════════════════════════════
+   MAQUETACIÓN COMÚN — la misma en los seis. Sólo cambian los tokens.
+   ══════════════════════════════════════════════════════════════════ */
+.foro{display:grid;grid-template-columns:minmax(0,1fr) 260px}
+.col{min-width:0;border-right:var(--peso-filete) solid var(--rule)}
+
+.hero{padding:calc(var(--aire) * 1.6) var(--aire) var(--aire)}
+.hero .kicker{font-family:var(--datos);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.hero h1{font-family:var(--display);font-size:34px;line-height:1.06;letter-spacing:-.03em;margin-top:10px;max-width:16ch;text-wrap:balance}
+.hero p{color:var(--muted);font-size:14px;margin-top:12px;max-width:56ch}
+.hero .tira{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:16px;border-top:var(--peso-filete) solid var(--rule)}
+.hero .tira div{display:grid;gap:2px}
+.hero .tira dt{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.hero .tira dd{font-family:var(--datos);font-variant-numeric:tabular-nums;font-size:19px}
+
+.barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px var(--aire);border-top:var(--peso-filete) solid var(--rule);border-bottom:var(--peso-filete) solid var(--rule)}
+.chip{border:var(--peso-filete) solid var(--rule);border-radius:var(--r-sharp);padding:4px 11px;font-size:12.5px;color:var(--muted);cursor:pointer;background:none;white-space:nowrap}
+.chip[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.barra .orden{margin-left:auto;font-size:12.5px;color:var(--faint);display:flex;gap:10px;align-items:center}
+.barra .orden b{color:var(--ink);font-weight:500}
+
+.hilos{list-style:none;padding:0}
+.hilo{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:0 16px;padding:var(--aire);border-bottom:var(--peso-filete) solid var(--rule);align-items:start}
+.idx{font-family:var(--datos);font-size:12px;color:var(--faint);padding-top:3px;min-width:2ch}
+.av{width:38px;height:38px;border-radius:999px;display:grid;place-items:center;background:var(--accent-soft);border:var(--peso-filete) solid var(--accent);color:var(--accent);font-family:var(--display);font-weight:700;font-size:13px;flex:none}
+.linea{display:flex;align-items:flex-start;gap:14px}
+.linea .av{margin-top:2px}
+.hilo h3{font-family:var(--texto);font-size:16px;font-weight:600;line-height:1.32;letter-spacing:-.01em}
+.hilo .extracto{color:var(--muted);font-size:13.5px;margin-top:7px;max-width:68ch;padding-left:52px}
+.stage[data-mood="cine"] .hilo .extracto{padding-left:0}
+.stage[data-mood="tecnico"] .hilo .extracto{padding-left:40px}
+.hilo .meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:9px;font-size:12px;color:var(--faint);padding-left:52px}
+.stage[data-mood="cine"] .hilo .meta{padding-left:0}
+.stage[data-mood="tecnico"] .hilo .meta{padding-left:40px}
+.hilo .meta .quien{font-family:var(--datos);color:var(--muted)}
+.hilo .meta .et{border:var(--peso-filete) solid var(--rule);border-radius:var(--r-sharp);padding:1px 7px}
+.hilo .meta .sigo{color:var(--accent);border-color:var(--accent)}
+.cifras{display:grid;gap:8px;text-align:right;padding-top:2px}
+.cifras div{display:grid;gap:1px}
+.cifras dt{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.cifras dd{font-family:var(--datos);font-variant-numeric:tabular-nums;font-size:14px}
+
+.ficha{margin-top:12px;margin-left:52px;border:var(--peso-filete) solid var(--rule);border-radius:var(--r-sharp);background:var(--surface)}
+.ficha .cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:9px 12px;border-bottom:var(--peso-filete) solid var(--rule)}
+.ficha .sim{font-family:var(--datos);font-weight:600;font-size:13.5px}
+.ficha .dir{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--long)}
+.ficha .rr{margin-left:auto;font-family:var(--datos);font-size:13px}
+.ficha dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--peso-filete);background:var(--rule)}
+.ficha dl>div{background:var(--surface);padding:9px 12px}
+.ficha dt{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.ficha dd{font-family:var(--datos);font-variant-numeric:tabular-nums;font-size:13.5px;margin-top:3px}
+.ficha dd.r{color:var(--short)} .ficha dd.v{color:var(--long)}
+.ficha .aviso{padding:8px 12px;border-top:var(--peso-filete) solid var(--rule);font-size:11.5px;color:var(--muted)}
+
+aside{padding:var(--aire);display:grid;gap:26px;align-content:start;background:var(--surface)}
+aside h4{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:11px}
+.gente{display:grid;gap:11px}
+/* Rejilla y no flex: con flex los avatares no quedaban alineados entre
+   filas —el nombre más largo desplazaba el suyo 19 px— y una lista de
+   personas con los círculos en escalera se lee como un fallo. */
+.gente a{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:10px}
+.gente b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gente .av{width:30px;height:30px;font-size:11px}
+.gente b{font-family:var(--datos);font-weight:500;font-size:12.5px}
+.gente span{font-family:var(--datos);font-size:11px;color:var(--faint)}
+.norma{font-size:12.5px;color:var(--muted);line-height:1.5}
+.norma b{color:var(--ink);font-weight:600}
+.cta{display:block;text-align:center;border:var(--peso-filete) solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:var(--r-sharp);padding:9px 14px;font-weight:600;font-size:13.5px;cursor:pointer;width:100%}
+
+@container foro (max-width:900px){
+  .foro{grid-template-columns:1fr}
+  .col{border-right:0}
+  aside{border-top:var(--peso-filete) solid var(--rule)}
+  .hilo{grid-template-columns:auto minmax(0,1fr)}
+  .hilo .extracto,.hilo .meta{padding-left:0}
+  .ficha{margin-left:0}
+  .cifras{grid-column:2;display:flex;gap:18px;text-align:left;margin-top:10px}
+  .hero h1{font-size:26px}
+  .ficha dl{grid-template-columns:1fr 1fr}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LOS SEIS REGISTROS. Sólo tokens y unos pocos ajustes estructurales.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 01 · CINEMÁTICO ─────────────────────────────────────────────
+   Negro casi puro, titular enorme, aire de sobra y una sola cifra por
+   hilo. Lee como una portada, no como un tablón. */
+.stage[data-mood="cine"]{
+  --paper:#08090C; --surface:#0D0F14; --raise:#12151B; --rule:#1C2028;
+  --ink:#F2EFE8; --muted:#8B929C; --faint:#5C6068;
+  --accent:#1FE070; --accent-soft:rgba(31,224,112,.10);
+  --aire:34px; --r-soft:0px; --r-sharp:0px;
+}
+.stage[data-mood="cine"] .hero{padding-top:74px;padding-bottom:52px;position:relative}
+.stage[data-mood="cine"] .hero::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle,#1C2028 1px,transparent 1px);
+  background-size:26px 26px;opacity:.55;
+}
+.stage[data-mood="cine"] .hero>*{position:relative}
+.stage[data-mood="cine"] .hero h1{font-size:62px;letter-spacing:-.045em;font-weight:800;max-width:13ch}
+.stage[data-mood="cine"] .hero .kicker{letter-spacing:.24em}
+.stage[data-mood="cine"] .hilo{padding-top:30px;padding-bottom:30px}
+.stage[data-mood="cine"] .hilo h3{font-family:var(--display);font-size:25px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.stage[data-mood="cine"] .idx{font-size:11px;letter-spacing:.1em}
+.stage[data-mood="cine"] .av{display:none}
+.stage[data-mood="cine"] .ficha{margin-left:0}
+.stage[data-mood="cine"] .cifras dd{font-size:17px}
+.stage[data-mood="cine"] .cifras div:not(:first-child){display:none}
+
+/* ── 02 · TÉCNICO ────────────────────────────────────────────────
+   Todo en monoespaciada y a máxima densidad. Retícula visible. Es una
+   pantalla de operación, no una revista. */
+.stage[data-mood="tecnico"]{
+  --paper:#0C0F14; --surface:#11151B; --rule:#222833;
+  --ink:#DCE3EC; --muted:#8A94A3; --faint:#626C7A;
+  --accent:#17CF63; --texto:'IBM Plex Mono',ui-monospace,monospace;
+  --display:'IBM Plex Mono',ui-monospace,monospace;
+  --aire:14px; --r-soft:0px; --r-sharp:0px;
+}
+.stage[data-mood="tecnico"] .hero{padding-top:20px;padding-bottom:16px}
+.stage[data-mood="tecnico"] .hero h1{font-size:21px;letter-spacing:-.01em;font-weight:600;max-width:44ch}
+.stage[data-mood="tecnico"] .hero p{font-size:12.5px}
+.stage[data-mood="tecnico"] .hilo{padding-top:12px;padding-bottom:12px;gap:0 12px}
+.stage[data-mood="tecnico"] .hilo h3{font-size:13.5px;font-weight:500;letter-spacing:0}
+.stage[data-mood="tecnico"] .hilo .extracto{font-size:12px;margin-top:5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.stage[data-mood="tecnico"] .hilo .meta{font-size:11px;margin-top:6px}
+.stage[data-mood="tecnico"] .av{width:26px;height:26px;font-size:10px;border-radius:0}
+.stage[data-mood="tecnico"] .ficha{margin-left:40px}
+.stage[data-mood="tecnico"] .linea{gap:14px}
+.stage[data-mood="tecnico"] .cifras{gap:4px}
+.stage[data-mood="tecnico"] .cifras dd{font-size:12.5px}
+.stage[data-mood="tecnico"] .col{
+  background-image:linear-gradient(to right,#222833 1px,transparent 1px);
+  background-size:56px 100%;
+}
+.stage[data-mood="tecnico"] .hilos,.stage[data-mood="tecnico"] .hero,
+.stage[data-mood="tecnico"] .barra{background:var(--paper)}
+
+/* ── 03 · LUJO ───────────────────────────────────────────────────
+   Papel casi negro cálido, serif de titular, interlineado generoso y el
+   verde bajado a un tono profundo. Club privado, no tablón. */
+.stage[data-mood="lujo"]{
+  --paper:#0B0A09; --surface:#131110; --rule:#2A2724;
+  --ink:#EDE7DC; --muted:#9A9187; --faint:#6E665D;
+  --accent:#4E9C6B; --accent-ink:#0B0A09; --accent-soft:rgba(78,156,107,.12);
+  --display:'Instrument Serif',Georgia,serif;
+  --texto:'Newsreader',Georgia,serif;
+  --aire:30px; --r-soft:0px; --r-sharp:0px; --peso-filete:1px;
+}
+.stage[data-mood="lujo"] .hero h1{font-size:52px;font-weight:400;letter-spacing:-.015em;line-height:1.05;max-width:15ch}
+.stage[data-mood="lujo"] .hero .kicker{font-family:var(--datos);letter-spacing:.26em;font-size:10px}
+.stage[data-mood="lujo"] .hero p{font-size:16px;line-height:1.65}
+.stage[data-mood="lujo"] .hilo h3{font-family:var(--display);font-size:24px;font-weight:400;letter-spacing:-.01em;line-height:1.25}
+.stage[data-mood="lujo"] .hilo .extracto{font-size:15px;line-height:1.65}
+.stage[data-mood="lujo"] .hilo{padding-top:28px;padding-bottom:28px}
+.stage[data-mood="lujo"] .av{border-radius:999px;font-family:var(--display);font-weight:400;font-size:15px}
+.stage[data-mood="lujo"] .chip{border-radius:999px;padding:5px 14px}
+.stage[data-mood="lujo"] .cta{border-radius:999px;font-family:var(--texto);letter-spacing:.02em}
+.stage[data-mood="lujo"] .hilo .meta,.stage[data-mood="lujo"] aside h4{font-family:var(--datos)}
+
+/* ── 04 · BRUTALISTA ─────────────────────────────────────────────
+   Filete de 2 px, cero radios, contraste al máximo y el acento como
+   RELLENO. Nada susurra: todo grita su función. */
+.stage[data-mood="brutal"]{
+  --paper:#0A0B0D; --surface:#0A0B0D; --rule:#E7E2D6;
+  --ink:#E7E2D6; --muted:#B3AEA3; --faint:#8A857B;
+  --accent:#17CF63; --accent-ink:#000; --accent-soft:transparent;
+  --peso-filete:2px; --r-soft:0px; --r-sharp:0px; --aire:20px;
+}
+.stage[data-mood="brutal"]{border-width:2px}
+.stage[data-mood="brutal"] .hero h1{font-family:var(--display);font-weight:800;font-size:46px;letter-spacing:-.04em;text-transform:uppercase;max-width:14ch}
+.stage[data-mood="brutal"] .hero .kicker{background:var(--accent);color:#000;display:inline-block;padding:3px 9px;letter-spacing:.14em}
+.stage[data-mood="brutal"] .hilo h3{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.02em}
+.stage[data-mood="brutal"] .av{border-radius:0;background:var(--accent);color:#000;border-color:var(--accent)}
+.stage[data-mood="brutal"] .chip{border-width:2px}
+.stage[data-mood="brutal"] .chip[aria-pressed="true"]{background:var(--accent);color:#000}
+.stage[data-mood="brutal"] .idx{font-weight:600;color:var(--ink)}
+.stage[data-mood="brutal"] .ficha .cab{background:var(--accent);color:#000}
+.stage[data-mood="brutal"] .ficha .dir,.stage[data-mood="brutal"] .ficha .rr{color:#000}
+.stage[data-mood="brutal"] aside{background:var(--paper)}
+.stage[data-mood="brutal"] .cifras dd{font-weight:600}
+
+/* ── 05 · CALMA ──────────────────────────────────────────────────
+   Papel hueso claro, serif de lectura, línea corta y separación por
+   AIRE en vez de por filete. Para leer un análisis largo entero. */
+.stage[data-mood="calma"]{
+  --paper:#F6F4EF; --surface:#FBFAF7; --raise:#EFECE4; --rule:#E1DCD2;
+  --ink:#1C1E22; --muted:#5C6169; --faint:#8B9099;
+  --accent:#116039; --accent-ink:#FFF; --accent-soft:rgba(17,96,57,.08);
+  --long:#12703C; --short:#A8231F;
+  --texto:'Newsreader',Georgia,serif;
+  --display:'Newsreader',Georgia,serif;
+  --aire:32px; --r-soft:6px; --r-sharp:3px;
+  color-scheme:light;
+}
+.stage[data-mood="calma"] .hero h1{font-size:40px;font-weight:400;line-height:1.15;letter-spacing:-.015em}
+.stage[data-mood="calma"] .hero .kicker{font-family:var(--datos);color:var(--accent);letter-spacing:.2em;font-size:10px}
+.stage[data-mood="calma"] .hero p{font-size:17px;line-height:1.7;max-width:52ch}
+.stage[data-mood="calma"] .hilo{padding-top:30px;padding-bottom:30px;border-bottom-color:transparent}
+.stage[data-mood="calma"] .hilo+.hilo{border-top:1px solid var(--rule)}
+.stage[data-mood="calma"] .hilo h3{font-size:23px;font-weight:500;line-height:1.3;letter-spacing:-.012em}
+.stage[data-mood="calma"] .hilo .extracto{font-size:16px;line-height:1.7;max-width:58ch}
+.stage[data-mood="calma"] .av{border-radius:999px;font-family:var(--datos);font-weight:500;font-size:12px}
+.stage[data-mood="calma"] .chip{border-radius:999px;padding:5px 14px}
+.stage[data-mood="calma"] .cta{border-radius:999px}
+.stage[data-mood="calma"] aside{background:var(--raise)}
+.stage[data-mood="calma"] .barra{border-top:0}
+
+/* ── 06 · PRODUCTO ───────────────────────────────────────────────
+   El sistema real de TradingCalculator.Pro, sin cambiar nada. Es la
+   referencia contra la que se comparan los otros cinco: los tokens de
+   `frontend/src/index.css` y las reglas de `identidad-visual`.
+   No necesita bloque propio: los valores del `:root` de arriba SON éstos. */
+.stage[data-mood="producto"]{ /* tal cual el :root */ }
+</style>
+
+<header class="chrome">
+  <div class="marca">Comunidad <span>· 6 registros visuales sobre la MISMA maquetación</span></div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" aria-selected="true" data-v="cine"><b>01</b> Cinemático</button>
+    <button role="tab" aria-selected="false" data-v="tecnico"><b>02</b> Técnico</button>
+    <button role="tab" aria-selected="false" data-v="lujo"><b>03</b> Lujo</button>
+    <button role="tab" aria-selected="false" data-v="brutal"><b>04</b> Brutalista</button>
+    <button role="tab" aria-selected="false" data-v="calma"><b>05</b> Calma</button>
+    <button role="tab" aria-selected="false" data-v="producto"><b>06</b> Producto</button>
+  </div>
+  <div class="util">
+    <button id="btn-movil" aria-pressed="false" title="Ver a 390 px de ancho">Móvil</button>
+  </div>
+</header>
+
+<section class="brief">
+  <div>
+    <h2><em id="b-num">01</em><span id="b-nombre">Cinemático</span></h2>
+    <p id="b-tesis"></p>
+  </div>
+  <ul>
+    <li class="rompe"><b>Rompe</b><span id="b-rompe"></span></li>
+    <li class="si"><b>A favor</b><span id="b-si"></span></li>
+    <li class="no"><b>En contra</b><span id="b-no"></span></li>
+    <li><b>Coste</b><span id="b-coste"></span></li>
+  </ul>
+</section>
+
+<p class="nota-ej">Contenido de ejemplo para poder comparar los seis registros — el foro real se publica VACÍO, sin hilos sembrados.</p>
+
+<div class="escenario">
+<div class="stage" id="stage" data-mood="cine">
+  <div class="foro">
+    <div class="col">
+
+      <div class="hero">
+        <div class="kicker">Comunidad</div>
+        <h1>Lo que calculas, discutido con quien lo calcula igual</h1>
+        <p>Análisis con entrada, stop y objetivo en campos —no en una captura— y el R:R calculado por el servidor. Se lee sin cuenta; para escribir hace falta una y un seudónimo.</p>
+        <dl class="tira">
+          <div><dt>Hilos</dt><dd>1.408</dd></div>
+          <div><dt>Miembros</dt><dd>3.412</dd></div>
+          <div><dt>En línea</dt><dd>87</dd></div>
+          <div><dt>Con análisis adjunto</dt><dd>604</dd></div>
+        </dl>
+      </div>
+
+      <div class="barra">
+        <button class="chip" aria-pressed="true">Todos</button>
+        <button class="chip" aria-pressed="false">Dimensionar</button>
+        <button class="chip" aria-pressed="false">Diario</button>
+        <button class="chip" aria-pressed="false">Opciones</button>
+        <button class="chip" aria-pressed="false">Estructura</button>
+        <div class="orden">Ordenar por <b>tendencia</b></div>
+      </div>
+
+      <ul class="hilos">
+        <li class="hilo">
+          <span class="idx">01</span>
+          <div>
+            <div class="linea"><span class="av">MI</span>
+            <h3>¿Me estoy quedando corto de stop en el oro con la volatilidad de esta semana?</h3></div>
+            <p class="extracto">Mi stop queda dentro del rango de la sesión asiática de anoche y no sé si eso lo invalida. Adjunto la operación entera para que se vea de dónde salen los números.</p>
+            <div class="ficha">
+              <div class="cab">
+                <span class="sim">XAUUSD</span><span class="dir">Largo</span>
+                <span class="rr">R:R 2,01</span>
+              </div>
+              <dl>
+                <div><dt>Entrada</dt><dd>2.412,30</dd></div>
+                <div><dt>Stop</dt><dd class="r">2.398,00</dd></div>
+                <div><dt>Objetivo</dt><dd class="v">2.441,00</dd></div>
+              </dl>
+            </div>
+            <div class="meta">
+              <span class="quien">@swing_trader</span>
+              <span class="et sigo">Le sigues</span>
+              <span class="et">análisis</span><span class="et">oro</span>
+              <span>hace 40 min</span>
+            </div>
+          </div>
+          <dl class="cifras">
+            <div><dt>Respuestas</dt><dd>31</dd></div>
+            <div><dt>Votos</dt><dd>19</dd></div>
+            <div><dt>Vistas</dt><dd>1.204</dd></div>
+          </dl>
+        </li>
+
+        <li class="hilo">
+          <span class="idx">02</span>
+          <div>
+            <div class="linea"><span class="av">DS</span>
+            <h3>«10 $/pip por lote» en USDJPY: el atajo que me costó 340 $ en una entrada</h3></div>
+            <p class="extracto">Copié la tabla de un blog y dimensioné como si el pip valiera siempre 10 $. En USDJPY un lote son 1.000 ¥ por pip, que ese día eran 6,36 $: puse un 57 % más de tamaño del que creía.</p>
+            <div class="meta">
+              <span class="quien">@diego_s</span>
+              <span class="et">dimensionar</span><span class="et">forex</span>
+              <span>hace 4 h</span>
+            </div>
+          </div>
+          <dl class="cifras">
+            <div><dt>Respuestas</dt><dd>47</dd></div>
+            <div><dt>Votos</dt><dd>52</dd></div>
+            <div><dt>Vistas</dt><dd>3.108</dd></div>
+          </dl>
+        </li>
+
+        <li class="hilo">
+          <span class="idx">03</span>
+          <div>
+            <div class="linea"><span class="av">SL</span>
+            <h3>58 % de aciertos y R medio −0,42. ¿Qué estoy midiendo mal?</h3></div>
+            <p class="extracto">Gano más veces de las que pierdo y la cuenta baja. Las ganadoras salen a 0,61 R y las perdedoras a −1,84 R sobre 137 operaciones del trimestre.</p>
+            <div class="ficha">
+              <div class="cab">
+                <span class="sim">Trimestre · 137 op.</span>
+                <span class="rr">R medio −0,42</span>
+              </div>
+              <dl>
+                <div><dt>Aciertos</dt><dd>58,4 %</dd></div>
+                <div><dt>Ganadora media</dt><dd class="v">+0,61 R</dd></div>
+                <div><dt>Perdedora media</dt><dd class="r">−1,84 R</dd></div>
+              </dl>
+              <p class="aviso">El R medio sólo cuenta operaciones con stop declarado: sin stop es indefinido, no cero.</p>
+            </div>
+            <div class="meta">
+              <span class="quien">@sofia_l</span>
+              <span class="et">diario</span><span class="et">métricas</span>
+              <span>hace 6 h</span>
+            </div>
+          </div>
+          <dl class="cifras">
+            <div><dt>Respuestas</dt><dd>61</dd></div>
+            <div><dt>Votos</dt><dd>44</dd></div>
+            <div><dt>Vistas</dt><dd>2.831</dd></div>
+          </dl>
+        </li>
+
+        <li class="hilo">
+          <span class="idx">04</span>
+          <div>
+            <div class="linea"><span class="av">KT</span>
+            <h3>Iron condor sobre SPX: ¿la pérdida máxima es de verdad anchura − crédito?</h3></div>
+            <p class="extracto">Vendo el 5.150/5.100 por abajo y el 5.500/5.550 por arriba con crédito de 6,40. Yo lo apunto como 43,60 por contrato, pero el bróker me bloquea otra cifra.</p>
+            <div class="meta">
+              <span class="quien">@kenji_t</span>
+              <span class="et">opciones</span><span class="et">spreads</span>
+              <span>hace 9 h</span>
+            </div>
+          </div>
+          <dl class="cifras">
+            <div><dt>Respuestas</dt><dd>29</dd></div>
+            <div><dt>Votos</dt><dd>17</dd></div>
+            <div><dt>Vistas</dt><dd>1.402</dd></div>
+          </dl>
+        </li>
+      </ul>
+    </div>
+
+    <aside>
+      <div>
+        <button class="cta">Escribir un hilo</button>
+      </div>
+      <div>
+        <h4>A quien sigues</h4>
+        <div class="gente">
+          <a href="#"><span class="av">MI</span><b>@swing_trader</b><span>412</span></a>
+          <a href="#"><span class="av">KT</span><b>@kenji_t</b><span>287</span></a>
+          <a href="#"><span class="av">NB</span><b>@nuria_b</b><span>194</span></a>
+          <a href="#"><span class="av">DS</span><b>@diego_s</b><span>96</span></a>
+        </div>
+      </div>
+      <div>
+        <h4>Cómo funciona aquí</h4>
+        <p class="norma">Se publica con <b>seudónimo</b>: tu nombre y tu correo no se muestran nunca. Los análisis llevan entrada, stop y objetivo, y el <b>R:R lo calcula el servidor</b> — si falta el stop, sale «—» y no un cero.</p>
+      </div>
+      <div>
+        <h4>Idiomas del hilo</h4>
+        <p class="norma">Cada mensaje guarda el idioma de quien lo escribió y se puede <b>traducir bajo demanda</b> sin tocar el original.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+</div>
+
+<script>
+(function () {
+  // Cada ficha dice qué decisión de `identidad-visual` rompe el registro. Sin
+  // eso, elegir uno es elegir a ciegas: cinco de los seis exigen cambiar el
+  // sistema de diseño del producto, no sólo esta pantalla.
+  var FICHAS = {
+    cine: {
+      num: '01', nombre: 'Cinemático',
+      tesis: 'Negro casi puro, titular de 62 px y una sola cifra por hilo. La comunidad se lee como una portada: cuatro hilos ocupan lo que en el registro técnico ocupan veinte. El aire es el mensaje — dice que aquí se publica poco y bueno.',
+      rompe: 'El aire por hilo (30 px) contra el ritmo vertical del producto, y la retícula de puntos del hero es decoración pura: identidad-visual § 5 la prohíbe salvo que codifique algo.',
+      si: 'Es el que mejor vende la comunidad a quien llega de fuera: entra por una portada, no por un tablón. Y con pocos hilos —el estado real el primer mes— no se ve vacío, se ve escogido.',
+      no: 'Con 200 hilos al día es inservible: hay que desplazarse cuatro pantallas para ver ocho. Y esconde las métricas, que es justo lo que el usuario pidió poder ordenar.',
+      coste: 'Medio · tokens nuevos y una escala tipográfica aparte para esta pantalla'
+    },
+    tecnico: {
+      num: '02', nombre: 'Técnico',
+      tesis: 'Todo en IBM Plex Mono, densidad máxima y la retícula de columnas a la vista. Veinte hilos por pantalla con sus tres cifras alineadas. Es la sala de control de la comunidad, no su revista.',
+      rompe: 'La monoespaciada como tipografía de TEXTO. En el producto está reservada a los números (identidad-visual § 2), y usarla para leer párrafos cansa a los dos minutos.',
+      si: 'El más honesto con lo que el usuario pidió: ordenar por vistas, votos y respuestas sólo sirve si las tres se ven a la vez, y aquí se ven. Escala a miles de hilos sin cambiar nada.',
+      no: 'Intimida a quien llega. Una comunidad tiene que parecer acogedora antes que precisa, y ésta parece un log.',
+      coste: 'Bajo · es el sistema actual apretado; no hace falta ningún token nuevo'
+    },
+    lujo: {
+      num: '03', nombre: 'Lujo',
+      tesis: 'Papel casi negro cálido, serif de titular (Instrument Serif), interlineado de 1,65 y el verde bajado a un tono profundo. Los hilos se leen como columnas de opinión. Sugiere que quien escribe aquí ha pensado antes de escribir.',
+      rompe: 'Dos cosas gordas: el verde de marca —se apaga a #4E9C6B y la decisión de color está tomada y desplegada (identidad-visual § 1.bis)— y la tipografía, que pasa de tres familias a cinco.',
+      si: 'Es el único de los seis que hace que un análisis largo apetezca. Y sube el listón de lo que la gente escribe: nadie suelta «alguien opera oro?» en una tipografía así.',
+      no: 'Choca con el resto del producto. Salir de la mesa de cálculo y entrar aquí se sentiría como cambiar de web, que es el fallo que consistencia-diseno existe para evitar.',
+      coste: 'Alto · dos familias más, un acento nuevo y una revisión de contraste completa'
+    },
+    brutal: {
+      num: '04', nombre: 'Brutalista',
+      tesis: 'Filete de 2 px, cero radios, mayúsculas condensadas y el verde como RELLENO, no como texto. Nada susurra: cada bloque grita qué es. La ficha de la operación es una banda verde con los números en negro encima.',
+      rompe: 'El filete de 1 px, que es el separador del sistema, y los dos radios (2/10 px) que aquí desaparecen. También el uso del acento como fondo: hoy sólo es texto o borde.',
+      si: 'Memorable de verdad — es el único que nadie confundiría con otro SaaS. Y el contraste bruto le va bien a la accesibilidad: todo pasa AA con holgura.',
+      no: 'Envejece rápido y cansa en sesiones largas. Además el acento como fondo obliga a revisar cada texto encima: el verde de marca con negro encima pasa, con blanco no.',
+      coste: 'Medio · tokens y bordes; la maquetación no se toca'
+    },
+    calma: {
+      num: '05', nombre: 'Calma',
+      tesis: 'Papel hueso claro, serif de lectura (Newsreader), línea de 58 caracteres y separación por AIRE en lugar de por filete. Pensado para leer entero un análisis de mil palabras sin cansarse.',
+      rompe: 'La separación sin filete —el sistema separa con --rule, no con espacio— y la serif como tipografía de texto. El tema claro sí es del producto: estos valores salen del .light real.',
+      si: 'El mejor para el contenido largo, que es el que da SEO. Y en claro por defecto se lee mejor en un móvil a pleno sol, que es donde se consulta el foro entre operación y operación.',
+      no: 'La densidad cae a la mitad: caben tres hilos donde el técnico mete diez. Y el producto es oscuro por defecto, así que entrar aquí sería un salto de tema.',
+      coste: 'Medio · una familia más y decidir si la comunidad fuerza el tema claro'
+    },
+    producto: {
+      num: '06', nombre: 'Producto',
+      tesis: 'El sistema de diseño real, sin cambiar nada: grafito azulado, tinta hueso, verde de marca, las tres familias del producto, filete de 1 px y dos radios. Es la referencia contra la que se comparan los otros cinco — y lo que ya está implementado en /community.',
+      rompe: 'Nada. Es frontend/src/index.css y las reglas de identidad-visual tal cual.',
+      si: 'Cero coste y cero riesgo: la comunidad se siente parte de la web, no un injerto. Es lo que hay hoy en la rama, probado en navegador y con la regleta midiendo la operación.',
+      no: 'No sorprende. Si lo que se busca es que la comunidad tenga carácter propio, éste no lo tiene: parece —correctamente— otra pantalla más del producto.',
+      coste: 'Ninguno · ya está construido'
+    }
+  };
+
+  var refs = {
+    num: document.getElementById('b-num'), nombre: document.getElementById('b-nombre'),
+    tesis: document.getElementById('b-tesis'), rompe: document.getElementById('b-rompe'),
+    si: document.getElementById('b-si'), no: document.getElementById('b-no'),
+    coste: document.getElementById('b-coste')
+  };
+  var stage = document.getElementById('stage');
+
+  function mostrar(id) {
+    if (!FICHAS[id]) return;
+    stage.setAttribute('data-mood', id);
+    var botones = document.querySelectorAll('#tabs button');
+    for (var i = 0; i < botones.length; i++) {
+      botones[i].setAttribute('aria-selected', String(botones[i].dataset.v === id));
+    }
+    var f = FICHAS[id];
+    refs.num.textContent = f.num; refs.nombre.textContent = f.nombre;
+    refs.tesis.textContent = f.tesis; refs.rompe.textContent = f.rompe;
+    refs.si.textContent = f.si; refs.no.textContent = f.no; refs.coste.textContent = f.coste;
+    try {
+      if (location.hash !== '#/' + id) history.replaceState(null, '', '#/' + id);
+    } catch (err) { /* file:// no siempre admite replaceState */ }
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-v]');
+    if (b) mostrar(b.dataset.v);
+  });
+
+  var btnMovil = document.getElementById('btn-movil');
+  btnMovil.addEventListener('click', function () {
+    var m = stage.classList.toggle('movil');
+    btnMovil.setAttribute('aria-pressed', String(m));
+    btnMovil.textContent = m ? 'Escritorio' : 'Móvil';
+  });
+
+  // Los chips de filtro no filtran nada —la maqueta es estática— pero se
+  // marcan: un control que no responde al clic se lee como roto y contamina
+  // el juicio sobre el diseño, que es lo que se está mirando.
+  document.addEventListener('click', function (e) {
+    var chip = e.target.closest('.barra .chip');
+    if (chip) {
+      var todos = chip.parentNode.querySelectorAll('.chip');
+      for (var i = 0; i < todos.length; i++) {
+        todos[i].setAttribute('aria-pressed', String(todos[i] === chip));
+      }
+    }
+    var enlace = e.target.closest('.stage a[href="#"]');
+    if (enlace) e.preventDefault();
+  });
+
+  // Cambiar sólo el ancla NO recarga: sin `hashchange`, un enlace a «#/lujo»
+  // pegado sobre «#/cine» no hacía nada. Mismo fallo que se cazó en la otra
+  // galería fotografiando las seis de una tirada.
+  window.addEventListener('hashchange', function () {
+    mostrar(location.hash.replace(/^#\/?/, ''));
+  });
+  var pedida = location.hash.replace(/^#\/?/, '');
+  mostrar(FICHAS[pedida] ? pedida : 'cine');
+})();
+</script>

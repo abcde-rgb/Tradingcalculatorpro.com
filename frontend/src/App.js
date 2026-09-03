@@ -65,6 +65,12 @@ const PerformancePage  = lazyRetry(() => import("@/pages/PerformancePage"));
 const TradingPlanPage  = lazyRetry(() => import("@/pages/TradingPlanPage"));
 const BacktestingPage  = lazyRetry(() => import("@/pages/BacktestingPage"));
 const BrokersPage      = lazyRetry(() => import("@/pages/BrokersPage"));
+// La comunidad. Se lee SIN cuenta a propósito: cada hilo es una URL indexable
+// y es la única forma de que a un foro nuevo lo encuentre alguien. Escribir sí
+// exige sesión, y eso lo comprueba el backend, no el enrutador.
+const CommunityPage    = lazyRetry(() => import("@/pages/CommunityPage"));
+const CommunityThreadPage = lazyRetry(() =>
+  import("@/pages/CommunityPage").then((m) => ({ default: m.CommunityThreadPage })));
 const AdminPage        = lazyRetry(() => import("@/pages/AdminPage"));
 const AffiliatePage    = lazyRetry(() => import("@/pages/AffiliatePage"));
 const LegalPage        = lazyRetry(() => import("@/pages/LegalPage"));
@@ -176,6 +182,8 @@ const AppContent = () => (
           {/* Enlaces de referido. Lo que se puede enseñar lo decide el
               servidor (`brokers_referidos.py`); hoy la lista está vacía. */}
           <Route path="/brokers"         element={<BrokersPage />} />
+          <Route path="/community"           element={<CommunityPage />} />
+          <Route path="/community/:threadId" element={<CommunityThreadPage />} />
           <Route path="/news"            element={<ProtectedRoute premiumOnly><NewsPage /></ProtectedRoute>} />
           <Route path="/admin"           element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/affiliate"       element={<ProtectedRoute><AffiliatePage /></ProtectedRoute>} />

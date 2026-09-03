@@ -180,6 +180,20 @@ probar "ruta nueva en el backend" \
   "python scripts/gen-mapa.py --check" \
   "printf '\n\n@api_router.get(\"/sabotaje\")\nasync def sabotaje():\n    return {}\n' >> backend/timeframes.py"
 
+# El fallo que trajo `forum.py` el 2026-09-03: `prefijos_de_router` medía la
+# DISTANCIA entre el `import` del constructor y su `prefix=` (400 caracteres).
+# Al colar una función entre ambos, el prefijo dejó de detectarse y el mapa
+# publicó `/api/threads` en vez de `/api/forum/threads` — con lo que
+# `check-rutas-muertas.py` dio por muertas seis rutas que la comunidad usa.
+# El sabotaje deja la detección de prefijos a cero: si el mapa siguiera
+# cuadrando, es que los prefijos no se estaban usando para nada.
+probar "el prefijo de un router montado (admin_routes y forum)" \
+  "python scripts/gen-mapa.py --check" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('scripts/gen-mapa.py'); t = p.read_text()
+p.write_text(t.replace('    salida: dict[str, str] = {}', '    return {}', 1))\""
+
 MODULO_FALSO="backend/zz_sabotaje.py"
 TEMPORALES+=("$MODULO_FALSO")
 probar "módulo nuevo en el backend" \

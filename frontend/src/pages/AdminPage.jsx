@@ -31,6 +31,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { Header } from '@/components/layout/Header';
 import { toast } from 'sonner';
 import { CargaVelas, FilasEsqueleto } from '@/components/common/BrandLoading';
+import ModeracionForo from '@/components/community/ModeracionForo';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
@@ -645,7 +646,14 @@ export default function AdminPage() {
             )}
 
             {activeSection === 'legal' && (
-              <GDPRExportCard headers={headers} />
+              <>
+                <GDPRExportCard headers={headers} />
+                {/* La cola del foro va en «Legal y RGPD» y no en «Sistema»
+                    porque lo que se decide aquí es contenido publicado por
+                    terceros: retirar un mensaje es una decisión de
+                    responsabilidad, no de operación. */}
+                <ModeracionForo />
+              </>
             )}
 
           </div>

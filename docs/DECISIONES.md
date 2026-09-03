@@ -316,3 +316,61 @@ sobre una lista de secciones que ahora ya existe.
 Las otras cuatro (cabecera con pestañas, hoja de datos, panel de estado, rejilla)
 siguen en la maqueta con sus pros y contras escritos: si alguien vuelve a abrir
 esta discusión, el trabajo de comparar ya está hecho.
+
+
+---
+
+## La comunidad se construye en casa, no se compra (2026-09-03)
+
+Se compararon ocho motores de código abierto —Discourse, Flarum, NodeBB, Talkyard,
+Question2Answer, Zulip, Forem, Misago— y tres rutas de integración, en
+[`FORO_COMUNIDAD.md`](./FORO_COMUNIDAD.md). Se eligió **la ruta C: foro propio dentro
+del producto**.
+
+**El argumento que decidió** no fue el coste ni la infraestructura: fue que un motor
+de terceros **no puede leer la mesa de cálculo del usuario**. Un hilo que lleva la
+operación dentro —entrada, stop, objetivo, R:R— y que la columna derecha recalcula
+con el capital de quien lee es lo único de la lista que un competidor no puede copiar
+pegando un Discourse. Todo lo demás (categorías, votos, seguir a alguien) lo dan los
+ocho.
+
+**Lo que eso cuesta, y se acepta a sabiendas:** moderación, antispam, notificaciones,
+buscador, correo y denuncias los escribimos nosotros. Un foro pequeño sin
+herramientas de moderación se llena de basura en una semana. Hoy hay denuncia y
+ocultar; el resto está en la § 8 de ese documento, sin fecha.
+
+### Cinco decisiones dentro del foro que no se deshacen sin leer esto
+
+1. **La identidad pública es el seudónimo, y sólo el seudónimo.** Ninguna respuesta
+   de `forum.py` lleva correo, nombre real ni `user_id`. Se sigue a la gente por su
+   `handle`. Un `user_id` filtrado es un identificador estable que cruza el foro con
+   el resto del producto. Fijado por test, y comprobado sobre el JSON crudo por la
+   sonda contra el backend vivo.
+
+2. **Elegir seudónimo es obligatorio ANTES del primer mensaje** (409 si falta). Aquí
+   el nombre real nunca habría salido —eso es la decisión 1— pero el usuario no lo
+   sabe: que lo elija él es lo que convierte la promesa en algo que puede comprobar.
+
+3. **El orden numérico se hace en Python, no en SQL.** El shim ordena con
+   `ORDER BY (data->>'campo')`, que es orden de TEXTO: por ahí, 9 me gusta van por
+   delante de 10. Cambiarlo por un `.sort("likes", -1)` reintroduce el fallo sin que
+   ningún test de humo lo note.
+
+4. **El límite de escritura es por CUENTA, no por IP.** `slowapi` va por IP, y detrás
+   de un NAT compartido diez personas se comen la cuota de las demás — es lo que
+   obligó a quitar el límite de `/auth/register`. Con el token delante se puede
+   contar por cuenta, que es a quien se quiere limitar.
+
+5. **El foro NO se purga por impago.** Va en `_USER_NON_PURGED_COLLECTIONS`: se borra
+   con la cuenta (art. 17) y se exporta (art. 20), pero vaciar los hilos de quien deja
+   de pagar rompería conversaciones de terceros y borraría aportaciones que otros
+   marcaron como útiles.
+
+### El registro visual: se implementó el que no cambia nada
+
+Seis registros comparados en
+[`maquetas/comunidad-layers.html`](./maquetas/comunidad-layers.html) sobre la misma
+maquetación. Ganó **«Producto»**: el sistema de diseño tal cual. Los otros cinco
+—cinemático, técnico, lujo, brutalista, calma— están medidos y cada uno lleva escrito
+qué decisión de `identidad-visual` rompe. El de «Lujo» apagaba el verde de marca, que
+es una decisión ya tomada y desplegada: por ahí no se vuelve a pasar.

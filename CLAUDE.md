@@ -27,6 +27,8 @@ es un residuo inofensivo.
 - **Pagos**: Stripe + PayPal + Revolut Pay + **NOWPayments** (cripto, IPN HMAC-SHA512).
   *OxaPay y MaxelPay se retiraron: no queda código de ninguna.*
 - **Email**: SendGrid · **SMS**: Twilio · **IA**: Anthropic SDK (AI Trade Coach)
+- **Comunidad**: foro propio (`backend/forum.py` + `/community`), con seudónimos,
+  análisis adjunto y traducción bajo demanda. **Se publica vacío: nada sembrado.**
 
 ```
 backend/     FastAPI + shim Mongo→PostgreSQL   frontend/   React 19 + CRACO
@@ -114,6 +116,10 @@ ya costaron bugs y están fijadas por tests:
 - **Lo generado no se edita a mano**: `instrumentSpecs.generated.js` y `docs/MAPA.md`
   salen de un script, y CI falla si divergen.
 - **Secretos nunca en el repo**: `.env.example` + Secret Manager / GitHub Secrets.
+- **Una colección con datos de usuario entra en `_USER_DATA_COLLECTIONS`** (o en
+  `_USER_NON_PURGED_COLLECTIONS`), y si NO guarda al usuario en `user_id`, además en
+  `_USER_OWNER_FIELDS`. El foro guarda a su autor en `author_id` y borrar la cuenta
+  dejaba sus hilos en la base de datos — G-15 otra vez, con otro nombre de campo.
 - **Antes de escribir un módulo nuevo, comprueba si ya existe.** Decenas de rutas que
   ninguna pantalla llama tienen una decisión escrita en
   [`docs/RUTAS_MUERTAS.md`](./docs/RUTAS_MUERTAS.md) —la mayoría son backends
@@ -173,6 +179,7 @@ Estas reglas **no están cargadas ahora**: entran solas cuando abres un fichero 
 | `rules/diario-riesgo.md` | `performance.py`, `instruments.py`, `components/performance/**` | P&L, apalancamiento, R, setups, unidades, catálogo |
 | `rules/escaner.md` | `price_action.py`, `components/charts/**` | Orden del escáner, `counts.confluent`, precio de referencia |
 | `rules/preferencias.md` | `cloudPrefs.js`, `prefsMerge.js`, `store.js` | Ajustes en la cuenta, fusión, credenciales |
+| `rules/comunidad.md` | `forum.py`, `pages/CommunityPage.jsx`, `components/community/**` | Seudónimo como única identidad pública, orden numérico en Python, límite por cuenta, colecciones y RGPD del foro |
 | `rules/i18n-seo.md` | `lib/i18n/**`, `scripts/gen-*.js` | 10 idiomas, páginas generadas, dominio, ruido en búsquedas |
 | `rules/infra.md` | `.github/workflows/**`, `backend/Dockerfile` | Despliegue, `min-instances`, `DB_PROVIDER`, secretos |
 

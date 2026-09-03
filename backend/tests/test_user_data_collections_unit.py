@@ -175,3 +175,69 @@ class TestMigrationScript:
     def test_rounding_of_a_cent_is_not_suspicious(self):
         from migrate_trades_schema import classify
         assert classify(_legacy_trade(pnl=10.01)) == "ok"
+
+
+class TestOwnerFieldsBeyondUserId:
+    """El foro trajo colecciones que NO guardan al usuario en `user_id`.
+
+    `forum_threads` lo guarda en `author_id` y `forum_follows` tiene dos
+    referencias. El bucle de `delete_account` buscaba sólo `{"user_id": …}`, así
+    que borrar la cuenta dejaba hilos y seguimientos en la base de datos —el
+    hueco G-15 otra vez, con otro nombre de campo—. Lo cazó la sonda
+    `tests/e2e/api/comunidad.py` consultando PostgreSQL DESPUÉS del borrado; la
+    respuesta 200 del endpoint decía que todo había ido bien.
+    """
+
+    def test_por_defecto_es_user_id(self):
+        assert server.owner_fields_for("trades") == ("user_id",)
+        assert server.owner_fields_for("una_coleccion_que_no_existe") == ("user_id",)
+
+    def test_las_del_foro_declaran_su_campo(self):
+        assert server.owner_fields_for("forum_threads") == ("author_id",)
+        assert server.owner_fields_for("forum_posts") == ("author_id",)
+        assert set(server.owner_fields_for("forum_follows")) == {"follower_id", "followee_id"}
+
+    def test_toda_coleccion_declarada_existe_en_las_tuplas(self):
+        """Declarar un campo raro para una colección que nadie borra no sirve."""
+        declaradas = set(server._USER_OWNER_FIELDS)
+        todas = set(server._ALL_USER_COLLECTIONS)
+        assert declaradas <= todas, f"declaran campo pero no se borran: {declaradas - todas}"
+
+    def test_el_modulo_del_foro_no_usa_campos_sin_declarar(self):
+        """Si `forum.py` escribe en una colección que no está en las tuplas del
+        RGPD, esa colección se queda fuera del borrado de cuenta."""
+        import re
+        ruta = os.path.join(os.path.dirname(server.__file__), "forum.py")
+        src = open(ruta, encoding="utf-8").read()
+        escritas = set(re.findall(r"db\.(forum_\w+)\.(?:insert_one|update_one)", src))
+        assert escritas, "el detector no encontró ninguna escritura: patrón roto"
+        for coleccion in sorted(escritas):
+            # Estas dos no llevan datos personales a propósito (ver el
+            # comentario del bloque `known` en server.py).
+            if coleccion in ("forum_views", "forum_translations"):
+                continue
+            assert coleccion in server._ALL_USER_COLLECTIONS, (
+                f"{coleccion} se escribe pero no se borra con la cuenta")
+            assert server.owner_fields_for(coleccion), f"{coleccion} sin campo de propiedad"
+
+    def test_purge_user_from_consulta_todos_los_campos(self):
+        """La prueba de comportamiento: con dos campos declarados, se borra por
+        los dos. Con uno solo, `forum_follows` deja la mitad de las filas."""
+        import asyncio
+
+        consultas = []
+
+        class _Col:
+            async def delete_many(self, filtro):
+                consultas.append(filtro)
+
+        class _BD:
+            def __getitem__(self, _nombre):
+                return _Col()
+
+        asyncio.run(server.purge_user_from(_BD(), "forum_follows", "u-1"))
+        assert consultas == [{"follower_id": "u-1"}, {"followee_id": "u-1"}]
+
+        consultas.clear()
+        asyncio.run(server.purge_user_from(_BD(), "trades", "u-1"))
+        assert consultas == [{"user_id": "u-1"}]

@@ -7,7 +7,8 @@ línea**. Cada una lleva un selector arriba, conmutador de tema y vista móvil r
 | Galería | Qué decide | Estado |
 |---|---|---|
 | [`panel-cliente.html`](./panel-cliente.html) | 6 rediseños de `/settings` | ✅ Elegida la 1 e implementada (2026-09-03) |
-| [`foro-comunidad.html`](./foro-comunidad.html) | 6 formas de foro de comunidad, cada una con su motor de código abierto | ⬜ Sin decidir. Contexto en [`FORO_COMUNIDAD.md`](../FORO_COMUNIDAD.md) |
+| [`foro-comunidad.html`](./foro-comunidad.html) | 6 formas de foro de comunidad, cada una con su motor de código abierto | ✅ Elegida la 6 (foro propio) y **construida** el 2026-09-03. Contexto en [`FORO_COMUNIDAD.md`](../FORO_COMUNIDAD.md) |
+| [`comunidad-layers.html`](./comunidad-layers.html) | 6 **registros visuales** sobre la misma maquetación (cinemático, técnico, lujo, brutalista, calma, producto) | ✅ Elegido el 6, «Producto»: el sistema real sin cambiarlo |
 
 ---
 
@@ -122,3 +123,35 @@ sobre el recorrido (2.398 → 2.441 son 43,00 $, y la entrada cae al 33,3 %).
 Los datos son de ejemplo y así lo dice la propia página. Ninguna cifra sale de una cuenta
 real, y el R medio publicado de la maqueta 4 lleva escrito que **sólo cuenta operaciones
 con stop declarado**: sin stop el R es indefinido, no cero, que es invariante del producto.
+
+---
+
+## Registros visuales de la comunidad
+
+Elegida la forma del foro, quedaba el **tono**. Esta galería explora seis registros
+sobre **exactamente la misma maquetación y el mismo contenido**: lo único que cambia
+son los tokens, la tipografía, la densidad y el peso del filete. Así la comparación
+mide diseño y no maquetación — si cada uno enseñara hilos distintos, se elegiría por
+el contenido.
+
+```
+docs/maquetas/comunidad-layers.html#/lujo
+```
+
+| # | Registro | Qué decisión de `identidad-visual` rompe |
+|---|---|---|
+| 1 | **Cinemático** | El ritmo vertical; la retícula de puntos es decoración pura |
+| 2 | **Técnico** | La monoespaciada como tipografía de TEXTO (está reservada a números) |
+| 3 | **Lujo** | **El verde de marca** —decisión tomada y desplegada— y dos familias más |
+| 4 | **Brutalista** | El filete de 1 px y los dos radios (2/10 px) del sistema |
+| 5 | **Calma** | La separación por filete; y el producto es oscuro por defecto |
+| 6 | **Producto** | Ninguna. Es `frontend/src/index.css` tal cual — y lo implementado |
+
+**Se implementó la 6.** Las otras cinco se conservan porque explican el precio de las
+alternativas: cinco de las seis exigen cambiar el sistema de diseño del producto
+entero, no sólo esta pantalla. Cada ficha lo lleva escrito en la propia página.
+
+> El vocabulario de moods sale de getlayers.ai (dark/light × luxe, technical,
+> brutalist, calm…). **No se ha copiado ninguna plantilla suya**: el dominio está
+> bloqueado por la política de red del sandbox y no se pudo abrir. Se tradujo el
+> lenguaje, no el código.

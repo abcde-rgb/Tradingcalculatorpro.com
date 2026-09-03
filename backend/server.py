@@ -1107,6 +1107,16 @@ class Database:
             # aquí, la primera ceremonia revienta al consultar.
             "passkey_credentials",
             "webauthn_challenges",
+            # Comunidad (forum.py). El shim no autocrea tablas y el test de
+            # `_USER_DATA_COLLECTIONS` exige que todo lo declarado en las rutas
+            # del RGPD esté aquí.
+            "forum_profiles", "forum_threads", "forum_posts",
+            "forum_follows", "forum_reactions", "forum_reports",
+            # Estas dos NO llevan `user_id` a propósito y por eso no están en
+            # ninguna tupla del RGPD: `forum_views` guarda una huella con sal
+            # que caduca cada día (no identifica a nadie) y `forum_translations`
+            # es caché de texto público ya publicado.
+            "forum_views", "forum_translations",
         ]
         for name in known:
             coll = self.__getattr__(name)
@@ -2098,7 +2108,19 @@ _USER_DATA_COLLECTIONS = (
 # Datos del usuario que se exportan y se borran con la cuenta, pero que la purga
 # por impago NO toca: los referidos son contabilidad del programa, no datos de
 # trading, y purgarlos a los 90 días borraría créditos ya ganados.
-_USER_NON_PURGED_COLLECTIONS = ("referrals", "referral_payout_requests")
+#
+# La comunidad va aquí y NO en `_USER_DATA_COLLECTIONS` por la misma razón:
+# purgar los hilos y las respuestas de quien deja de pagar rompería las
+# conversaciones de terceros —una respuesta huérfana de su pregunta no se
+# entiende— y borraría aportaciones que otros miembros marcaron como útiles.
+# Con la cuenta sí se van (art. 17) y se pueden exportar (art. 20), que es lo
+# que el RGPD exige; lo que el RGPD no exige es vaciar el foro a los 90 días
+# de un impago.
+_USER_NON_PURGED_COLLECTIONS = (
+    "referrals", "referral_payout_requests",
+    "forum_profiles", "forum_threads", "forum_posts",
+    "forum_follows", "forum_reactions",
+)
 
 # Facturación: se borra con la cuenta y se exporta (en forma resumida), pero la
 # purga por impago NO la toca — quien deja de pagar conserva su histórico.
@@ -2122,6 +2144,11 @@ _SECURITY_ARTEFACT_COLLECTIONS = (
     "passkey_credentials",
     # Retos WebAuthn en vuelo. Efímeros (5 min) y de un solo uso.
     "webauthn_challenges",
+    # Denuncias del foro. Se borran con la cuenta de quien denunció y **no se
+    # exportan**: el documento identifica el mensaje denunciado de OTRA
+    # persona, así que exportárselo al denunciante le entregaría un registro
+    # de moderación sobre un tercero.
+    "forum_reports",
 )
 
 # Todo lo que desaparece al borrar la cuenta (RGPD art. 17).
@@ -2136,6 +2163,41 @@ _ALL_USER_COLLECTIONS = (
 # encima. Portabilidad es que el usuario se lleve sus datos, no que se los lleve
 # dos veces.
 _INTERNAL_DUPLICATE_COLLECTIONS = ("trades_migration_backup",)
+
+# Cómo se sabe que una fila es de un usuario. Casi siempre es `user_id`, y ése
+# es el valor por defecto; aquí sólo van las excepciones.
+#
+# Existe porque el foro las trajo y el borrado de cuenta las ignoraba en
+# silencio: `forum_threads` guarda a su autor en `author_id` y `forum_follows`
+# tiene DOS referencias (quien sigue y a quién). El bucle de `delete_account`
+# buscaba únicamente `{"user_id": uid}`, así que borrar la cuenta dejaba los
+# hilos y los seguimientos en la base de datos — exactamente el hueco G-15, con
+# otro nombre de campo. Lo cazó `tests/e2e/api/comunidad.py` consultando
+# PostgreSQL después del borrado, no la respuesta 200 del endpoint.
+#
+# Regla: si una colección guarda al usuario bajo otra clave, va AQUÍ y las tres
+# rutas del RGPD la heredan. `test_user_data_collections_unit.py` lo fija.
+_USER_OWNER_FIELDS = {
+    "forum_threads": ("author_id",),
+    "forum_posts": ("author_id",),
+    "forum_follows": ("follower_id", "followee_id"),
+}
+
+_DEFAULT_OWNER_FIELDS = ("user_id",)
+
+
+def owner_fields_for(collection: str) -> tuple:
+    """Los campos por los que se localiza lo que pertenece a un usuario."""
+    return _USER_OWNER_FIELDS.get(collection, _DEFAULT_OWNER_FIELDS)
+
+
+async def purge_user_from(database, collection: str, user_id: str) -> None:
+    """Borra de `collection` todo lo del usuario, mire donde mire su id."""
+    for campo in owner_fields_for(collection):
+        try:
+            await database[collection].delete_many({campo: user_id})
+        except Exception:
+            pass
 
 # Lo que el usuario se puede LLEVAR (RGPD art. 20). Regla que fija el test:
 # todo lo que se borra debe poder exportarse, **menos** los artefactos de
@@ -2191,10 +2253,7 @@ async def purge_lapsed_user_data(database, now: Optional[datetime] = None) -> in
         if check_premium(u):
             continue  # volvió a pagar / sigue vigente
         for coll in _USER_DATA_COLLECTIONS:
-            try:
-                await database[coll].delete_many({"user_id": u["id"]})
-            except Exception:
-                pass
+            await purge_user_from(database, coll, u["id"])
         await database.users.update_one(
             {"id": u["id"]},
             {"$set": {"data_purged_at": now.isoformat()}},
@@ -3378,11 +3437,10 @@ async def delete_account(request: Request, user: dict = Depends(require_user)):
     #    Deriva de la tupla única: esta lista escrita a mano se había quedado sin
     #    `trading_plans` ni `journal_entries` (G-15), así que borrar la cuenta
     #    dejaba atrás datos personales que el RGPD obliga a eliminar.
+    #    Y no siempre bajo `user_id`: `purge_user_from` consulta los campos que
+    #    declare `_USER_OWNER_FIELDS` (el foro guarda a su autor en `author_id`).
     for collection in _ALL_USER_COLLECTIONS:
-        try:
-            await getattr(db, collection).delete_many({"user_id": user_id})
-        except Exception:
-            pass
+        await purge_user_from(db, collection, user_id)
     await db.users.delete_one({"id": user_id})
     logging.info(f"[RGPD] Account deleted: {log_safe(user_id)}")
     return {"ok": True, "message": "Cuenta eliminada permanentemente"}
@@ -3419,8 +3477,18 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     # data, and shipping them out would be a security regression).
     # Recorre la tupla en vez de enumerar a mano: así una colección nueva entra
     # en el export por el hecho de estar declarada, y no por acordarse aquí.
+    # `$or` sobre los campos de propiedad y no `{"user_id": …}` a secas: el foro
+    # guarda a su autor en `author_id`, así que la consulta fija dejaba sus hilos
+    # fuera del export mientras el borrado sí se los llevaba. Exportar menos de
+    # lo que se borra es justo el hueco que este export existe para cerrar.
+    def _consulta_propiedad(collection: str) -> dict:
+        campos = owner_fields_for(collection)
+        if len(campos) == 1:
+            return {campos[0]: user_id}
+        return {"$or": [{c: user_id} for c in campos]}
+
     exported: Dict[str, Any] = {
-        name: await collect(name, {"user_id": user_id})
+        name: await collect(name, _consulta_propiedad(name))
         for name in _EXPORTABLE_COLLECTIONS
     }
     # El payload extiende `**exported` junto a claves fijas (profile, payments,
@@ -8571,6 +8639,58 @@ try:
     logging.info("✅ admin_routes registered (campaigns, i18n, connectors, maintenance, cohorts, referrals-leaderboard, gdpr)")
 except Exception as _e:
     logging.error(f"admin_routes early registration error: {log_safe(_e)}", exc_info=True)
+
+
+# ── forum.py — la comunidad. Mismo patrón: el módulo no importa `server.py`
+# (sería un ciclo), así que recibe `db`, las dependencias de autenticación y el
+# limitador desde aquí. `view_salt` sale de `JWT_SECRET` para que la huella de
+# «ya vi este hilo hoy» no se pueda reconstruir desde fuera.
+try:
+    from forum import build_forum_router as _build_forum_router
+
+    def _forum_rate_key(request: Request) -> str:
+        """El cubo del foro es POR USUARIO, no por IP.
+
+        `_rate_limit_key` usa la IP, y para escribir en un foro eso es el cubo
+        equivocado: detrás de un NAT compartido —una oficina, el CGNAT de un
+        operador móvil— diez personas se comen la cuota unas a otras y la
+        undécima recibe un 429 sin haber hecho nada. Es exactamente lo que
+        obligó a quitar el límite de `/auth/register` (ver rules/backend.md), y
+        aquí no hace falta quitarlo: con el token delante se puede contar por
+        cuenta, que es a quien se quiere limitar.
+
+        Sin sesión válida se cae a la IP, que es lo correcto para lo que se
+        puede llamar sin identificarse.
+        """
+        try:
+            token = request.cookies.get("access_token")
+            if not token:
+                cabecera = request.headers.get("authorization") or ""
+                if cabecera.lower().startswith("bearer "):
+                    token = cabecera[7:].strip()
+            if token:
+                payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                if payload.get("type") == "access" and payload.get("user_id"):
+                    return "forum-user:" + str(payload["user_id"])
+        except Exception:
+            pass  # token ausente, caducado o ilegible → se limita por IP
+        return _rate_limit_key(request)
+
+    api_router.include_router(
+        _build_forum_router(
+            db=db,
+            require_user_dep=require_user,
+            optional_user_dep=get_current_user,
+            require_admin_dep=require_admin,
+            limiter=limiter,
+            rate_key_fn=_forum_rate_key,
+            view_salt=hashlib.sha256(("forum-views|" + JWT_SECRET).encode()).hexdigest(),
+        ),
+        prefix="/forum",
+    )
+    logging.info("✅ forum registered (hilos, respuestas, seudónimos, seguimiento, traducción, moderación)")
+except Exception as _e:
+    logging.error(f"forum registration error: {log_safe(_e)}", exc_info=True)
 
 
 @api_router.get("/admin/users")

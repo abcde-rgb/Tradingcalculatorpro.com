@@ -75,8 +75,16 @@ def modulos_backend() -> list[dict]:
 
 
 # `include_router(..., prefix="/x")` mueve TODAS las rutas de un módulo.
-_MONTAJE = re.compile(
-    r"from\s+(\w+)\s+import\s+build_\w+_router[\s\S]{0,400}?prefix\s*=\s*[\"\']([^\"\']+)[\"\']"
+#
+# Se resuelve en DOS pasos y no con una sola expresión, porque la de un solo
+# paso medía la DISTANCIA entre el `import` y el `prefix=` (400 caracteres) y
+# eso es una suposición sobre cómo está escrito el fichero, no sobre lo que
+# hace. Al registrar `forum.py` apareció una función de treinta líneas entre
+# ambos y el prefijo dejó de detectarse: el mapa publicó `/api/threads` en vez
+# de `/api/forum/threads` y `check-rutas-muertas.py` dio por muertas seis rutas
+# que la comunidad usa. Ahora se ancla en la LLAMADA que monta el router.
+_IMPORTA_BUILDER = re.compile(
+    r"from\s+(\w+)\s+import\s+(build_\w+_router)(?:\s+as\s+(\w+))?"
 )
 
 
@@ -90,7 +98,21 @@ def prefijos_de_router() -> dict[str, str]:
     panel de administración que `AdminPage` usa a diario.
     """
     fuente = (BACKEND / "server.py").read_text(errors="ignore")
-    return {f"{mod}.py": pref for mod, pref in _MONTAJE.findall(fuente)}
+    salida: dict[str, str] = {}
+    for modulo, builder, alias in _IMPORTA_BUILDER.findall(fuente):
+        nombre = alias or builder
+        # El prefijo se busca DENTRO de la llamada `include_router(...)` que usa
+        # este constructor, recortando en el siguiente `include_router(` para no
+        # robarle el prefijo al módulo de al lado.
+        for m in re.finditer(re.escape(nombre) + r"\s*\(", fuente):
+            resto = fuente[m.end():]
+            corte = resto.find("include_router(")
+            ventana = resto[:corte] if corte != -1 else resto[:4000]
+            pref = re.search(r"prefix\s*=\s*[\"\']([^\"\']+)[\"\']", ventana)
+            if pref:
+                salida[f"{modulo}.py"] = pref.group(1)
+                break
+    return salida
 
 
 # Las claves de orden llevan nombre propio para que `comprobar_determinismo`
