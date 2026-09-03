@@ -6367,3 +6367,62 @@ Tres cosas que se anotaron por el camino:
 
 La vista móvil del previsualizador usa **container queries**, no media queries: al
 estrechar el escenario a 390 px la maqueta reflow-ea de verdad en vez de encogerse.
+
+
+## 2026-09-03 (2) — El panel de ajustes pasa a ser una consola
+
+Elegida la maqueta 1 de las seis e implementada en `SettingsPage.jsx`. De ocho
+tarjetas apiladas en una columna de 672 px a **rail de seis secciones + panel**.
+
+**Lo que cambia para quien usa la web**
+
+- El rail dice el estado sin entrar: punto ámbar en Seguridad si falta el 2FA, el
+  plan en Suscripción, el capital en Mesa y riesgo.
+- **Cada sección tiene URL** (`/settings?s=seguridad`). `AdminPage` ya manda ahí al
+  administrador sin 2FA, en vez de a la página entera para que la busque.
+- **Tema e idioma** entran en Ajustes. Viajaban con la cuenta desde agosto pero sólo
+  se podían cambiar desde el menú de la cabecera, que es donde nadie los busca.
+- **Mesa y riesgo** entra en Ajustes: capital, riesgo por operación (% o dinero) y
+  vista de inicio.
+
+**Lo que NO se ha duplicado, y es lo que importa**
+
+- La sección de riesgo escribe en `deskAccount` —la MISMA preferencia de la mesa— y
+  calcula con `riskBudget()` de `deskMath.js` —la MISMA función—. El tope duro del
+  10 % no se reimplementa: si algún día cambia, cambia en un sitio.
+- `PREMIUM_THEMES` sube de `Header.jsx` a `lib/theme.js`. Ya son tres los que la
+  consumen (menú de escritorio, de móvil y Ajustes) y la tercera copia no llegó a
+  existir.
+
+**Una trampa que el rediseño podía haber colado.** La prueba
+`tests/e2e/navegador/admin-2fa.js` busca el botón «Activar 2FA» nada más abrir
+`/settings`, y con secciones eso deja de ser cierto: la tarjeta vive en Seguridad.
+Al administrador de Google le habría vuelto a pasar lo de BUG-076 —se le exige el
+2FA y no se le enseña dónde activarlo—, esta vez por la puerta del rediseño. Se
+arregla en los dos lados: `need2fa` abre Seguridad, y la prueba ahora **pulsa en el
+rail** en vez de ir por `?s=`, porque lo que hay que probar es que se puede
+ENCONTRAR, no que la URL existe.
+
+**Verificado**: `py_compile` de todo el backend, ESLint **0 errores** (y 0 avisos en
+los ficheros tocados), `i18n-check` 0 huecos en los 10 idiomas con las 24 claves
+nuevas, `engine-check` 535/535, catálogo en paridad, `gen-mapa --check`,
+`check-rutas-muertas`, `check-doc-links`, y `npm run build` en verde. Además la
+pantalla se ha **renderizado de verdad** desde el build compilado con la sesión
+sembrada y la API simulada: perfil, seguridad, mesa, preferencias y datos, en
+oscuro y claro, escritorio y 390 px, sin desbordamiento horizontal y sin errores de
+consola de la aplicación.
+
+La suite de backend: **1220 passed, 114 skipped, 1 failed**. El fallo es
+`test_shim_collection_unit.py::test_verify_full_rechaza_un_nombre_que_no_casa`, y
+**no es de este cambio** —el diff no toca un solo fichero de `backend/`—: pide un
+PostgreSQL en `127.0.0.1:5432` y aquí no lo hay, así que devuelve
+`ConnectionRefusedError`. Su guarda de *skip* sólo contempla
+`InvalidPasswordError`/`InvalidAuthorizationSpecificationError`, no «conexión
+rechazada», de modo que en un entorno sin Postgres **falla en vez de saltarse**. Es
+un hueco de la prueba, no del código; queda anotado sin tocarlo, porque arreglar
+una guarda de test dentro de un rediseño de interfaz es justo cómo se cuelan los
+cambios que nadie revisa.
+
+**Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
+PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
+ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.

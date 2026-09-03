@@ -1,7 +1,10 @@
 # Maquetas — panel de configuración del cliente
 
 Seis propuestas de rediseño de `/settings` para **elegir una antes de tocar código**.
-Nada de esto está implementado: son maquetas estáticas.
+
+> ✅ **Elegida y ya implementada: la 1, «Consola»** (2026-09-03). Vive en
+> `frontend/src/pages/SettingsPage.jsx`. Las otras cinco se conservan porque
+> explican qué se descartó y por qué — ver [`DECISIONES.md`](../DECISIONES.md).
 
 ```
 docs/maquetas/panel-cliente.html     ← ábrelo en el navegador
@@ -58,10 +61,18 @@ operación, vista de inicio) dentro del dashboard. En las maquetas van marcados
 
 Cada una lleva escrito en la propia página lo que gana, lo que pierde y lo que cuesta.
 
-## Cuando haya una elegida
+## Qué se implementó de la elegida
 
-1. Se implementa sobre `frontend/src/pages/SettingsPage.jsx` y
-   `frontend/src/components/settings/`, reutilizando `TwoFactorCard` y `PasskeysCard`.
-2. Los textos nuevos van a los **10 idiomas** (`node scripts/i18n-check.js` no admite
-   huecos).
-3. Puerta: `/verify` y `node scripts/capturas.js`.
+Todo lo que la maqueta 1 enseñaba, más las tres secciones que iban marcadas
+`propuesta`:
+
+- **Rail de seis secciones** con estado: punto ámbar en Seguridad si falta el 2FA,
+  el plan en Suscripción y el capital en Mesa y riesgo, sin entrar en ninguna.
+- **Enlace por sección**: `/settings?s=seguridad`. Es lo que el cajón (maqueta 5)
+  no podía dar, y lo que usa el panel de administración al exigir el 2FA.
+- **Mesa y riesgo**: capital, riesgo por operación en % o en dinero, y vista de
+  inicio. Escribe en `deskAccount`, la MISMA preferencia que usa la mesa, y calcula
+  con `riskBudget()`, la MISMA función: el tope duro del 10 % no se reimplementa.
+- **Tema e idioma** dentro de Preferencias, sobre los mismos almacenes que el menú
+  de la cabecera. `PREMIUM_THEMES` se subió a `lib/theme.js` para no tener una
+  tercera copia de la lista.

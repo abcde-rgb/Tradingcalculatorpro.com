@@ -31,6 +31,23 @@ export const useThemeStore = create(
 // Premium named themes — all dark-based (apply .dark + .theme-<name>).
 export const NAMED_THEMES = ['gold', 'crypto', 'forex', 'nasdaq'];
 export const ALL_THEMES = ['light', 'dark', 'system', ...NAMED_THEMES];
+/**
+ * Los temas premium, en un solo sitio.
+ *
+ * Estaban escritos dentro del menú de escritorio, así que el menú móvil no los
+ * tenía: no era una decisión, era una copia que faltaba.
+ *
+ * Vive aquí, con el resto del sistema de temas, porque ya son TRES los que la
+ * consumen: el menú de escritorio, el de móvil y la pantalla de Ajustes. Con
+ * la lista en un solo sitio, añadir un tema lo añade en los tres.
+ */
+export const PREMIUM_THEMES = [
+  { id: 'gold',   labelKey: 'goldMode',   sw: 'linear-gradient(135deg,#181614,#c9a24a 70%,#e8c46a)' },
+  { id: 'crypto', labelKey: 'cryptoMode', sw: 'linear-gradient(135deg,#0a0912,#f7931a 55%,#8b5cf6)' },
+  { id: 'forex',  labelKey: 'forexMode',  sw: 'linear-gradient(135deg,#060b16,#1e8f5a 60%,#3b82f6)' },
+  { id: 'nasdaq', labelKey: 'nasdaqMode', sw: 'linear-gradient(135deg,#05070a,#00c2ff)' },
+];
+
 const THEME_CLASSES = ['light', 'dark', 'theme-gold', 'theme-crypto', 'theme-forex', 'theme-nasdaq'];
 
 // Resolve any theme to the effective light/dark mode. Named themes are dark.
