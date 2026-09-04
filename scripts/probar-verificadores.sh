@@ -898,36 +898,72 @@ p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
   cp frontend/build/index.html "$CSP_COPIA"
 
   titulo "Content-Security-Policy (csp.js)"
-  probar "una directiva de menos bloquea un script que la web necesita" \
-    "node tests/e2e/navegador/csp.js" \
-    "sed -i 's|https://www.googletagmanager.com|https://zz-sabotaje.invalid|' frontend/build/index.html" \
-    "cp '$CSP_COPIA' frontend/build/index.html"
 
-  # El WebSocket va aparte porque su fallo tiene otra forma: no es un origen
-  # de menos, es un ESQUEMA de menos. En CSP3 una fuente `https://host` no
-  # autoriza `wss://host` —la relajación va de `ws` a `http`/`https`, nunca al
-  # revés—, así que la política podía listar el backend entero y aun así dejar
-  # las alertas mudas. La primera versión de esta sonda lo pasó por alto un mes
-  # entero: recorría `/dashboard` sin sesión, y sin token el hook no abre nada.
-  probar "el esquema wss:// de menos deja el WebSocket de alertas bloqueado" \
-    "node tests/e2e/navegador/csp.js" \
-    "sed -i 's| ws://127.0.0.1:8080||' frontend/build/index.html" \
-    "cp '$CSP_COPIA' frontend/build/index.html"
+  # `csp.js` a secas ENTRA en la aplicación: el bloque del WebSocket sólo prueba
+  # algo con sesión iniciada, y la sesión necesita backend. Sin él, `entra()`
+  # falla y `probar()` acusaba a la sonda de estar rota —«no pasa ni ANTES de
+  # sabotear»— tres veces seguidas, quince minutos de reloj, sobre una sonda que
+  # está perfecta. Es la misma familia de fallo que este script existe para
+  # cazar, sólo que aquí el que mentía era el informe.
+  #
+  # Con backend se prueba todo. Sin backend se prueba lo que SÍ se puede —una
+  # directiva de menos se ve en las pantallas públicas, sin entrar— y se dice
+  # en voz alta lo que queda fuera.
+  if curl -sf -o /dev/null --max-time 3 \
+       "http://127.0.0.1:${QA_PUERTO_API:-8080}/api/performance/instruments"; then
+    probar "una directiva de menos bloquea un script que la web necesita" \
+      "node tests/e2e/navegador/csp.js" \
+      "sed -i 's|https://www.googletagmanager.com|https://zz-sabotaje.invalid|' frontend/build/index.html" \
+      "cp '$CSP_COPIA' frontend/build/index.html"
+    CSP_CON_SESION=1
+  else
+    probar "una directiva de menos bloquea un script que la web necesita (sin sesión)" \
+      "node tests/e2e/navegador/csp.js --sin-sesion" \
+      "sed -i 's|https://www.googletagmanager.com|https://zz-sabotaje.invalid|' frontend/build/index.html" \
+      "cp '$CSP_COPIA' frontend/build/index.html"
+    CSP_CON_SESION=0
+    echo "  ⏭️  el bloque del WebSocket necesita sesión, y la sesión backend:"
+    echo "      levanta el stack (tests/e2e/stack/arriba.sh) para probar los otros dos casos."
+    echo "      Offline queda cubierto a medias por check-csp-origenes.js, arriba."
+  fi
 
-  # Y la guarda contra el verde vacío: sin sesión no hay WebSocket que bloquear,
-  # así que «ninguna violación» no significaría nada. La sonda tiene que
-  # distinguir «autorizado» de «nunca se intentó».
-  probar "una sesión rota NO puede pasar por «no hubo violaciones»" \
-    "node tests/e2e/navegador/csp.js" \
-    "true" \
-    "true" \
-    "QA_PASSWORD=contrasena-que-no-es"
+  if [ "$CSP_CON_SESION" = "1" ]; then
+    # El WebSocket va aparte porque su fallo tiene otra forma: no es un origen
+    # de menos, es un ESQUEMA de menos. En CSP3 una fuente `https://host` no
+    # autoriza `wss://host` —la relajación va de `ws` a `http`/`https`, nunca al
+    # revés—, así que la política podía listar el backend entero y aun así dejar
+    # las alertas mudas. La primera versión de esta sonda lo pasó por alto un mes
+    # entero: recorría `/dashboard` sin sesión, y sin token el hook no abre nada.
+    probar "el esquema wss:// de menos deja el WebSocket de alertas bloqueado" \
+      "node tests/e2e/navegador/csp.js" \
+      "sed -i 's| ws://127.0.0.1:8080||' frontend/build/index.html" \
+      "cp '$CSP_COPIA' frontend/build/index.html"
 
-  # Y la otra mitad: que NO grite con la política correcta. Sin esto, una sonda
-  # que diera error siempre pasaría igual el sabotaje de arriba.
-  probar_inverso "la política real no produce ninguna violación" \
-    "node tests/e2e/navegador/csp.js" \
-    "true"
+    # Y la guarda contra el verde vacío: sin sesión no hay WebSocket que
+    # bloquear, así que «ninguna violación» no significaría nada. La sonda tiene
+    # que distinguir «autorizado» de «nunca se intentó».
+    probar "una sesión rota NO puede pasar por «no hubo violaciones»" \
+      "node tests/e2e/navegador/csp.js" \
+      "true" \
+      "true" \
+      "QA_PASSWORD=contrasena-que-no-es"
+
+    # Y la bandera no puede ser la salida barata: con el stack en pie, pedir
+    # `--sin-sesion` tiene que FALLAR. Sin esto, cualquiera la copiaría al banco
+    # completo y perdería el bloque del WebSocket sin enterarse.
+    probar "--sin-sesion NO vale cuando el backend está en pie" \
+      "node tests/e2e/navegador/csp.js" \
+      "true" \
+      "true" \
+      "CSP_SIN_SESION=1"
+
+    # Y la otra mitad: que NO grite con la política correcta. Sin esto, una sonda
+    # que diera error siempre pasaría igual el sabotaje de arriba.
+    probar_inverso "la política real no produce ninguna violación" \
+      "node tests/e2e/navegador/csp.js" \
+      "true" \
+      "true"
+  fi
 
   # ── Lo indefinido se pinta como raya ──────────────────────────────────────
   # La primera regla de honestidad del proyecto convirtió varias métricas de `0`

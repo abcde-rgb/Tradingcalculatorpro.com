@@ -55,7 +55,11 @@
 const { chromium } = require('../lib/playwright-core');
 const { rutaChromium, BASE, API, entra, descartaCookies } = require('../entorno');
 
-const SIN_SESION = process.argv.includes('--sin-sesion');
+// También por entorno: `probar()` de `probar-verificadores.sh` sabotea
+// anteponiendo variables a la MISMA orden, así que sin esto no habría forma de
+// comprobar que la bandera se rechaza con el backend en pie.
+const SIN_SESION = process.argv.includes('--sin-sesion')
+  || process.env.CSP_SIN_SESION === '1';
 
 // La SPA: las públicas más una privada, que redirige al muro pero carga el
 // mismo bundle y las mismas integraciones.
