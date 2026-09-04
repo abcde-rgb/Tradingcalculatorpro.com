@@ -1719,6 +1719,22 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   # 404. `/pricing`, `/about`, `/contact` y `/legal` llevaban así desde siempre,
   # anunciadas en el sitemap. Borrar el fichero reproduce exactamente ese
   # estado.
+  # Una ruta con `noindex` en su componente, metida en RUTAS_SPA. Pasó: entraron
+  # `/brokers` y `/backtesting`, que declaran `noindex: true` con el motivo
+  # escrito al lado, y quedó una contradicción de tres bandas —el sitemap
+  # pidiendo que se indexaran, el HTML estático diciendo `index, follow` y
+  # `useSEO` poniendo `noindex` al montar React—. Lo comprueba el propio
+  # generador leyendo App.js, así que se sabotea ahí.
+  probar "una ruta con noindex metida en RUTAS_SPA" \
+    "(cd frontend && node scripts/gen-seo-pages.js >/dev/null)" \
+    "python3 -c \"
+import io
+p='frontend/scripts/gen-seo-pages.js'; s=io.open(p,encoding='utf8').read()
+a='  // ⚠️ \\\`/brokers\\\` y \\\`/backtesting\\\` NO están aquí'
+assert a in s, 'ancla de RUTAS_SPA no encontrada'
+io.open(p,'w',encoding='utf8').write(s.replace(a, \"  { ruta: 'brokers', prio: '0.6', t: {es:'x',en:'x'}, d: {es:'x',en:'x'} },\\n\" + a, 1))\"" \
+    "git checkout -- frontend/scripts/gen-seo-pages.js; $SEO_REST; $SEO_REGEN"
+
   probar "una ruta pública del SPA sin fichero propio (vuelve a ser un 404)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "rm -rf frontend/build/pricing" \

@@ -1368,13 +1368,39 @@ const RUTAS_SPA = [
   { ruta: 'legal',       prio: '0.4',  t: { es:'Aviso legal, privacidad y cookies', en:'Legal, privacy and cookies' },
     d: { es:'Condiciones de uso, política de privacidad y cookies. Contenido informativo: no es asesoramiento financiero.',
          en:'Terms of use, privacy policy and cookies. Informational content: not financial advice.' } },
-  { ruta: 'brokers',     prio: '0.6',  t: { es:'Brokers: regulación y comisiones', en:'Brokers: regulation and fees' },
-    d: { es:'Cómo se comprueba que un bróker está regulado, qué cobra de verdad y qué señales avisan de una estafa.',
-         en:'How to check a broker is regulated, what it really charges, and the signals that flag a scam.' } },
-  { ruta: 'backtesting', prio: '0.6',  t: { es:'Backtesting de estrategias', en:'Strategy backtesting' },
-    d: { es:'Prueba una estrategia contra el histórico antes de arriesgar dinero: expectativa, drawdown y rachas medidas, no opinadas.',
-         en:'Test a strategy against history before risking money: expectancy, drawdown and streaks measured, not guessed.' } },
+  // ⚠️ `/brokers` y `/backtesting` NO están aquí, y no es un olvido. Sus
+  // componentes declaran `noindex: true` con el motivo escrito al lado —una
+  // lista de afiliados vacía, y una página cuyo contenido principal es de otro
+  // dominio: contenido delgado que «indexarlo sólo resta»—. Estuvieron en esta
+  // lista y era una contradicción de tres bandas: el sitemap pidiendo que se
+  // indexaran, el HTML estático diciendo `index, follow`, y `useSEO` poniendo
+  // `noindex` en cuanto React montaba. La guarda de abajo impide repetirlo.
 ];
+
+// Ninguna ruta de aquí puede llevar `noindex` en su componente.
+//
+// Se comprueba leyendo `App.js` para saber qué componente sirve cada ruta y
+// mirando su fichero, en vez de mantener una segunda lista a mano: una lista
+// paralela se desincroniza en la primera revisión, y este verificador dejaría
+// de decir la verdad justo cuando más falta hace.
+(() => {
+  const APP = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.js'), 'utf8');
+  const malas = [];
+  for (const r of RUTAS_SPA) {
+    const m = APP.match(new RegExp(`path="/${r.ruta}"\\s+element=\\{<(?:ProtectedRoute[^>]*>)?\\s*<?(\\w+)`));
+    if (!m) { malas.push(`${r.ruta}: no encuentro su <Route> en App.js`); continue; }
+    const fichero = path.join(__dirname, '..', 'src', 'pages', `${m[1]}.jsx`);
+    if (!fs.existsSync(fichero)) { malas.push(`${r.ruta}: no encuentro ${m[1]}.jsx`); continue; }
+    if (/noindex:\s*true/.test(fs.readFileSync(fichero, 'utf8')))
+      malas.push(`${r.ruta}: ${m[1]}.jsx declara noindex: true`);
+  }
+  if (malas.length) {
+    console.error('\n✗ RUTAS_SPA contiene rutas que no deben indexarse:');
+    for (const x of malas) console.error(`    · ${x}`);
+    console.error('  Anunciarlas en el sitemap contradice al propio componente.');
+    process.exitCode = 1;
+  }
+})();
 
 let shellCount = 0;
 const SHELL = path.join(BUILD, 'index.html');
