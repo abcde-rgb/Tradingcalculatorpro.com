@@ -8,6 +8,7 @@ línea**. Cada una lleva un selector arriba, conmutador de tema y vista móvil r
 |---|---|---|
 | [`panel-cliente.html`](./panel-cliente.html) | 6 rediseños de `/settings` | ✅ Elegida la 1 e implementada (2026-09-03) |
 | [`foro-comunidad.html`](./foro-comunidad.html) | 6 formas de foro de comunidad, cada una con su motor de código abierto | ✅ Elegida la 6 (foro propio) y **construida** el 2026-09-03. Contexto en [`FORO_COMUNIDAD.md`](../FORO_COMUNIDAD.md) |
+| [`main-glassmorfismo.html`](./main-glassmorfismo.html) | 6 grados de **glassmorfismo** sobre la portada real, con el contraste **medido** de cada uno | ⬜ Sin decidir. Recomendado el 6, «Sólo lo que flota» |
 | [`comunidad-layers.html`](./comunidad-layers.html) | 6 **registros visuales** sobre la misma maquetación (cinemático, técnico, lujo, brutalista, calma, producto) | ✅ Elegido el 6, «Producto»: el sistema real sin cambiarlo |
 
 ---
@@ -155,3 +156,53 @@ entero, no sólo esta pantalla. Cada ficha lo lleva escrito en la propia página
 > brutalist, calm…). **No se ha copiado ninguna plantilla suya**: el dominio está
 > bloqueado por la política de red del sandbox y no se pudo abrir. Se tradujo el
 > lenguaje, no el código.
+
+---
+
+## Glassmorfismo sobre la portada
+
+Seis grados de vidrio sobre **la portada real** —la barra, el hero con la calculadora,
+la tira de cuatro cifras, los mercados y los planes— con el contenido y las cifras
+verdaderas del sitio (17 calculadoras · 186 activos · 66 estrategias · 10 idiomas).
+Lo único que cambia entre los seis es el tratamiento del vidrio.
+
+```
+docs/maquetas/main-glassmorfismo.html#/claro
+```
+
+| # | Grado | Peor contraste medido | Veredicto |
+|---|---|---|---|
+| 1 | **Mínimo** — vidrio sólo en la barra | 5,76:1 · 6/6 | Desplegable hoy, casi no se nota |
+| 2 | **Malla** — el de manual, todo en vidrio | 5,16:1 · 6/6 | Espectacular; el fondo bajo el texto varía por azar |
+| 3 | **Ahumado** — vidrio oscuro y denso | **5,99:1 · 6/6** | El mejor contraste de los seis |
+| 4 | **Borde de luz** — canto claro y especular | 4,99:1 · 6/6 | El más creíble como material; el menor margen de los oscuros |
+| 5 | **Claro** — el mismo vidrio sobre papel | **4,23:1 · 5/6** ❌ | **El único que suspende** |
+| 6 | **Sólo lo que flota** — regla en vez de estilo | 6,09:1 · 6/6 | **El recomendado** |
+
+### Los contrastes están MEDIDOS, no estimados
+
+```bash
+node scripts/medir-vidrio.js          # tabla por variante
+node scripts/medir-vidrio.js --json   # para consumir desde otro script
+```
+
+Con un `backdrop-filter` de por medio **el color declarado del panel no es el que se
+ve**: `rgba(255,255,255,.05)` sobre una malla verde compone un gris verdoso distinto
+en cada punto de la pantalla. El script no calcula desde el CSS —eso sería
+inventarlo—: **apaga el texto** (`color:transparent`), fotografía su caja exacta,
+decodifica el PNG con `zlib` sin dependencias y promedia el fondo real que queda
+debajo de esas letras.
+
+> La primera versión muestreaba «al lado» del texto y recogía píxeles de glifo: daba
+> 3,8:1 en el párrafo del hero donde de verdad hay 6,2:1. Un medidor que mide mal es
+> peor que no medir, porque su número se cita. Está anotado en la cabecera del script.
+
+**Es un informe, no una puerta** — como `auditar.py` o `capturas.js`. No corre en CI.
+
+### Lo que dice la medición, y no lo que se suponía
+
+La intuición era que el vidrio arruinaría el contraste de las cifras. **En oscuro no
+lo hace**: los cinco grados oscuros pasan los seis puntos medidos. El que suspende es
+**el tema claro**, y por la razón que este proyecto ya pagó una vez (los 77
+incumplimientos de `/performance`): un panel blanco translúcido sube la luminosidad
+del fondo justo debajo de un texto que ya era oscuro sobre claro.

@@ -1,0 +1,606 @@
+<title>Seis Grados de Vidrio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   Glassmorfismo sobre la PORTADA REAL de TradingCalculator.Pro
+   ───────────────────────────────────────────────────────────────────
+   Los seis pintan exactamente el mismo main —la barra, el hero con la
+   calculadora, la tira de cuatro cifras, los mercados y los planes— con
+   el contenido y las cifras reales del sitio (17 calculadoras, 186
+   activos, 66 estrategias, 10 idiomas). Lo único que cambia es el
+   tratamiento del vidrio, para que la comparación mida eso y no otra
+   cosa.
+
+   Los contrastes que aparecen en cada ficha están MEDIDOS sobre el
+   píxel compuesto, no estimados: `scripts/medir-vidrio.js` fotografía
+   cada variante, decodifica el PNG y muestrea el color real que queda
+   detrás de cada texto — que es lo único que vale cuando hay un
+   `backdrop-filter` de por medio, porque el color declarado del panel
+   no es el que se ve.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* Tokens REALES del producto (frontend/src/index.css) */
+  --paper:#101319; --surface:#171B22; --raise:#1D222B; --rule:#262C36;
+  --ink:#E7E2D6; --muted:#949AA3; --faint:#6E747E;
+  --accent:#17CF63; --accent-ink:#08110B;
+  --long:#22C55E; --short:#F26969; --info:#7FB0FB; --warn:#F59E0B;
+  --r-sharp:2px; --r-soft:10px;
+  --display:'Archivo',system-ui,sans-serif;
+  --texto:'Inter Tight',Inter,-apple-system,'Segoe UI',sans-serif;
+  --datos:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  /* Los cuatro mandos del vidrio. Cada variante los reescribe. */
+  --v-fondo:var(--surface);
+  --v-desenfoque:0px;
+  --v-borde:var(--rule);
+  --v-borde-luz:transparent;
+  --v-sombra:none;
+  --v-radio:var(--r-soft);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--texto);font-size:15px;line-height:1.5;margin:0}
+h1,h2,h3,h4,p,ul,ol,dl,dd,figure{margin:0}
+button,input,select{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.mono{font-family:var(--datos);font-variant-numeric:tabular-nums}
+
+/* ── Cromo del previsualizador (no forma parte de ninguna propuesta) ── */
+.chrome{position:sticky;top:0;z-index:90;background:#171B22;color:#E7E2D6;border-bottom:1px solid #262C36;padding:10px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-family:'Inter Tight',sans-serif}
+.chrome .marca{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;white-space:nowrap}
+.chrome .marca span{color:#949AA3;font-weight:500}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.tabs button{background:none;border:1px solid transparent;border-radius:2px;padding:5px 10px;font-size:12.5px;font-weight:500;color:#949AA3;cursor:pointer;display:flex;align-items:center;gap:6px}
+.tabs button:hover{color:#E7E2D6;border-color:#262C36}
+.tabs button[aria-selected="true"]{color:#E7E2D6;border-color:#262C36;background:#1D222B}
+.tabs button b{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:#17CF63}
+.util{display:flex;gap:4px}
+.util button{background:#101319;border:1px solid #262C36;border-radius:2px;padding:5px 9px;font-size:12px;color:#949AA3;cursor:pointer}
+.util button:hover{color:#E7E2D6}
+.util button[aria-pressed="true"]{color:#17CF63;border-color:#17CF63}
+
+.brief{padding:14px 16px 16px;border-bottom:1px solid #262C36;background:#101319;color:#E7E2D6;font-family:'Inter Tight',sans-serif;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 32px;align-items:start}
+.brief h2{font-family:'Archivo',sans-serif;font-size:16px;letter-spacing:-.02em}
+.brief h2 em{font-style:normal;color:#6E747E;font-family:'IBM Plex Mono',monospace;font-size:12px;margin-right:8px}
+.brief p{color:#949AA3;font-size:13.5px;max-width:62ch}
+.brief ul{padding:0;list-style:none;display:grid;gap:5px;font-size:12.5px}
+.brief li{display:grid;grid-template-columns:96px 1fr;gap:10px;color:#949AA3}
+.brief li b{font-weight:600;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#6E747E;padding-top:1px}
+.brief li.si b{color:#22C55E} .brief li.no b{color:#F26969}
+.brief li.mide b{color:#7FB0FB} .brief li.mide span{color:#E7E2D6;font-family:'IBM Plex Mono',monospace;font-size:12px}
+.brief li.coste b{color:#F59E0B}
+@media (max-width:860px){.brief{grid-template-columns:1fr}}
+.nota{font-size:11px;color:#6E747E;text-align:center;padding:10px 16px 0;background:#101319;font-family:'Inter Tight',sans-serif}
+
+.escenario{padding:22px 16px 60px;background:#101319}
+.stage{
+  container-type:inline-size; container-name:main;
+  border:1px solid #262C36; border-radius:12px; overflow:clip;
+  margin:0 auto; max-width:1280px; transition:max-width .2s ease;
+  position:relative; background:var(--paper); color:var(--ink);
+}
+.stage.movil{max-width:390px}
+
+/* ══════════════════════════════════════════════════════════════════
+   EL FONDO. Lo que hay DEBAJO del vidrio decide si el vidrio se ve.
+   ══════════════════════════════════════════════════════════════════ */
+.suelo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.suelo .malla{position:absolute;inset:-20%;opacity:0;transition:opacity .2s}
+.suelo .rejilla{
+  position:absolute;inset:0;opacity:0;
+  background-image:
+    repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px 72px),
+    repeating-linear-gradient(to bottom,var(--rule) 0 1px,transparent 1px 72px);
+  -webkit-mask-image:linear-gradient(to bottom,#000,transparent 60%);
+  mask-image:linear-gradient(to bottom,#000,transparent 60%);
+}
+.lienzo{position:relative;z-index:1}
+
+/* ══════════════════════════════════════════════════════════════════
+   LA PORTADA. Idéntica en las seis; sólo cambian los tokens.
+   ══════════════════════════════════════════════════════════════════ */
+.vidrio{
+  background:var(--v-fondo);
+  -webkit-backdrop-filter:blur(var(--v-desenfoque)) saturate(140%);
+  backdrop-filter:blur(var(--v-desenfoque)) saturate(140%);
+  border:1px solid var(--v-borde);
+  border-top-color:var(--v-borde-luz);
+  border-radius:var(--v-radio);
+  box-shadow:var(--v-sombra);
+}
+
+/* Barra superior */
+.barra{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; gap:26px;
+  padding:12px 24px; border-radius:0; border-left:0; border-right:0; border-top:0;
+}
+.barra .logo{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:-.02em;white-space:nowrap}
+.barra .logo i{font-style:normal;color:var(--accent)}
+.barra nav{display:flex;gap:20px;font-size:13.5px;color:var(--muted)}
+.barra nav a:hover{color:var(--ink)}
+.barra .acciones{margin-left:auto;display:flex;gap:10px;align-items:center}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;border:1px solid var(--v-borde);
+  background:transparent;color:var(--ink);border-radius:var(--r-sharp);
+  padding:9px 16px;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap;
+}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.g{padding:13px 24px;font-size:15px}
+
+/* Hero */
+.hero{padding:64px 24px 40px;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1fr);gap:44px;align-items:center}
+.pastilla{
+  display:inline-flex;align-items:center;gap:8px;border-radius:999px;
+  padding:6px 14px;font-size:12.5px;color:var(--accent);
+  border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+  background:color-mix(in srgb,var(--accent) 10%,transparent);
+}
+.hero h1{font-family:var(--display);font-weight:800;font-size:52px;line-height:1.04;letter-spacing:-.035em;margin-top:22px}
+.hero h1 i{font-style:normal;color:var(--accent)}
+.hero .desc{color:var(--muted);font-size:16.5px;margin-top:18px;max-width:46ch;line-height:1.6}
+.hero .ctas{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+.hero .prueba{margin-top:14px;font-size:13px;color:var(--accent)}
+
+/* El instrumento: la calculadora demo */
+.calc{padding:20px}
+.calc h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.calc .campos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.calc label{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.calc .caja{
+  margin-top:5px;border:1px solid var(--v-borde);border-radius:var(--r-sharp);
+  padding:9px 11px;font-family:var(--datos);font-variant-numeric:tabular-nums;font-size:14px;
+  background:color-mix(in srgb,var(--paper) 55%,transparent);
+}
+.calc .salida{margin-top:16px;border-top:1px solid var(--v-borde);padding-top:14px;display:grid;gap:10px}
+.calc .fila{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+.calc .fila span{font-size:13px;color:var(--muted)}
+.calc .fila b{font-family:var(--datos);font-variant-numeric:tabular-nums;font-size:16px;font-weight:500}
+.calc .fila.grande b{font-size:26px;color:var(--accent)}
+.calc .fila.riesgo b{color:var(--short)}
+
+/* Tira de cifras */
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:8px 24px 0}
+.cifras > div{padding:22px 18px;text-align:center}
+.cifras b{display:block;font-family:var(--datos);font-variant-numeric:tabular-nums;font-size:34px;font-weight:600;color:var(--accent);line-height:1}
+.cifras span{display:block;margin-top:7px;font-size:12.5px;color:var(--muted)}
+
+/* Secciones */
+.seccion{padding:56px 24px}
+.seccion > h2{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.028em;text-align:center}
+.seccion > p.sub{color:var(--muted);text-align:center;margin-top:10px;font-size:14.5px}
+.rejilla3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:30px}
+.tarjeta{padding:20px}
+.tarjeta .ic{
+  width:34px;height:34px;border-radius:var(--r-sharp);display:grid;place-items:center;
+  border:1px solid color-mix(in srgb,var(--accent) 32%,transparent);
+  background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);
+  font-family:var(--datos);font-size:13px;
+}
+.tarjeta h3{margin-top:13px;font-size:16px;font-weight:600;letter-spacing:-.01em}
+.tarjeta p{margin-top:7px;font-size:13.5px;color:var(--muted);line-height:1.55}
+
+/* Planes */
+.planes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:30px}
+.plan{padding:24px 22px;display:grid;gap:6px;align-content:start}
+.plan.dest{border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.plan .nombre{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.plan .precio{font-family:var(--datos);font-variant-numeric:tabular-nums;font-size:38px;font-weight:600;line-height:1.05;margin-top:8px}
+.plan .precio em{font-style:normal;font-size:14px;color:var(--muted)}
+.plan ul{list-style:none;padding:0;margin-top:14px;display:grid;gap:8px;font-size:13.5px;color:var(--muted)}
+.plan li::before{content:"— ";color:var(--accent)}
+.plan .btn{margin-top:18px;justify-content:center}
+
+@container main (max-width:960px){
+  .hero{grid-template-columns:1fr;padding-top:44px}
+  .hero h1{font-size:38px}
+  .rejilla3,.planes{grid-template-columns:1fr}
+  .cifras{grid-template-columns:1fr 1fr}
+  .barra nav{display:none}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LOS SEIS GRADOS DE VIDRIO
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 01 · MÍNIMO ─────────────────────────────────────────────────
+   Vidrio SÓLO en la barra superior, que es lo único que flota sobre
+   contenido al hacer scroll. Todo lo demás sigue sólido. Es el
+   glassmorfismo que se puede desplegar esta tarde. */
+.stage[data-v="minimo"]{
+  --v-fondo:var(--surface);
+  --v-desenfoque:0px;
+  --v-borde:var(--rule);
+}
+.stage[data-v="minimo"] .barra{
+  background:color-mix(in srgb,var(--paper) 72%,transparent);
+  -webkit-backdrop-filter:blur(14px) saturate(150%);
+  backdrop-filter:blur(14px) saturate(150%);
+  border-bottom-color:var(--rule);
+}
+.stage[data-v="minimo"] .rejilla{opacity:.5}
+
+/* ── 02 · MALLA ──────────────────────────────────────────────────
+   El glassmorfismo de manual: malla de color desenfocada debajo y
+   TODO en vidrio encima. Es el que la gente tiene en la cabeza cuando
+   dice «glassmorfismo». */
+.stage[data-v="malla"]{
+  --v-fondo:rgba(255,255,255,.055);
+  --v-desenfoque:20px;
+  --v-borde:rgba(255,255,255,.11);
+  --v-borde-luz:rgba(255,255,255,.20);
+  --v-sombra:0 20px 60px -30px rgba(0,0,0,.8);
+  --v-radio:16px;
+  --paper:#0A0D12;
+}
+.stage[data-v="malla"] .malla{
+  opacity:1;
+  background-image:
+    radial-gradient(38% 42% at 18% 22%, rgba(23,207,99,.42), transparent 62%),
+    radial-gradient(34% 38% at 82% 18%, rgba(56,120,255,.34), transparent 60%),
+    radial-gradient(46% 46% at 62% 88%, rgba(120,60,220,.28), transparent 62%),
+    radial-gradient(30% 34% at 8% 78%, rgba(23,207,99,.22), transparent 60%);
+  filter:blur(50px);
+}
+.stage[data-v="malla"] .calc .caja{background:rgba(255,255,255,.05)}
+
+/* ── 03 · AHUMADO ────────────────────────────────────────────────
+   Vidrio oscuro y denso: mucho desenfoque, poca transparencia. El
+   fondo se intuye pero no compite. Es el vidrio que respeta un
+   producto lleno de cifras. */
+.stage[data-v="ahumado"]{
+  --v-fondo:rgba(16,19,25,.62);
+  --v-desenfoque:26px;
+  --v-borde:rgba(255,255,255,.075);
+  --v-borde-luz:rgba(255,255,255,.14);
+  --v-sombra:0 24px 70px -40px rgba(0,0,0,.9);
+  --v-radio:12px;
+  --paper:#080A0E;
+}
+.stage[data-v="ahumado"] .malla{
+  opacity:.9;
+  background-image:
+    radial-gradient(44% 48% at 22% 16%, rgba(23,207,99,.30), transparent 64%),
+    radial-gradient(40% 44% at 84% 74%, rgba(23,207,99,.14), transparent 62%);
+  filter:blur(66px);
+}
+.stage[data-v="ahumado"] .rejilla{opacity:.4}
+
+/* ── 04 · BORDE DE LUZ ───────────────────────────────────────────
+   Lo que separa el vidrio del rectángulo translúcido: un borde
+   superior claro que simula el canto iluminado, un brillo interior y
+   un reflejo especular que recorre la tarjeta. Cuesta más de hacer
+   bien y se nota. */
+.stage[data-v="canto"]{
+  --v-fondo:rgba(255,255,255,.045);
+  --v-desenfoque:22px;
+  --v-borde:rgba(255,255,255,.09);
+  --v-borde-luz:rgba(255,255,255,.30);
+  --v-sombra:0 1px 0 rgba(255,255,255,.06) inset, 0 26px 70px -34px rgba(0,0,0,.85);
+  --v-radio:18px;
+  --paper:#090C11;
+}
+.stage[data-v="canto"] .malla{
+  opacity:1;
+  background-image:
+    radial-gradient(40% 44% at 26% 20%, rgba(23,207,99,.38), transparent 62%),
+    radial-gradient(36% 40% at 78% 66%, rgba(60,140,255,.26), transparent 60%);
+  filter:blur(56px);
+}
+/* El especular: una banda clara muy tenue en diagonal, recortada por
+   el propio radio de la tarjeta. Va en ::after para no tocar el
+   contenido y con `pointer-events:none` para no comerse los clics. */
+.stage[data-v="canto"] .vidrio{position:relative;overflow:hidden}
+.stage[data-v="canto"] .vidrio::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,0) 32%);
+}
+.stage[data-v="canto"] .barra{overflow:visible}
+
+/* ── 05 · CLARO ──────────────────────────────────────────────────
+   El mismo vidrio sobre el tema CLARO real del producto (papel hueso).
+   Se incluye porque es donde el glassmorfismo se rompe antes: sobre
+   claro, un panel translúcido sube el fondo bajo el texto y el
+   contraste cae justo en las cifras. */
+.stage[data-v="claro"]{
+  --paper:#F2EFE8; --surface:#FBFAF9; --raise:#EDEAE3; --rule:#DEDAD3;
+  --ink:#171B25; --muted:#5F6670; --faint:#8A8F98;
+  --accent:#115F31; --accent-ink:#FFFFFF;
+  --long:#127A3C; --short:#B21A1A; --info:#1763C4; --warn:#89550B;
+  --v-fondo:rgba(255,255,255,.46);
+  --v-desenfoque:20px;
+  --v-borde:rgba(255,255,255,.75);
+  --v-borde-luz:rgba(255,255,255,.95);
+  --v-sombra:0 18px 50px -34px rgba(30,32,40,.45);
+  --v-radio:16px;
+  color-scheme:light;
+}
+.stage[data-v="claro"] .malla{
+  opacity:1;
+  background-image:
+    radial-gradient(38% 42% at 16% 20%, rgba(17,95,49,.34), transparent 62%),
+    radial-gradient(36% 40% at 84% 22%, rgba(90,150,255,.30), transparent 60%),
+    radial-gradient(44% 46% at 60% 90%, rgba(240,180,90,.30), transparent 62%);
+  filter:blur(54px);
+}
+
+/* ── 06 · SÓLO LO QUE FLOTA ──────────────────────────────────────
+   La regla dura: es vidrio lo que se SUPERPONE a otra cosa —la barra,
+   el panel de la calculadora que cabalga sobre el fondo del hero, un
+   modal, un tooltip— y es sólido todo lo que ES contenido. El
+   desenfoque cuesta GPU: se paga donde aporta y no en veinte tarjetas
+   a la vez. */
+.stage[data-v="flota"]{
+  --v-fondo:var(--surface);
+  --v-desenfoque:0px;
+  --v-borde:var(--rule);
+  --v-radio:var(--r-soft);
+}
+.stage[data-v="flota"] .malla{
+  opacity:.55;
+  background-image:
+    radial-gradient(42% 46% at 20% 14%, rgba(23,207,99,.24), transparent 64%),
+    radial-gradient(38% 40% at 86% 10%, rgba(60,140,255,.16), transparent 60%);
+  filter:blur(60px);
+}
+.stage[data-v="flota"] .rejilla{opacity:.55}
+/* Las DOS piezas que flotan, y ninguna más. */
+.stage[data-v="flota"] .barra,
+.stage[data-v="flota"] .calc{
+  background:color-mix(in srgb,var(--paper) 66%,transparent);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  backdrop-filter:blur(18px) saturate(150%);
+  border-color:rgba(255,255,255,.09);
+  border-top-color:rgba(255,255,255,.16);
+}
+.stage[data-v="flota"] .calc{box-shadow:0 24px 64px -40px rgba(0,0,0,.9)}
+</style>
+
+<header class="chrome">
+  <div class="marca">Glassmorfismo <span>· 6 grados sobre la portada REAL</span></div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" aria-selected="true" data-v="minimo"><b>01</b> Mínimo</button>
+    <button role="tab" aria-selected="false" data-v="malla"><b>02</b> Malla</button>
+    <button role="tab" aria-selected="false" data-v="ahumado"><b>03</b> Ahumado</button>
+    <button role="tab" aria-selected="false" data-v="canto"><b>04</b> Borde de luz</button>
+    <button role="tab" aria-selected="false" data-v="claro"><b>05</b> Claro</button>
+    <button role="tab" aria-selected="false" data-v="flota"><b>06</b> Sólo lo que flota</button>
+  </div>
+  <div class="util"><button id="btn-movil" aria-pressed="false" title="Ver a 390 px">Móvil</button></div>
+</header>
+
+<section class="brief">
+  <div>
+    <h2><em id="b-num">01</em><span id="b-nombre">Mínimo</span></h2>
+    <p id="b-tesis"></p>
+  </div>
+  <ul>
+    <li class="mide"><b>Contraste medido</b><span id="b-mide"></span></li>
+    <li class="si"><b>A favor</b><span id="b-si"></span></li>
+    <li class="no"><b>En contra</b><span id="b-no"></span></li>
+    <li class="coste"><b>Coste real</b><span id="b-coste"></span></li>
+  </ul>
+</section>
+
+<p class="nota">Contenido y cifras REALES del sitio (17 calculadoras · 186 activos · 66 estrategias · 10 idiomas). Los contrastes de cada ficha están medidos sobre el píxel compuesto, no estimados.</p>
+
+<div class="escenario">
+<div class="stage" id="stage" data-v="minimo">
+  <div class="suelo"><div class="malla"></div><div class="rejilla"></div></div>
+  <div class="lienzo">
+
+    <div class="barra vidrio">
+      <div class="logo">TradingCalculator<i>.Pro</i></div>
+      <nav>
+        <a href="#">Calculadoras</a><a href="#">Opciones</a><a href="#">Academia</a>
+        <a href="#">Brókers</a><a href="#">Comunidad</a><a href="#">Precios</a>
+      </nav>
+      <div class="acciones">
+        <a href="#" class="btn">Entrar</a>
+        <a href="#" class="btn pri">Empezar gratis</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div>
+        <span class="pastilla">Herramienta hecha por y para traders</span>
+        <h1>Trading Calculator <i>PRO</i></h1>
+        <p class="desc" data-medir="desc">Calculadoras profesionales, diario de trading, simulador Monte Carlo y todas las herramientas que necesitas para operar con método.</p>
+        <div class="ctas">
+          <a href="#" class="btn pri g">Empezar gratis →</a>
+          <a href="#" class="btn g">Ver planes premium</a>
+        </div>
+        <p class="prueba">7 días gratis · Cancela cuando quieras · Sin permanencia</p>
+      </div>
+
+      <!-- El instrumento: la tesis del hero. Es la calculadora funcionando. -->
+      <figure class="calc vidrio">
+        <h3>Tamaño de posición</h3>
+        <div class="campos">
+          <div><label>Capital</label><div class="caja">25.000,00 $</div></div>
+          <div><label>Riesgo</label><div class="caja">1,0 %</div></div>
+          <div><label>Entrada</label><div class="caja">2.412,30</div></div>
+          <div><label>Stop</label><div class="caja">2.398,00</div></div>
+        </div>
+        <div class="salida">
+          <div class="fila"><span>Riesgo por unidad</span><b class="mono">14,30</b></div>
+          <div class="fila riesgo"><span>Si salta el stop</span><b class="mono" data-medir="riesgo">−243,10 $</b></div>
+          <div class="fila grande"><span>Tamaño</span><b class="mono" data-medir="cifra">0,17 lotes</b></div>
+        </div>
+      </figure>
+    </section>
+
+    <div class="cifras">
+      <div class="vidrio"><b data-medir="stat">17</b><span>calculadoras</span></div>
+      <div class="vidrio"><b>186</b><span>activos</span></div>
+      <div class="vidrio"><b>66</b><span>estrategias de opciones</span></div>
+      <div class="vidrio"><b>10</b><span>idiomas</span></div>
+    </div>
+
+    <section class="seccion">
+      <h2>Calcula en cualquier mercado</h2>
+      <p class="sub">El mismo tamaño de posición, con la ficha de contrato de cada producto.</p>
+      <div class="rejilla3">
+        <article class="tarjeta vidrio">
+          <span class="ic">FX</span>
+          <h3>Forex</h3>
+          <p data-medir="cuerpo">Valor del pip por la ficha del instrumento, no por una tabla a mano. USDJPY no son 10 $/pip.</p>
+        </article>
+        <article class="tarjeta vidrio">
+          <span class="ic">FU</span>
+          <h3>Futuros</h3>
+          <p>Multiplicador y tick de cada contrato. El apalancamiento NO entra en el P&amp;L.</p>
+        </article>
+        <article class="tarjeta vidrio">
+          <span class="ic">OP</span>
+          <h3>Opciones</h3>
+          <p>Griegas, cadena y 66 estructuras. La pérdida máxima de un spread es anchura − crédito.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="seccion">
+      <h2>Planes</h2>
+      <p class="sub">Siete días de prueba con tarjeta. Cancelas cuando quieras.</p>
+      <div class="planes">
+        <article class="plan vidrio">
+          <span class="nombre">Mensual</span>
+          <p class="precio mono">17 <em>€/mes</em></p>
+          <ul><li>Las 17 calculadoras</li><li>Diario y métricas</li><li>Academia completa</li></ul>
+          <a href="#" class="btn">Elegir</a>
+        </article>
+        <article class="plan vidrio dest">
+          <span class="nombre">Trimestral</span>
+          <p class="precio mono" data-medir="precio">45 <em>€/trim.</em></p>
+          <ul><li>Todo lo del mensual</li><li>Escáner de estructura</li><li>Alertas en vivo</li></ul>
+          <a href="#" class="btn pri">Elegir</a>
+        </article>
+        <article class="plan vidrio">
+          <span class="nombre">De por vida</span>
+          <p class="precio mono">200 <em>€ único</em></p>
+          <ul><li>Todo, para siempre</li><li>Acceso anticipado</li><li>Comunidad</li></ul>
+          <a href="#" class="btn">Elegir</a>
+        </article>
+      </div>
+    </section>
+
+  </div>
+</div>
+</div>
+
+<script>
+(function () {
+  /* Los contrastes de `mide` los rellena `scripts/medir-vidrio.js`
+     fotografiando cada variante y muestreando el píxel REAL detrás de cada
+     texto. No se escriben a mano: sobre un `backdrop-filter` el color
+     declarado del panel no es el que se ve, así que estimarlo es inventarlo. */
+  var MEDIDAS = /*MEDIDAS_INICIO*/{
+      "minimo": "peor 5,76:1 · 6 de 6 puntos pasan",
+      "malla": "peor 5,16:1 · 6 de 6 pasan, pero el fondo bajo el texto va de rgb(11,47,31) a rgb(33,30,52)",
+      "ahumado": "peor 5,99:1 · 6 de 6 pasan. El mejor de los seis",
+      "canto": "peor 4,99:1 · 6 de 6 pasan, con el menor margen de los oscuros",
+      "claro": "peor 4,23:1 · 5 de 6. El párrafo del hero NO llega al 4,5 exigido",
+      "flota": "peor 6,09:1 · 6 de 6 pasan"
+  }/*MEDIDAS_FIN*/;
+
+  var FICHAS = {
+    minimo: {
+      num: '01', nombre: 'Mínimo',
+      tesis: 'Vidrio SÓLO en la barra superior, que es lo único que de verdad flota sobre contenido al hacer scroll. El resto de la portada no cambia ni un píxel. Es el glassmorfismo que se puede desplegar esta tarde.',
+      si: 'Coste cero en contraste y en GPU: un solo elemento desenfocado, y encima uno pequeño. Nadie pierde legibilidad y la web gana la sensación de capas al hacer scroll, que es de donde viene el 80 % del efecto.',
+      no: 'Casi no se nota. Si lo que buscas es que la portada se vea distinta en una captura, éste no lo consigue.',
+      coste: 'Una hora · tres líneas en el `Header`, sin tocar tokens ni componentes'
+    },
+    malla: {
+      num: '02', nombre: 'Malla',
+      tesis: 'El glassmorfismo de manual: una malla de color desenfocada debajo —verde de marca, azul, violeta— y absolutamente todo en vidrio encima. Es lo que la gente tiene en la cabeza cuando dice «glassmorfismo».',
+      si: 'Es el más espectacular de los seis y el que mejor sale en una captura de pantalla. La malla da profundidad de verdad y el verde de marca tiñe el conjunto sin dejar de ser el verde.',
+      no: 'El fondo bajo el texto va de rgb(11,47,31) a rgb(33,30,52) según qué trozo de malla toque: los seis puntos medidos pasan, pero el margen lo pone el azar de la composición, no una decisión. Cada texto nuevo hay que volver a medirlo, y el violeta es exactamente el degradado que delata plantilla.',
+      coste: 'Alto y continuo · cada texto nuevo obliga a volver a medir, y el desenfoque a pantalla completa se paga en GPU en móviles de gama media'
+    },
+    ahumado: {
+      num: '03', nombre: 'Ahumado',
+      tesis: 'Vidrio oscuro y denso: mucho desenfoque (26 px) y poca transparencia. El fondo se intuye, da profundidad, y no compite con nada. Es el vidrio que respeta un producto lleno de cifras.',
+      si: 'El mejor contraste medido de los seis (peor punto 5,99:1). Al ser el panel casi opaco, el contraste vuelve a ser predecible y basta medirlo una vez. Se ve caro sin verse de plantilla.',
+      no: 'Es vidrio a medias: quien pidió glassmorfismo puede echar de menos ver el fondo a través. Y sigue costando GPU en cada tarjeta.',
+      coste: 'Medio · tokens nuevos y un repaso de contraste; la maquetación no se toca'
+    },
+    canto: {
+      num: '04', nombre: 'Borde de luz',
+      tesis: 'Lo que separa el vidrio de un rectángulo translúcido: un borde SUPERIOR claro que simula el canto iluminado, un brillo interior de 1 px y un reflejo especular en diagonal. Es el detalle que hace que el ojo lea «cristal» y no «caja con opacidad».',
+      si: 'Es el más creíble como material. Los tres detalles cuestan tres líneas de CSS y son la diferencia entre el glassmorfismo bueno y el del primer tutorial.',
+      no: 'Hereda el problema de la malla: el contraste sigue dependiendo del fondo. Y el especular hay que recortarlo con `overflow:hidden`, lo que obliga a vigilar cualquier cosa que deba salirse de la tarjeta (un menú, un tooltip).',
+      coste: 'Medio-alto · el `::after` del especular entra en conflicto con todo lo que se desborde'
+    },
+    claro: {
+      num: '05', nombre: 'Claro',
+      tesis: 'El mismo vidrio sobre el tema CLARO real del producto. Se incluye porque es donde el glassmorfismo se rompe antes, y porque tu web tiene tema claro: si se adopta, hay que resolver los dos.',
+      si: 'Sobre papel, el vidrio se lee amable y moderno, y la malla en tonos cálidos funciona mejor que en oscuro.',
+      no: 'El único de los seis que SUSPENDE, y está medido: el párrafo del hero se queda en 4,23:1 sobre el exigido 4,5. Un panel blanco translúcido sube la luminosidad del fondo justo debajo de un texto que ya era oscuro sobre claro. Este proyecto ya pagó esa factura —77 incumplimientos de contraste en /performance con el tema claro— y fue por lo mismo.',
+      coste: 'Alto · exige medir de nuevo los dos temas por completo'
+    },
+    flota: {
+      num: '06', nombre: 'Sólo lo que flota',
+      tesis: 'Una regla dura en vez de un estilo: **es vidrio lo que se superpone a otra cosa** —la barra pegajosa, el panel de la calculadora que cabalga sobre el fondo del hero, un modal, un tooltip— y es sólido todo lo que ES contenido. El fondo lleva una malla muy tenue y la retícula de calibre, así que hay algo que ver a través.',
+      si: 'Peor punto 6,09:1, el segundo mejor de los seis, y el desenfoque se paga en DOS elementos en vez de en veinte tarjetas. El contraste del contenido —cifras, precios, tablas— sigue siendo el que ya está medido y verificado en CI, así que adoptarlo no obliga a auditar el sitio otra vez.',
+      no: 'Requiere disciplina: la regla se rompe sola en cuanto alguien pone `vidrio` en una tarjeta «porque queda bien». Hay que escribirla en `identidad-visual` o no dura dos semanas.',
+      coste: 'Bajo-medio · dos componentes y una regla escrita. Es la que se puede adoptar sin volver a auditar el contraste del sitio'
+    }
+  };
+
+  var refs = {};
+  ['num', 'nombre', 'tesis', 'mide', 'si', 'no', 'coste'].forEach(function (k) {
+    refs[k] = document.getElementById('b-' + k);
+  });
+  var stage = document.getElementById('stage');
+
+  function mostrar(id) {
+    if (!FICHAS[id]) return;
+    stage.setAttribute('data-v', id);
+    var botones = document.querySelectorAll('#tabs button');
+    for (var i = 0; i < botones.length; i++) {
+      botones[i].setAttribute('aria-selected', String(botones[i].dataset.v === id));
+    }
+    var f = FICHAS[id];
+    refs.num.textContent = f.num; refs.nombre.textContent = f.nombre;
+    refs.tesis.textContent = f.tesis; refs.si.textContent = f.si;
+    refs.no.textContent = f.no; refs.coste.textContent = f.coste;
+    refs.mide.textContent = MEDIDAS[id] || 'sin medir todavía';
+    try {
+      if (location.hash !== '#/' + id) history.replaceState(null, '', '#/' + id);
+    } catch (err) { /* file:// no siempre admite replaceState */ }
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-v]');
+    if (b) mostrar(b.dataset.v);
+  });
+
+  var btnMovil = document.getElementById('btn-movil');
+  btnMovil.addEventListener('click', function () {
+    var m = stage.classList.toggle('movil');
+    btnMovil.setAttribute('aria-pressed', String(m));
+    btnMovil.textContent = m ? 'Escritorio' : 'Móvil';
+  });
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('.stage a[href="#"]');
+    if (a) e.preventDefault();
+  });
+
+  // Cambiar sólo el ancla no recarga: sin esto, un enlace a «#/claro» pegado
+  // sobre «#/minimo» no hace nada.
+  window.addEventListener('hashchange', function () {
+    mostrar(location.hash.replace(/^#\/?/, ''));
+  });
+  var pedida = location.hash.replace(/^#\/?/, '');
+  mostrar(FICHAS[pedida] ? pedida : 'minimo');
+})();
+</script>

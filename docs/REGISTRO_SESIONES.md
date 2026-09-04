@@ -6627,3 +6627,61 @@ podido ver una sola plantilla suya.
 `gen-mapa --check` · `check-rutas-muertas` · `check-doc-links` · `gen-asistente --check` ·
 `npm run build` · **sonda de API contra PostgreSQL real (26 ✓)** · **sonda de navegador
 en Chromium (21 ✓, escritorio y móvil, cero errores de JavaScript)**.
+
+---
+
+## 2026-09-03 (5) — Glassmorfismo sobre la portada, con el contraste medido
+
+**Petición**: «si aplicases glassmorfismo en mi web, ¿cómo quedaría? Muéstrame 6 HTML
+del main de ejemplo».
+
+- ✅ **Nuevo**: [`docs/maquetas/main-glassmorfismo.html`](./maquetas/main-glassmorfismo.html)
+  — seis grados de vidrio sobre **la portada real** (barra, hero con la calculadora,
+  tira de cuatro cifras, mercados y planes) con el contenido y las cifras verdaderas
+  del sitio: 17 calculadoras, 186 activos, 66 estrategias, 10 idiomas. Los seis pintan
+  el mismo main; sólo cambia el tratamiento del vidrio.
+- ✅ **Nuevo**: [`scripts/medir-vidrio.js`](../scripts/medir-vidrio.js) — mide el
+  contraste REAL de cada variante. Es un **informe, no una puerta**: no corre en CI.
+
+### Por qué hacía falta medir, y no opinar
+
+Con un `backdrop-filter` de por medio **el color declarado del panel no es el que se
+ve**: `rgba(255,255,255,.05)` sobre una malla verde compone un gris verdoso distinto
+en cada punto. El script apaga el texto (`color:transparent`), fotografía su caja
+exacta, decodifica el PNG con `zlib` —sin dependencias— y promedia el fondo que queda
+debajo de esas letras.
+
+**La primera versión del medidor medía mal**: muestreaba «al lado» del texto y recogía
+píxeles de glifo, así que el párrafo del hero daba 3,8:1 donde de verdad hay 6,2:1.
+Un medidor equivocado es peor que no medir, porque su número se cita. Corregido y
+anotado en la cabecera del script.
+
+### El resultado contradice la intuición, y así se ha escrito
+
+Se suponía que el vidrio arruinaría el contraste de las cifras. **En oscuro no lo
+hace**: los cinco grados oscuros pasan los seis puntos medidos (peor caso 4,99:1 en
+«Borde de luz»). El que **suspende es el tema CLARO** —el párrafo del hero se queda en
+4,23:1 sobre el 4,5 exigido— y por la razón que este proyecto ya pagó una vez con los
+77 incumplimientos de `/performance`: un panel blanco translúcido sube la luminosidad
+del fondo justo debajo de un texto que ya era oscuro sobre claro.
+
+Dos fichas de la maqueta se reescribieron para decir lo medido en vez de lo que yo
+suponía: la de «Malla» afirmaba que una cifra sería «ilegible 200 px más abajo», y la
+medición no lo sostiene — pasa, con margen puesto por el azar de la composición.
+
+| Grado | Peor contraste | |
+|---|---|---|
+| Mínimo | 5,76:1 · 6/6 | vidrio sólo en la barra |
+| Malla | 5,16:1 · 6/6 | el de manual |
+| Ahumado | **5,99:1 · 6/6** | el mejor |
+| Borde de luz | 4,99:1 · 6/6 | el más creíble como material |
+| Claro | **4,23:1 · 5/6** ❌ | el único que suspende |
+| Sólo lo que flota | 6,09:1 · 6/6 | **el recomendado** |
+
+**Recomendación**: el 6. Una regla en vez de un estilo — es vidrio lo que se
+superpone (barra pegajosa, panel de la calculadora, modales, tooltips) y sólido todo
+lo que ES contenido. El desenfoque cuesta GPU y se paga en dos elementos, no en veinte
+tarjetas, y el contraste del contenido sigue siendo el que ya está medido y verificado
+en CI: adoptarlo no obliga a auditar el sitio otra vez.
+
+**Nada de esto está implementado**: es material para decidir.
