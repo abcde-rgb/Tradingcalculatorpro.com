@@ -97,6 +97,41 @@ const mismoOrigen = (url, referencia) => {
 // La ruta de una URL sin depender de la longitud del dominio.
 const rutaDe = (url) => { try { return new URL(url).pathname; } catch { return url; } };
 
+// ── robots.txt, resuelto como lo resuelve un rastreador ─────────────────────
+// Gana la regla cuyo patrón case MÁS LARGO, sea `Allow` o `Disallow`; a igual
+// longitud gana `Allow`. Es lo que dice la especificación y lo que hacen
+// Google, Bing y Yandex. Vive aquí arriba porque lo usan dos comprobaciones:
+// la del sitemap y la de los enlaces internos.
+let reglasRobots = [];               // { permite, patron }
+function cargarRobots(texto) {
+  reglasRobots = [];
+  let enComodin = false;
+  for (const l of texto.split('\n').map((x) => x.trim())) {
+    const ua = l.match(/^User-agent:\s*(.+)$/i);
+    if (ua) { enComodin = ua[1].trim() === '*'; continue; }
+    if (!enComodin) continue;
+    const r = l.match(/^(Allow|Disallow):\s*(\S*)\s*$/i);
+    if (r && r[2]) reglasRobots.push({ permite: /^allow$/i.test(r[1]), patron: r[2] });
+  }
+}
+// Coincidencia de un patrón: prefijo, con `*` como comodín y `$` como final de
+// ruta. Devuelve la longitud del patrón, o -1.
+const casaRobots = (patron, ruta) => {
+  const anclado = patron.endsWith('$');
+  const cuerpo = anclado ? patron.slice(0, -1) : patron;
+  const re = new RegExp(`^${cuerpo.split('*').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}${anclado ? '$' : ''}`);
+  return re.test(ruta) ? patron.length : -1;
+};
+function veredictoRobots(ruta) {
+  let mejor = null;
+  for (const r of reglasRobots) {
+    const n = casaRobots(r.patron, ruta);
+    if (n < 0) continue;
+    if (!mejor || n > mejor.n || (n === mejor.n && r.permite)) mejor = { n, ...r };
+  }
+  return mejor;
+}
+
 const problemas = new Map();          // tipo → [{pagina, detalle}]
 const anota = (tipo, pagina, detalle) => {
   if (!problemas.has(tipo)) problemas.set(tipo, []);
@@ -317,6 +352,8 @@ if (!fs.existsSync(SITEMAP)) {
   enSitemap = new Set([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
     .map((m) => unaBarra(m[1])));
   const norm = new Set([...generadas].map(unaBarra));
+  // Las mismas, como ruta relativa sin barras, para cruzarlas con los enlaces.
+  const generadasRel = new Set([...norm].map((u) => rutaDe(u).replace(/^\/|\/$/g, '')));
   // Las rutas de APLICACIÓN (el array MAIN de `gen-seo-pages.js`: /, /options,
   // /options/strategies, /pricing…) van al sitemap a propósito y las sirve la
   // SPA, sin página estática propia. No son un fallo.
@@ -344,6 +381,47 @@ if (!fs.existsSync(SITEMAP)) {
   }
   for (const u of norm) if (!enSitemap.has(u))
     anota('página generada que el sitemap no anuncia', rutaDe(u), '');
+
+  // robots.txt se lee AQUÍ, antes de las dos comprobaciones que lo necesitan:
+  // la de enlaces internos (abajo) y la del sitemap (más abajo). Estaba leído
+  // sólo en la segunda, así que la primera corría con la lista de reglas VACÍA
+  // y daba por pública toda ruta prohibida: 1.640 falsos positivos.
+  const ROBOTS = path.join(BUILD, 'robots.txt');
+  if (fs.existsSync(ROBOTS)) cargarRobots(fs.readFileSync(ROBOTS, 'utf8'));
+  else anota('falta robots.txt', 'build/robots.txt', '');
+
+  // Un enlace interno lleva a un fichero, o la ruta está prohibida en robots.
+  //
+  // No es «ningún enlace roto» a secas: las 1.640 páginas rematan con un CTA
+  // hacia la aplicación de pago —`/education`, `/dashboard`,
+  // `/options/calculator`— y ésas NO tienen fichero propio a propósito: son
+  // `ProtectedRoute premiumOnly` y darles un 200 sólo serviría para publicar
+  // una pantalla de acceso. Como están en `Disallow`, ningún rastreador que
+  // respete el estándar las sigue, y el visitante sí llega porque GitHub Pages
+  // le sirve el shell.
+  //
+  // Lo que la regla prohíbe es lo otro: enlazar una ruta PÚBLICA que no existe.
+  // Ese enlace sí lo sigue un rastreador, y se encuentra un 404. Ya pasó una
+  // vez, con `/learn/gestion-del-riesgo/` en el `<noscript>` —el módulo se
+  // llama `gestion-del-capital`—: un enlace plausible y muerto es justo lo que
+  // ninguna lectura por encima caza.
+  const permitida = (ruta) => { const v = veredictoRobots(ruta); return !v || v.permite; };
+  const hayFichero = (r) => generadasRel.has(r)
+    || fs.existsSync(path.join(BUILD, r))
+    || fs.existsSync(path.join(BUILD, `${r}.html`));
+  for (const f of ficheros) {
+    const rel = path.relative(BUILD, path.dirname(f)).split(path.sep).join('/');
+    for (const m of fs.readFileSync(f, 'utf8').matchAll(/<a[^>]+href="([^"]+)"/g)) {
+      let destino = m[1];
+      if (mismoOrigen(destino, DOMAIN)) destino = rutaDe(destino);
+      if (!destino.startsWith('/')) continue;             // externo o ancla
+      const ruta = destino.split('#')[0].split('?')[0];
+      const limpia = ruta.replace(/^\/|\/$/g, '');
+      if (!limpia || hayFichero(limpia)) continue;
+      if (permitida(ruta))
+        anota('enlace a una ruta pública que no existe', rel, destino);
+    }
+  }
 
   // Los puentes, contra el sitemap y contra las páginas de verdad.
   for (const [rel, destino] of puentes) {
@@ -406,40 +484,11 @@ if (!fs.existsSync(SITEMAP)) {
   // También se ha quitado el borrado del prefijo de idioma. `robots.txt` casa
   // rutas LITERALES: `Disallow: /options` no cubre `/en/options/…`, y fingir
   // que sí era inventarse una prohibición que ningún rastreador aplica.
-  const ROBOTS = path.join(BUILD, 'robots.txt');
-  if (!fs.existsSync(ROBOTS)) {
-    anota('falta robots.txt', 'build/robots.txt', '');
-  } else {
-    const lineas = fs.readFileSync(ROBOTS, 'utf8').split('\n').map((l) => l.trim());
-    const reglas = [];               // { permite, patron }
-    let enComodin = false;
-    for (const l of lineas) {
-      const ua = l.match(/^User-agent:\s*(.+)$/i);
-      if (ua) { enComodin = ua[1].trim() === '*'; continue; }
-      if (!enComodin) continue;
-      const r = l.match(/^(Allow|Disallow):\s*(\S*)\s*$/i);
-      if (r && r[2]) reglas.push({ permite: /^allow$/i.test(r[1]), patron: r[2] });
-    }
-    // Coincidencia de un patrón de robots.txt: prefijo, con `*` como comodín y
-    // `$` como final de ruta. Devuelve la longitud del patrón, o -1.
-    const casa = (patron, ruta) => {
-      const anclado = patron.endsWith('$');
-      const cuerpo = anclado ? patron.slice(0, -1) : patron;
-      const re = new RegExp(`^${cuerpo.split('*').map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}${anclado ? '$' : ''}`);
-      return re.test(ruta) ? patron.length : -1;
-    };
-    for (const loc of enSitemap) {
-      const ruta = rutaDe(loc);
-      let mejor = null;
-      for (const r of reglas) {
-        const n = casa(r.patron, ruta);
-        if (n < 0) continue;
-        // A igual longitud manda el `Allow`, como en la especificación.
-        if (!mejor || n > mejor.n || (n === mejor.n && r.permite)) mejor = { n, ...r };
-      }
-      if (mejor && !mejor.permite)
-        anota('el sitemap anuncia una URL que robots.txt prohíbe', ruta, `Disallow: ${mejor.patron}`);
-    }
+  for (const loc of enSitemap) {
+    const ruta = rutaDe(loc);
+    const v = veredictoRobots(ruta);
+    if (v && !v.permite)
+      anota('el sitemap anuncia una URL que robots.txt prohíbe', ruta, `Disallow: ${v.patron}`);
   }
 
   // Los enlaces del <noscript> del shell tienen que llevar a algún sitio.

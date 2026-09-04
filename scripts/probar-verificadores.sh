@@ -1792,6 +1792,25 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   # alcanzables sólo por el sitemap, sin un enlace desde ninguna página con
   # autoridad. Los hubs son el esqueleto; si uno deja de citar a una página,
   # esa página vuelve a estar suelta.
+  # Un enlace a una ruta PÚBLICA que no existe. Es el fallo que ya se pagó una
+  # vez —`/learn/gestion-del-riesgo/` en el <noscript>, cuando el módulo se
+  # llama `gestion-del-capital`—: un enlace plausible y muerto no lo caza
+  # ninguna lectura por encima.
+  probar "un enlace a una ruta pública que no existe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'href=\"https://tradingcalculator.pro/pricing\"' $SEO_PAG && sed -i '0,\|href=\"https://tradingcalculator.pro/pricing\"|s||href=\"https://tradingcalculator.pro/precios-que-no-existen\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # Y el otro lado, que es lo que hace útil la regla: las 1.640 páginas rematan
+  # con un CTA hacia la aplicación de pago (`/education`, `/dashboard`,
+  # `/options/calculator`), que NO tienen fichero propio a propósito y están en
+  # `Disallow`. Si eso saltara serían 1.640 falsos positivos por build y la
+  # comprobación duraría lo que tarda alguien en apagarla.
+  probar_inverso "un CTA a una ruta con muro y prohibida en robots no es un fallo" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'tradingcalculator.pro/education?topic=' $SEO_PAG" \
+    "$SEO_REST"
+
   probar "una página que ningún hub enlaza (huérfana otra vez)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|g' $SEO_HUB" \
