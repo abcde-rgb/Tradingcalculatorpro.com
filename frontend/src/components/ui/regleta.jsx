@@ -122,18 +122,25 @@ export function Regleta({ entry, stop, locale, labels = {}, className = '' }) {
           el trazado se estira al ancho del contenedor y el texto se deformaría.
           Aquí además heredan la tipografía de datos y `tabular-nums`. */}
       <figcaption className="relative h-9 font-mono tabular-nums text-[11px]">
+        {/* `opacity-90`, no `opacity-70`. La opacidad baja sobre el rojo de
+            `--short` deja el rótulo «Stop» en 3,58:1 en oscuro y 3,80:1 en claro,
+            por debajo del 4,5 que la WCAG 2.1 pide para texto pequeño; axe lo
+            marcaba como `serious` en la portada. Medido, no estimado: a 0,90
+            sube a 5,21 y 5,51. Los dos rótulos comparten valor a propósito —son
+            un par y tienen que verse igual de apagados—, aunque el de entrada
+            (que hereda `--foreground`) ya pasaba de sobra. */}
         <span
           className="absolute -translate-x-1/2 whitespace-nowrap"
           style={{ left: `${(xs / VB_W) * 100}%`, color: 'hsl(var(--short))' }}
         >
-          <span className="block uppercase tracking-wider opacity-70">{labels.stop || 'Stop'}</span>
+          <span className="block uppercase tracking-wider opacity-90">{labels.stop || 'Stop'}</span>
           {fmt(s, locale)}
         </span>
         <span
           className="absolute -translate-x-1/2 whitespace-nowrap text-foreground"
           style={{ left: `${(xe / VB_W) * 100}%` }}
         >
-          <span className="block uppercase tracking-wider opacity-70">{labels.entry || 'Entrada'}</span>
+          <span className="block uppercase tracking-wider opacity-90">{labels.entry || 'Entrada'}</span>
           {fmt(e, locale)}
         </span>
       </figcaption>

@@ -235,12 +235,14 @@ for ruta in ("/admin/users", "/admin/feature-flags", "/admin/coupons"):
 #   a) dejar constancia de que no hay ruta de perfil — si algún día se añade,
 #      esta comprobación se pone roja y obliga a escribir el test de verdad;
 #   b) atacar las rutas que SÍ existen y SÍ escriben en `db.users`.
-print("  rutas de perfil (no deben existir; si aparecen, hay que probarlas):")
-for ruta in ("/auth/profile", "/auth/me"):
-    cod, _ = llama("PUT", ruta, {"name": "x", "is_premium": True}, tok_a)
-    marca(f"PUT {ruta} sigue sin existir", cod in (404, 405),
-          f"HTTP {cod}" + (" ← ¡AHORA EXISTE! hay que probar la asignación masiva"
-                           if cod not in (404, 405) else ""))
+# `PUT /auth/me` sigue sin existir: para ésa se mantiene el centinela.
+cod_me, _ = llama("PUT", "/auth/me", {"name": "x", "is_premium": True}, tok_a)
+marca("PUT /auth/me sigue sin existir", cod_me in (404, 405),
+      f"HTTP {cod_me}" + (" ← ¡AHORA EXISTE! hay que probar la asignación masiva"
+                          if cod_me not in (404, 405) else ""))
+
+# `/auth/profile` YA EXISTE, así que aquí abajo se prueba de verdad. Ver el
+# bloque «perfil» después de CONTRABANDO.
 
 # Las rutas reales por las que un usuario normal puede provocar una escritura en
 # su propio documento. Se les cuelan campos privilegiados y se mide por
@@ -252,6 +254,9 @@ _, antes = llama("GET", "/auth/me", None, tok_a)
 CONTRABANDO = {"is_premium": True, "is_admin": True, "role": "admin",
                "subscription_plan": "lifetime",
                "subscription_end": "2099-01-01T00:00:00Z"}
+# El nombre que la sonda escribe en el perfil: reconocible en la base si algún
+# día hay que rastrear de dónde salió.
+NOMBRE_SONDA = "Sonda Autorizacion"
 # `POST /auth/change-password` queda FUERA a propósito: revoca todas las sesiones
 # del usuario, así que la lectura de después devolvería un 401 y los siete campos
 # vigilados «cambiarían» de golpe. Eso ya produjo una falsa alarma que parecía
@@ -275,6 +280,38 @@ else:
     marca("colar campos privilegiados en trades, user-states y plan no cambia nada",
           not movidos, f"cambian: {movidos}" if movidos else
           "ningún campo sensible se movió")
+
+# ── Perfil: el centinela saltó, y esta es la prueba que pedía ───────────────
+# Hasta el 2026-09-01 no había endpoint de perfil, y esto era un CENTINELA: se
+# exigía 404/405 para que, el día que apareciera uno, la sonda se pusiera roja y
+# obligara a escribir la prueba de verdad en vez de dejar el hueco. Ese día
+# llegó —BUG-079 registró `POST` y `PUT /auth/profile`— y la sonda cumplió su
+# trabajo: salió roja en la primera tanda con backend vivo (2026-09-04).
+#
+# Es la ruta de escritura sobre `db.users` más golosa que tiene un usuario
+# normal: escribe en su PROPIA fila, que es donde viven `is_premium` e
+# `is_admin`. Si construyera el `$set` desde el cuerpo recibido, cualquiera se
+# haría admin con una línea de curl.
+_, perfil_antes = llama("GET", "/auth/me", None, tok_a)
+cod_pf, cuerpo_pf = llama("PUT", "/auth/profile",
+                          {"name": NOMBRE_SONDA, **CONTRABANDO}, tok_a)
+marca("PUT /auth/profile responde para poder medirlo", cod_pf == 200, f"HTTP {cod_pf}")
+_, perfil_despues = llama("GET", "/auth/me", None, tok_a)
+if cod_pf != 200 or not isinstance(perfil_despues, dict) or "id" not in perfil_despues:
+    marca("se puede releer el usuario tras tocar el perfil", False,
+          f"HTTP {cod_pf} — sin esto la comparación no significa nada")
+else:
+    movidos_pf = [c for c in VIGILADOS
+                  if (perfil_antes or {}).get(c) != perfil_despues.get(c)]
+    marca("PUT /auth/profile no deja colar campos privilegiados",
+          not movidos_pf, f"cambian: {movidos_pf}" if movidos_pf else
+          "ni is_premium ni is_admin ni el plan se movieron")
+    # La otra mitad, y no es adorno: un endpoint que ignorase TODO el cuerpo
+    # pasaría la comprobación de arriba con nota. Hay que ver que sí hace su
+    # trabajo, o lo que se estaría certificando es que no funciona.
+    marca("...y sí escribe lo que le toca (el nombre)",
+          isinstance(cuerpo_pf, dict) and cuerpo_pf.get("name") == NOMBRE_SONDA,
+          f"name={(cuerpo_pf or {}).get('name')!r}")
 
 # Y ahora change-password, que sí revoca la sesión: se comprueba por separado y
 # releyendo con una sesión NUEVA.

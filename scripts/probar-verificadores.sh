@@ -1091,6 +1091,42 @@ else
   echo "  ⏭️  Contraste: sin build, no se prueba"
 fi
 
+# ── Accesibilidad: la exención de decoración no puede tragarse un fallo ─────
+# `accesibilidad.js` exime del contraste la DECORACIÓN INERTE: lo que está a la
+# vez `aria-hidden="true"` y `pointer-events: none`, que es como `EmptyState`
+# pinta la muestra difuminada de lo que aparecerá en la tarjeta. Sin esa
+# exención la sonda devolvía cinco «serious» que no impiden usar nada, y un
+# informe con falsos graves se lee por encima.
+#
+# Una exención es una puerta, así que hay que comprobar que no deja pasar lo que
+# no debe. Se sabotea con un fallo de contraste REAL —el rótulo del stop de la
+# regleta vuelve a `opacity-70`, que es exactamente el que la sonda encontró el
+# 2026-09-04 y medía 3,58:1— y se exige que lo cace.
+#
+# Las DOS condiciones de la exención son a propósito: con `aria-hidden` sola, un
+# `aria-hidden` mal puesto sobre contenido real lo volvería invisible para la
+# sonda. Quitarle el `aria-hidden` a `EmptyState` tiene que ponerla roja
+# también; no se automatiza aquí porque cada caso cuesta dos recompilados.
+if [ -d frontend/build ] \
+   && curl -sf -o /dev/null --max-time 3 \
+        "http://127.0.0.1:${QA_PUERTO_API:-8080}/api/performance/instruments"; then
+  titulo "Accesibilidad (accesibilidad.js)"
+  RECOMPILA_A11Y="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+  probar "un rótulo con contraste insuficiente NO se cuela por la exención" \
+    "node tests/e2e/navegador/accesibilidad.js escritorio" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/components/ui/regleta.jsx'); t = p.read_text()
+n = t.count('uppercase tracking-wider opacity-90')
+assert n == 2, f'el sabotaje de accesibilidad no encontro los dos rotulos (vio {n})'
+p.write_text(t.replace('uppercase tracking-wider opacity-90',
+                       'uppercase tracking-wider opacity-70'))\" \
+     && $RECOMPILA_A11Y" \
+    "git checkout -- frontend/src/components/ui/regleta.jsx && $RECOMPILA_A11Y"
+else
+  echo "  ⏭️  Accesibilidad: sin build o sin backend (la sonda entra en la app), no se prueba"
+fi
+
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
 # Un módulo que se navega pero no se indexa existe y no se encuentra nunca; uno
 # indexado y no navegable es un enlace roto. Se sabotea renombrando un `value:`

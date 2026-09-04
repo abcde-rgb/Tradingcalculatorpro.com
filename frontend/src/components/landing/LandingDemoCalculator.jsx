@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Regleta } from '@/components/ui/regleta';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -109,10 +109,19 @@ export default function LandingDemoCalculator({ embedded = false }) {
 }
 
 function DemoField({ label, value, onChange }) {
+  // El `<Label>` estaba al lado del `<Input>` pero sin `htmlFor`, así que no lo
+  // etiquetaba: son dos elementos vecinos, no un par. Para quien navega con
+  // lector de pantalla, los cuatro campos de la calculadora de la portada —la
+  // primera cosa que la web invita a tocar— se anunciaban como «edit, blank».
+  // axe lo marcaba `critical` («Form elements must have labels») ×4.
+  // `useId` porque el componente se pinta cuatro veces: un id fijo los ataría
+  // todos al primero, que es la misma avería con otra cara.
+  const id = useId();
   return (
     <div className="space-y-1">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label htmlFor={id} className="text-xs text-muted-foreground">{label}</Label>
       <Input
+        id={id}
         type="number"
         inputMode="decimal"
         value={value}

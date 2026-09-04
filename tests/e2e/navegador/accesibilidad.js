@@ -92,6 +92,7 @@ function rutaAxe() {
 
   const porRegla = new Map();
   let totalGraves = 0;
+  let totalExentos = 0;
 
   // ── Los DOS temas, y no es un extra ─────────────────────────────────────
   // Esta sonda recorrió meses un solo tema —el oscuro, que es el de arranque—
@@ -115,20 +116,58 @@ function rutaAxe() {
     }
     await page.addScriptTag({ content: fuenteAxe });
     const r = await page.evaluate(async () => {
+      // ── Decoración inerte ────────────────────────────────────────────────
+      // `EmptyState` enseña una muestra DIFUMINADA de lo que aparecerá en la
+      // tarjeta cuando el usuario meta datos: `opacity-35`, `blur`,
+      // `pointer-events-none`, `select-none` y `aria-hidden="true"`. Un lector
+      // de pantalla no la anuncia y el ratón no la alcanza — es una ilustración,
+      // no contenido.
+      //
+      // Pero la regla `color-contrast` de axe empareja por lo que se VE en
+      // pantalla, no por el árbol de accesibilidad, así que medía el 35 % de
+      // opacidad y devolvía 2,01:1 sobre cinco nodos: cinco «serious» que no
+      // impiden usar nada. La WCAG 2.1 §1.4.3 exime la decoración pura, y un
+      // informe con falsos graves acaba leyéndose por encima, que es lo peor
+      // que le puede pasar a esta sonda.
+      //
+      // La exención es deliberadamente ESTRECHA —hacen falta `aria-hidden` y
+      // `pointer-events: none` a la vez, en el nodo o en un ancestro— y sólo se
+      // aplica a `color-contrast`: para el resto de reglas un `aria-hidden` mal
+      // puesto es justamente lo que hay que ver. Y no se descarta en silencio:
+      // se cuenta y se imprime aparte.
+      const inerte = (el) => {
+        for (let n = el; n; n = n.parentElement) {
+          if (n.nodeType === 1 && n.getAttribute('aria-hidden') === 'true'
+              && getComputedStyle(n).pointerEvents === 'none') return true;
+        }
+        return false;
+      };
       const res = await window.axe.run(document, {
         resultTypes: ['violations'],
         runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
       });
-      return res.violations.map((v) => ({
-        id: v.id, impact: v.impact, help: v.help, n: v.nodes.length,
-        ejemplo: (v.nodes[0]?.html || '').slice(0, 110),
-        objetivo: (v.nodes[0]?.target || []).join(' '),
-      }));
+      return res.violations.map((v) => {
+        const exentos = v.id !== 'color-contrast' ? [] : v.nodes.filter((n) => {
+          let el = null;
+          try { el = document.querySelector(n.target[0]); } catch { el = null; }
+          return el && inerte(el);
+        });
+        const reales = v.nodes.filter((n) => !exentos.includes(n));
+        return {
+          id: v.id, impact: v.impact, help: v.help,
+          n: reales.length, exentos: exentos.length,
+          ejemplo: (reales[0]?.html || '').slice(0, 110),
+          objetivo: (reales[0]?.target || []).join(' '),
+        };
+      }).filter((v) => v.n > 0 || v.exentos > 0);
     });
-    const graves = r.filter((v) => GRAVES.has(v.impact));
+    const graves = r.filter((v) => GRAVES.has(v.impact) && v.n > 0);
+    const exentos = r.reduce((s, v) => s + (GRAVES.has(v.impact) ? v.exentos : 0), 0);
     totalGraves += graves.reduce((s, v) => s + v.n, 0);
+    totalExentos += exentos;
     console.log(`  ${(tema + '/' + nombre).padEnd(16)} ${graves.length ? '❌' : '✅'} `
-      + `${graves.length} regla(s) grave(s), ${graves.reduce((s, v) => s + v.n, 0)} elemento(s)`);
+      + `${graves.length} regla(s) grave(s), ${graves.reduce((s, v) => s + v.n, 0)} elemento(s)`
+      + (exentos ? ` · ${exentos} exento(s) por decoración inerte` : ''));
     for (const v of graves) {
       console.log(`      · [${v.impact}] ${v.id} ×${v.n} — ${v.help}`);
       console.log(`        ${v.objetivo}  ${v.ejemplo}`);
@@ -151,5 +190,8 @@ function rutaAxe() {
 
   await browser.close();
   console.log(`\n${totalGraves} elemento(s) con incumplimiento grave — capturas en ${SALIDA}`);
+  // Se dice siempre, aunque sea 0: una exención que no se ve es una
+  // exención que nadie vuelve a revisar.
+  console.log(`${totalExentos} exento(s) por decoración inerte (aria-hidden + pointer-events:none)`);
   process.exit(totalGraves ? 1 : 0);
 })().catch((e) => { console.error('reventó:', e.message); process.exit(2); });
