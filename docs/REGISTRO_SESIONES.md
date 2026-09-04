@@ -6563,3 +6563,67 @@ escritorio y móvil, cero errores de JavaScript**.
 buscador de texto completo, ni paginación más allá de la ventana de 600 candidatos
 —que la respuesta declara con `windowExhausted` en vez de mentir sobre el total—.
 Todo listado en `FORO_COMUNIDAD.md` § 8.
+
+---
+
+## 2026-09-03 (4) — La comunidad, otra vez: el registro moderno
+
+**Petición**: «lo quiero más moderno el foro, por eso te añadí el enlace para que te
+inspirases; igual va a ir la web en el futuro». O sea: la entrega anterior eligió el
+registro conservador («Producto», el sistema tal cual) y el dueño la rechazó.
+
+**No es otra maqueta: se rehízo la pantalla real.**
+
+- ✅ `CommunityPage.jsx` reescrita entera. Titular de portada
+  (`clamp(2.25rem, 5.2vw, 4rem)`) con la display **una sola vez** por pantalla,
+  rótulos en monoespaciada con `tracking` ancho como estructura, aire de portada,
+  píldoras de filtro en vez de un muro de `select`, barra de utilidad pegajosa,
+  entrada escalonada y esqueletos en vez de la palabra «Cargando».
+- ✅ `FichaAnalisis.jsx` rehecha en dos registros: tira de una línea en el listado y
+  **objeto protagonista** en el detalle, con el R:R a 32 px y la regleta debajo.
+  Cuando el R:R es indefinido, el «—» va también a 32 px con el motivo debajo: la
+  ausencia de dato ocupa el mismo sitio que el dato.
+- ✅ Primitivos nuevos en `index.css` (`.tc-campo`, `.tc-halo`, `.tc-entra`,
+  `.tc-esqueleto`). Van ahí y no en el componente para que la regla global de
+  `prefers-reduced-motion` los alcance.
+- ✅ `GET /forum/meta` devuelve tres **cuentas reales** de la base de datos (hilos,
+  respuestas, miembros) para la tira del hero. Si la consulta falla van a `None` y la
+  tira no se pinta: antes eso que una cifra inventada en la portada de la comunidad.
+
+### Qué rompe de `identidad-visual`, dicho en voz alta
+
+Dos degradados —la máscara que desvanece la retícula del hero y el barrido del
+esqueleto— y **un** `box-shadow` de halo, en un solo objeto de toda la pantalla. Lo
+que NO se hace, y es lo que separa esto de una plantilla: degradado morado de SaaS,
+blob difuminado, hero a `100vh`, scroll-jacking ni contadores animados. La profundidad
+del fondo es una **retícula de marcas de calibre** a la escala de la regleta: mide, no
+decora. El verde de marca no se toca.
+
+### Tres fallos propios, cazados por las pruebas
+
+1. **`await` dentro del actualizador de `setState`** — no compila. Lo cazó ESLint.
+2. **Reconstruí sin `REACT_APP_BACKEND_URL`** y la sonda de navegador falló en siete
+   sitios que no tenían nada que ver: con `API = null` el frontend no habla con el
+   backend. El síntoma que lo delata es el `%REACT_APP_BACKEND_URL%` sin sustituir en
+   la CSP. Anotado en `rules/comunidad.md`.
+3. **Un hilo puede sobrevivir a su autor** y la fila pintaba un «@» suelto con un
+   círculo vacío. Ahora sale «Cuenta eliminada» en cursiva con el avatar apagado, y
+   el botón de seguir desaparece. Se vio en la captura, no en un test.
+
+La sonda de navegador buscaba `#f-producto` y `#f-orden`, que el rediseño eliminó: sus
+anclas pasan a ser `data-testid`, que declaran «esto lo mira una prueba» y sobreviven
+a un cambio de maquetación.
+
+### Lo que sigue sin poder hacerse
+
+**getlayers.ai sigue bloqueado** por el proxy de salida (`EGRESS_BLOCKED`), reintentado
+en esta sesión. El registro sale del vocabulario del género, no de su código: no he
+podido ver una sola plantilla suya.
+
+### Verificado
+
+`py_compile` · 149 tests del foro y del RGPD · ESLint **0 errores** · i18n 7.536 claves
+× 10 idiomas sin huecos · engine-check · `check-fetch-credentials` · catálogo ·
+`gen-mapa --check` · `check-rutas-muertas` · `check-doc-links` · `gen-asistente --check` ·
+`npm run build` · **sonda de API contra PostgreSQL real (26 ✓)** · **sonda de navegador
+en Chromium (21 ✓, escritorio y móvil, cero errores de JavaScript)**.

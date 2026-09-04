@@ -148,9 +148,12 @@ docs/maquetas/comunidad-layers.html#/lujo    ← un registro concreto
 | 5 | **Calma** | Papel claro, serif de lectura, separación por aire | La separación por filete; el producto es oscuro por defecto |
 | 6 | **Producto** | El sistema real, sin cambiar nada | Ninguna — es lo implementado |
 
-Se implementó **la 6**. Las otras cinco se conservan porque explican qué se descartó
-y a qué precio: cinco de las seis exigen cambiar el sistema de diseño del producto,
-no sólo esta pantalla.
+**La primera implementación usó la 6 y el dueño la rechazó el mismo día**: pedía algo
+más moderno y dejó dicho que la web entera va en esa dirección. La pantalla que hay
+hoy es un **cinemático disciplinado** —titular de portada, rótulos en monoespaciada,
+aire, entrada escalonada y esqueletos— que toma de la 1 la escala y el aire sin su
+decoración. Qué rompe exactamente de `identidad-visual` y por qué se acepta, en
+[`DECISIONES.md`](./DECISIONES.md).
 
 > El lenguaje de estos registros sale del vocabulario de getlayers.ai (dark/light ×
 > luxe, technical, brutalist, calm…). **No se ha copiado ninguna plantilla suya**: el

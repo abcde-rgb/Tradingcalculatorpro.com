@@ -595,13 +595,32 @@ def build_forum_router(*, db, require_user_dep, optional_user_dep, require_admin
 
     @router.get("/meta")
     async def meta():
-        """Con qué se puede filtrar y ordenar. El frontend no escribe listas a mano."""
+        """Con qué se puede filtrar y ordenar. El frontend no escribe listas a mano.
+
+        Trae también los tres contadores del foro. Son **cuentas reales** de la
+        base de datos, no estimaciones: la portada de la comunidad enseña esas
+        cifras y una cifra inventada ahí valdría exactamente lo mismo que un
+        hilo inventado. Si la consulta falla, se devuelven a `None` y la
+        pantalla no pinta la tira — antes eso que un número que no significa
+        nada.
+        """
+        try:
+            estadisticas = {
+                "threads": await db.forum_threads.count_documents({"status": "visible"}),
+                "replies": await db.forum_posts.count_documents({"status": "visible"}),
+                "members": await db.forum_profiles.count_documents({}),
+            }
+        except Exception as e:  # noqa: BLE001
+            logger.warning("foro: no se pudieron contar las estadísticas: %s", log_safe(e))
+            estadisticas = {"threads": None, "replies": None, "members": None}
+
         return {
             "categories": list(CATEGORIAS),
             "products": list(PRODUCTOS),
             "orders": list(ORDENES),
             "languages": list(IDIOMAS),
             "reportReasons": list(MOTIVOS_DENUNCIA),
+            "stats": estadisticas,
             "limits": {
                 "title": MAX_TITULO, "body": MAX_CUERPO,
                 "tags": MAX_ETIQUETAS, "bio": MAX_BIO,

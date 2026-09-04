@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "Loading…",
   "comunidadErrorCarga": "Could not load the community.",
   "comunidadErrorGenerico": "Something went wrong. Try again.",
+  "comunidadLema": "What you calculate, discussed with people who calculate it too",
+  "comunidadHilos": "Threads",
+  "comunidadMiembros": "Members",
+  "comunidadCifrasReales": "Real counts from the database, not estimates.",
+  "comunidadTuMensaje": "Your message",
+  "comunidadCuentaEliminada": "Deleted account",
 }

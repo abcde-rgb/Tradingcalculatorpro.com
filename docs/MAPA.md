@@ -15,12 +15,12 @@
 | | |
 |---|---:|
 | Módulos del backend | 37 |
-| Líneas de Python (backend) | 29,719 |
+| Líneas de Python (backend) | 29,738 |
 | Rutas declaradas | 224 |
 | **Rutas sin consumidor en el frontend** | **33** |
 | Ficheros de test · funciones de test | 70 · 1216 |
 | Rutas del frontend (`App.js`) | 31 |
-| Idiomas · claves i18n (referencia `es`) | 10 · 7,530 |
+| Idiomas · claves i18n (referencia `es`) | 10 · 7,536 |
 
 ## ⚠️ Rutas sin consumidor en el frontend
 
@@ -81,7 +81,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `server.py` | 10,565 | 143 | — |
 | `performance.py` | 1,844 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,248 | 25 | admin_routes.py — Endpoints del panel de administración |
-| `forum.py` | 1,178 | 19 | forum.py — Comunidad de TradingCalculator.Pro |
+| `forum.py` | 1,197 | 19 | forum.py — Comunidad de TradingCalculator.Pro |
 | `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
 | `missing_apis.py` | 970 | 9 | missing_apis.py |
 | `instruments.py` | 902 |  | instruments.py — qué es cada producto financiero, como dato y no como suposición. |
@@ -178,25 +178,25 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 
 | Método | Ruta | Línea | Front |
 |---|---|---:|:---:|
-| `GET` | `/forum/members/{handle}` | 667 | ✅ |
-| `DELETE` | `/forum/members/{handle}/follow` | 701 | ✅ |
-| `POST` | `/forum/members/{handle}/follow` | 679 | ✅ |
+| `GET` | `/forum/members/{handle}` | 686 | ✅ |
+| `DELETE` | `/forum/members/{handle}/follow` | 720 | ✅ |
+| `POST` | `/forum/members/{handle}/follow` | 698 | ✅ |
 | `GET` | `/forum/meta` | 596 | ✅ |
-| `GET` | `/forum/moderation/reports` | 1062 | ✅ |
-| `POST` | `/forum/moderation/{target_type}/{target_id}/{accion}` | 1083 | ✅ |
-| `PUT` | `/forum/profile` | 621 | ✅ |
-| `GET` | `/forum/profile/me` | 614 | ✅ |
-| `DELETE` | `/forum/replies/{reply_id}/like` | 968 | ✅ |
-| `POST` | `/forum/replies/{reply_id}/like` | 963 | ✅ |
-| `POST` | `/forum/report` | 1040 | ✅ |
-| `GET` | `/forum/threads` | 715 | ✅ |
-| `POST` | `/forum/threads` | 791 | ✅ |
-| `DELETE` | `/forum/threads/{thread_id}` | 911 | ✅ |
-| `GET` | `/forum/threads/{thread_id}` | 825 | ✅ |
-| `DELETE` | `/forum/threads/{thread_id}/like` | 959 | ✅ |
-| `POST` | `/forum/threads/{thread_id}/like` | 954 | ✅ |
-| `POST` | `/forum/threads/{thread_id}/replies` | 883 | ✅ |
-| `POST` | `/forum/translate` | 974 | ✅ |
+| `GET` | `/forum/moderation/reports` | 1081 | ✅ |
+| `POST` | `/forum/moderation/{target_type}/{target_id}/{accion}` | 1102 | ✅ |
+| `PUT` | `/forum/profile` | 640 | ✅ |
+| `GET` | `/forum/profile/me` | 633 | ✅ |
+| `DELETE` | `/forum/replies/{reply_id}/like` | 987 | ✅ |
+| `POST` | `/forum/replies/{reply_id}/like` | 982 | ✅ |
+| `POST` | `/forum/report` | 1059 | ✅ |
+| `GET` | `/forum/threads` | 734 | ✅ |
+| `POST` | `/forum/threads` | 810 | ✅ |
+| `DELETE` | `/forum/threads/{thread_id}` | 930 | ✅ |
+| `GET` | `/forum/threads/{thread_id}` | 844 | ✅ |
+| `DELETE` | `/forum/threads/{thread_id}/like` | 978 | ✅ |
+| `POST` | `/forum/threads/{thread_id}/like` | 973 | ✅ |
+| `POST` | `/forum/threads/{thread_id}/replies` | 902 | ✅ |
+| `POST` | `/forum/translate` | 993 | ✅ |
 
 ### `backend/missing_apis.py` — 9 rutas
 
@@ -431,7 +431,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/charts/` | 3 | 797 |
 | `components/charts/structure/` | 12 | 1,706 |
 | `components/common/` | 13 | 2,527 |
-| `components/community/` | 4 | 558 |
+| `components/community/` | 4 | 593 |
 | `components/dashboard/` | 7 | 926 |
 | `components/desk/` | 6 | 1,553 |
 | `components/education/` | 88 | 14,669 |
@@ -445,7 +445,7 @@ La columna **Front** dice si algún fichero del frontend la menciona.
 | `components/settings/` | 2 | 317 |
 | `components/tools/` | 2 | 388 |
 | `components/ui/` | 31 | 1,763 |
-| `pages/` | 24 | 18,279 |
+| `pages/` | 24 | 18,422 |
 
 ## Los ficheros que más cuesta abrir
 
@@ -456,16 +456,16 @@ dan) en vez de abrirlos de arriba abajo.
 |---|---:|
 | `backend/server.py` | 10,565 |
 | `frontend/src/pages/EducationPage.jsx` | 5,813 |
-| `frontend/src/lib/i18n/ar.js` | 5,039 |
-| `frontend/src/lib/i18n/de.js` | 5,039 |
-| `frontend/src/lib/i18n/en.js` | 5,039 |
-| `frontend/src/lib/i18n/es.js` | 5,039 |
-| `frontend/src/lib/i18n/fr.js` | 5,039 |
-| `frontend/src/lib/i18n/it.js` | 5,039 |
-| `frontend/src/lib/i18n/ja.js` | 5,039 |
-| `frontend/src/lib/i18n/pt.js` | 5,039 |
-| `frontend/src/lib/i18n/ru.js` | 5,039 |
-| `frontend/src/lib/i18n/zh.js` | 5,039 |
+| `frontend/src/lib/i18n/ar.js` | 5,045 |
+| `frontend/src/lib/i18n/de.js` | 5,045 |
+| `frontend/src/lib/i18n/en.js` | 5,045 |
+| `frontend/src/lib/i18n/es.js` | 5,045 |
+| `frontend/src/lib/i18n/fr.js` | 5,045 |
+| `frontend/src/lib/i18n/it.js` | 5,045 |
+| `frontend/src/lib/i18n/ja.js` | 5,045 |
+| `frontend/src/lib/i18n/pt.js` | 5,045 |
+| `frontend/src/lib/i18n/ru.js` | 5,045 |
+| `frontend/src/lib/i18n/zh.js` | 5,045 |
 
 ## Verificadores del repositorio
 

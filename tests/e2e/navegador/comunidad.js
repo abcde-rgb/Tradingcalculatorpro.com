@@ -98,8 +98,20 @@ async function api(metodo, ruta, cuerpo, token) {
   ok('la lista renderiza con contenido', textoLista.trim().length > 200,
     `sólo ${textoLista.trim().length} caracteres`);
   ok('el título de la sección aparece', /Comunidad|Community/i.test(textoLista));
-  ok('los filtros de categoría están', await pagina.locator('#f-producto').count() > 0);
-  ok('el selector de orden está', await pagina.locator('#f-orden').count() > 0);
+  // Se buscan por `data-testid` y no por `id`: al rediseñar la pantalla los
+  // ids desaparecieron y la sonda pasó a fallar por el ancla, no por el
+  // producto. Un `data-testid` declara «esto lo mira una prueba» y sobrevive a
+  // un cambio de maquetación.
+  for (const [nombre, id] of [
+    ['el filtro de producto está', 'foro-producto'],
+    ['el filtro de activo está', 'foro-activo'],
+    ['el selector de orden está', 'foro-orden'],
+    ['el buscador está', 'foro-buscar'],
+  ]) {
+    ok(nombre, await pagina.locator(`[data-testid="${id}"]`).count() > 0);
+  }
+  ok('las píldoras de categoría están',
+    await pagina.locator('button[aria-pressed]').count() >= 3);
 
   await pagina.screenshot({ path: path.join(SALIDA, 'comunidad-lista.png'), fullPage: true });
 

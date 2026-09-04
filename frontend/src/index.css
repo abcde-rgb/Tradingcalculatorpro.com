@@ -717,3 +717,87 @@ a:focus-visible .tc-marca-viva .tc-v {
         animation: none;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Comunidad — primitivos de profundidad y entrada
+   ───────────────────────────────────────────────────────────────────────────
+   Van aquí y no en un `<style>` del componente para que la regla global de
+   `prefers-reduced-motion` de más arriba las alcance: una animación declarada
+   dentro de un componente se le escapa, y entonces la accesibilidad depende de
+   que quien la escriba se acuerde.
+
+   La tensión con `identidad-visual` § 5 («cero degradados, cero blur») es
+   deliberada y está decidida por el dueño el 2026-09-03: la web va hacia un
+   registro más moderno. Lo que NO se hace es el degradado genérico de SaaS:
+   el fondo es una **retícula de marcas de calibre**, la misma escala que la
+   regleta del producto, desvanecida hacia abajo. Mide, no decora.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Campo de marcas: dos retículas de 1 px a distinta densidad, como el borde de
+   un calibre visto de lejos. `mask-image` la apaga hacia abajo para que el
+   texto nunca compita con ella. */
+.tc-campo {
+    position: relative;
+    isolation: isolate;
+}
+
+.tc-campo::before {
+    content: "";
+    position: absolute;
+    inset: -1px -1px auto;
+    height: 320px;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+        repeating-linear-gradient(to right, hsl(var(--rule)) 0 1px, transparent 1px 64px),
+        repeating-linear-gradient(to bottom, hsl(var(--rule)) 0 1px, transparent 1px 64px);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .55), transparent 78%);
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .55), transparent 78%);
+}
+
+/* El halo del acento. Un solo objeto por pantalla puede llevarlo — la ficha de
+   la operación en el detalle del hilo— y nada más. Es `box-shadow` sobre un
+   elemento que no cambia de tamaño, así que no provoca reflow. */
+.tc-halo {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / .22), 0 18px 48px -28px hsl(var(--primary) / .35);
+}
+
+/* Entrada escalonada. Una sola vez, sin observador: el retardo lo pone el
+   índice de la fila con una variable. Nada queda «aparcado» en opacidad 0
+   esperando un scroll — si el JavaScript no llega, el contenido se ve igual,
+   porque el estado final de la animación es el estado por defecto. */
+@keyframes tc-entra {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.tc-entra {
+    animation: tc-entra 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* Barrido de carga para los esqueletos. Sustituye al «Cargando…» en texto:
+   una lista que aparece con su forma ya puesta se siente el doble de rápida
+   que la misma lista precedida de una palabra. */
+@keyframes tc-brillo {
+    to {
+        background-position-x: -200%;
+    }
+}
+
+.tc-esqueleto {
+    background-image: linear-gradient(90deg,
+            hsl(var(--muted)) 0%,
+            hsl(var(--secondary)) 40%,
+            hsl(var(--muted)) 80%);
+    background-size: 200% 100%;
+    animation: tc-brillo 1.4s linear infinite;
+    border-radius: var(--radius-sharp);
+}

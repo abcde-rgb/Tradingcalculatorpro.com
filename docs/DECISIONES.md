@@ -366,11 +366,38 @@ ocultar; el resto está en la § 8 de ese documento, sin fecha.
    de pagar rompería conversaciones de terceros y borraría aportaciones que otros
    marcaron como útiles.
 
-### El registro visual: se implementó el que no cambia nada
+### El registro visual: primero se eligió el conservador, y el dueño lo rechazó
 
 Seis registros comparados en
 [`maquetas/comunidad-layers.html`](./maquetas/comunidad-layers.html) sobre la misma
-maquetación. Ganó **«Producto»**: el sistema de diseño tal cual. Los otros cinco
-—cinemático, técnico, lujo, brutalista, calma— están medidos y cada uno lleva escrito
-qué decisión de `identidad-visual` rompe. El de «Lujo» apagaba el verde de marca, que
-es una decisión ya tomada y desplegada: por ahí no se vuelve a pasar.
+maquetación. **La primera implementación usó «Producto»** —el sistema de diseño tal
+cual— por prudencia. El dueño la rechazó el mismo día: pedía explícitamente algo más
+moderno y dejó dicho que **la web entera va en esa dirección**.
+
+Así que la pantalla implementada es ahora un **cinemático disciplinado**:
+
+- Titular de portada (`clamp(2.25rem, 5.2vw, 4rem)`) con la display, **una sola vez**
+  por pantalla, que es lo que `identidad-visual` § 2 pide para esa familia.
+- Rótulos en monoespaciada con `tracking` ancho como estructura, no como adorno.
+- Aire de portada: 96 px sobre el hero, filas de 28 px.
+- Entrada escalonada de 520 ms con la curva `out` del sistema, **una sola vez** y sin
+  observador: el estado final de la animación es el estado por defecto, así que si el
+  JavaScript no llega el contenido se ve igual. Nada queda aparcado en opacidad 0.
+- Esqueletos en vez de la palabra «Cargando».
+
+**Qué rompe de `identidad-visual`, y por qué se acepta:**
+
+| Regla | Qué se hace | Por qué |
+|---|---|---|
+| «Cero degradados» § 5 | Dos: la máscara que desvanece la retícula del hero y el barrido del esqueleto | Ninguno es un fondo de color: uno es una **máscara de opacidad** y el otro un indicador de carga |
+| «Sombras: casi ninguna» § 2 | Un `box-shadow` de halo | En **un solo objeto de toda la pantalla**: la ficha de la operación, que es lo que la gente ha venido a discutir |
+
+**Lo que NO se hace, y es lo que separa esto de una plantilla:** el degradado morado
+de SaaS, el blob difuminado, el hero a `100vh`, el scroll-jacking y los contadores
+animados. La profundidad del fondo es una **retícula de marcas de calibre** a la misma
+escala que la regleta: mide, no decora. Y el acento sigue siendo el **verde de marca**
+—esa decisión no se toca (§ 1.bis)—; lo que cambia es la escala tipográfica, el aire y
+el movimiento.
+
+Los otros cinco registros se conservan en la maqueta con lo que rompe cada uno. El de
+«Lujo» apagaba el verde de marca: por ahí no se vuelve a pasar.

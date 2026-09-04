@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "Chargement…",
   "comunidadErrorCarga": "Impossible de charger la communauté.",
   "comunidadErrorGenerico": "Une erreur est survenue. Réessayez.",
+  "comunidadLema": "Ce que vous calculez, discuté avec ceux qui le calculent aussi",
+  "comunidadHilos": "Sujets",
+  "comunidadMiembros": "Membres",
+  "comunidadCifrasReales": "Comptes réels de la base de données, pas des estimations.",
+  "comunidadTuMensaje": "Votre message",
+  "comunidadCuentaEliminada": "Compte supprimé",
 }

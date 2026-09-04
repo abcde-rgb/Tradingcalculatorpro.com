@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "読み込み中…",
   "comunidadErrorCarga": "コミュニティを読み込めませんでした。",
   "comunidadErrorGenerico": "問題が発生しました。もう一度お試しください。",
+  "comunidadLema": "あなたが計算したことを、同じように計算する人と話す",
+  "comunidadHilos": "スレッド",
+  "comunidadMiembros": "メンバー",
+  "comunidadCifrasReales": "データベースの実数です。推計ではありません。",
+  "comunidadTuMensaje": "あなたの投稿",
+  "comunidadCuentaEliminada": "削除されたアカウント",
 }

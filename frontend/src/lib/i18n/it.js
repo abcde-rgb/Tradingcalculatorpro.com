@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "Caricamento…",
   "comunidadErrorCarga": "Non è stato possibile caricare la comunità.",
   "comunidadErrorGenerico": "Qualcosa è andato storto. Riprova.",
+  "comunidadLema": "Quello che calcoli, discusso con chi lo calcola come te",
+  "comunidadHilos": "Discussioni",
+  "comunidadMiembros": "Membri",
+  "comunidadCifrasReales": "Conteggi reali dal database, non stime.",
+  "comunidadTuMensaje": "Il tuo messaggio",
+  "comunidadCuentaEliminada": "Account eliminato",
 }

@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "加载中…",
   "comunidadErrorCarga": "无法加载社区。",
   "comunidadErrorGenerico": "出错了，请重试。",
+  "comunidadLema": "你算出来的东西，和同样在算的人一起讨论",
+  "comunidadHilos": "主题",
+  "comunidadMiembros": "成员",
+  "comunidadCifrasReales": "来自数据库的真实计数，不是估算。",
+  "comunidadTuMensaje": "你的消息",
+  "comunidadCuentaEliminada": "已删除的账号",
 }

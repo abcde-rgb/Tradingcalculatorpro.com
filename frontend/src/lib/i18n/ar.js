@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "جارٍ التحميل…",
   "comunidadErrorCarga": "تعذّر تحميل المجتمع.",
   "comunidadErrorGenerico": "حدث خطأ ما. حاول مرة أخرى.",
+  "comunidadLema": "ما تحسبه، تناقشه مع من يحسبه مثلك",
+  "comunidadHilos": "المواضيع",
+  "comunidadMiembros": "الأعضاء",
+  "comunidadCifrasReales": "أعداد حقيقية من قاعدة البيانات، وليست تقديرات.",
+  "comunidadTuMensaje": "رسالتك",
+  "comunidadCuentaEliminada": "حساب محذوف",
 }

@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "Загрузка…",
   "comunidadErrorCarga": "Не удалось загрузить сообщество.",
   "comunidadErrorGenerico": "Что-то пошло не так. Попробуйте ещё раз.",
+  "comunidadLema": "То, что вы считаете, — с теми, кто считает так же",
+  "comunidadHilos": "Темы",
+  "comunidadMiembros": "Участники",
+  "comunidadCifrasReales": "Реальные подсчёты из базы данных, а не оценки.",
+  "comunidadTuMensaje": "Ваше сообщение",
+  "comunidadCuentaEliminada": "Удалённый аккаунт",
 }

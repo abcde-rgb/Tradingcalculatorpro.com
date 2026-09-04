@@ -5035,4 +5035,10 @@ export default {
   "comunidadCargando": "Wird geladen…",
   "comunidadErrorCarga": "Community konnte nicht geladen werden.",
   "comunidadErrorGenerico": "Etwas ist schiefgelaufen. Versuchen Sie es erneut.",
+  "comunidadLema": "Was Sie rechnen, besprochen mit denen, die genauso rechnen",
+  "comunidadHilos": "Themen",
+  "comunidadMiembros": "Mitglieder",
+  "comunidadCifrasReales": "Echte Zählungen aus der Datenbank, keine Schätzungen.",
+  "comunidadTuMensaje": "Ihre Nachricht",
+  "comunidadCuentaEliminada": "Gelöschtes Konto",
 }

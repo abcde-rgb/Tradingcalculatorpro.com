@@ -121,7 +121,27 @@ calculadoras.
 El estado vacío de `CommunityPage` está diseñado para eso: dice que está vacío,
 explica por qué, y propone escribir el primero.
 
-## 10 · Cómo se prueba esto
+## 10 · El registro visual va por delante del resto del producto
+
+Decidido por el dueño el 2026-09-03: la comunidad estrena el registro al que va a ir
+la web entera. Titular de portada, rótulos en monoespaciada, aire, entrada escalonada
+y esqueletos.
+
+Tres cosas que **no** se pueden deshacer por «volver al sistema»:
+
+- La display aparece **una sola vez por pantalla** (el titular). Es lo que
+  `identidad-visual` § 2 pide para esa familia, no una excepción.
+- La profundidad del fondo es `.tc-campo`: una **retícula de marcas de calibre**, la
+  misma escala que la regleta. **No es un degradado de color** y no se sustituye por
+  uno: ahí está la diferencia entre esto y una plantilla.
+- El halo (`.tc-halo`) lo lleva **un único objeto de la pantalla**: la ficha de la
+  operación en el detalle. Si algún día lo llevan dos, deja de significar nada.
+
+Las animaciones viven en `index.css` y no en el componente, para que la regla global
+de `prefers-reduced-motion` las alcance. `.tc-entra` tiene el estado final como estado
+por defecto: si el JavaScript no llega, el contenido se ve igual.
+
+## 11 · Cómo se prueba esto
 
 ```bash
 cd backend && python -m pytest tests/test_forum_unit.py tests/test_forum_rutas_unit.py -q
@@ -129,6 +149,15 @@ bash tests/e2e/stack/arriba.sh          # Postgres + backend + build
 python3 tests/e2e/api/comunidad.py      # contra PostgreSQL de verdad
 node tests/e2e/navegador/comunidad.js   # ciclo completo en Chromium
 ```
+
+⚠️ **El build tiene que llevar `REACT_APP_BACKEND_URL`.** `arriba.sh` lo pone; un
+`npm run build` a secas deja `API = null`, el frontend no habla con el backend y la
+sonda falla en sitios que no tienen nada que ver (se ve venir por el
+`%REACT_APP_BACKEND_URL%` sin sustituir en la CSP). Ya despistó una vez.
+
+Las anclas de la sonda son `data-testid` (`foro-producto`, `foro-activo`,
+`foro-orden`, `foro-buscar`), no `id`: al rediseñar la pantalla los ids desaparecieron
+y la sonda falló por el ancla en vez de por el producto.
 
 Los tests de rutas usan un **doble** de base de datos: prueban la lógica, no la
 traducción a SQL. Lo segundo lo cubre la sonda de API, y por eso las dos hacen falta
