@@ -67,27 +67,29 @@ ficheros. No aligera el bundle —código que nadie importa no entra en él— p
 `node_modules`, el tiempo de instalación y la superficie que hay que auditar.
 Se regeneran con `npx shadcn@latest add <nombre>` el día que hagan falta.
 
-Quedan **cuatro componentes propios**: trabajo terminado que no cuelga de
-ninguna pantalla. Cada uno con su decisión, para que la lista no vuelva a ser
-un recuento sin dueño:
+> 📅 **Revisado contra el código el 2026-09-04.** De los cuatro que listaba
+> esta sección, **tres ya no están abiertos**. Se deja escrito qué era cada uno
+> porque una lista de pendientes con datos falsos cuesta una sesión entera — es
+> el hueco G-29, y ésta era una de sus víctimas.
 
-- [ ] **`education/TradingBasicsGuide.jsx` (671 líneas) — decisión del dueño.**
-      Guía de largo/corto con diagramas SVG propios y **135 claves i18n que no
-      usa nada más**, traducidas a los diez idiomas: ~14 KB del diccionario que
-      cada visitante descarga, más 138 KB en el repositorio. Las dos salidas son
-      legítimas y llevan a sitios distintos, así que no se toma sola: **(a)**
-      colgarla de la Academia —es contenido acabado y hoy son 86 módulos— o
-      **(b)** retirarla con sus 135 claves × 10 idiomas. Lo que no vale es
-      dejarla como está: se paga el peso sin que nadie la lea.
-- [ ] **`options/GreeksPanel.jsx` (127 líneas).** Lo sustituyó `GreeksDisplay`,
-      que sí está montado en el panel de opciones. Retirar; comprobar antes que
-      no tenga nada que el vivo no haga.
-- [ ] **`dashboard/PriceTicker.jsx` (79 líneas).** Sin pantalla. Ojo: lee precio
-      en vivo, así que antes de reconectarlo tiene que respetar `stale`/`as_of`
-      de la cascada de `market_data.py` — pintar un precio viejo como fresco es
-      exactamente BUG-060.
-- [ ] **`education/WhyItMatters.jsx` (60 líneas).** Retirar salvo que se quiera
-      dentro de la Academia.
+- [x] ~~**`education/TradingBasicsGuide.jsx` — decisión del dueño.**~~
+      **La decisión está tomada y es la (a): cuelga de la Academia.** Lo monta
+      `EducationPage.jsx:1261` (y lo importa en la línea 103). Que figurase aquí
+      como «nunca conectado» tuvo consecuencias: se quedó fuera de la migración
+      a los tokens de señal, así que seguía pintando con la paleta cruda de
+      Tailwind —elegida para el tema oscuro— y sobre papel su verde daba
+      **1,67:1**. Lo cazó la sonda de accesibilidad el 2026-09-04; sus 67 clases
+      están migradas.
+- [x] ~~**`options/GreeksPanel.jsx`**~~ · **borrado** con G-30 (2026-08-26). El
+      fichero ya no existe.
+- [x] ~~**`dashboard/PriceTicker.jsx`**~~ · **borrado** con G-30 (2026-08-26). Si
+      algún día vuelve, sigue en pie el aviso: lee precio en vivo, así que tiene
+      que respetar `stale`/`as_of` de la cascada de `market_data.py` — pintar un
+      precio viejo como fresco es exactamente BUG-060.
+- [ ] **`education/WhyItMatters.jsx` (59 líneas).** El único que sigue huérfano:
+      ningún fichero lo importa (lo que sí se usa es el getter
+      `getWhyItMattersBlocks` de `tradingEducationContent.js`, que la página
+      pinta por su cuenta). Retirar salvo que se quiera dentro de la Academia.
 
 ## Autenticación
 

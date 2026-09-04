@@ -49,6 +49,7 @@
 | **Tests de integración** | 🟡 | Existen pero requieren `BACKEND_URL` vivo; se saltan si no |
 | **Lint del frontend (ESLint)** | 🟢 | **0 errores, 123 avisos** (2026-08-08). Los avisos son símbolos muertos: deuda de limpieza, no bloquean |
 | **Paridad i18n / motor** | 🟢 | `i18n-check` 0 huecos en los 10 idiomas · `engine-check` **264/264** · `simulacion-masiva` **1.000 escenarios generados / ~20.000 invariantes** (60.000 probados en 6 semillas) · `check-edu-index` 85 = 85. Cifra de claves al día en [`MAPA.md`](./MAPA.md) |
+| **Accesibilidad (EAA / WCAG 2.1 AA)** | 🟢 | **0 incumplimientos graves** de axe en 8 pantallas × 2 temas × 2 anchos, y `contraste.js` en verde en los dos temas (medido 2026-09-04, BUG-082). La sonda exime la decoración inerte —`aria-hidden` **y** `pointer-events:none`— y la **cuenta** en vez de descartarla. Es exigible: la Ley Europea de Accesibilidad aplica desde junio de 2025 a los servicios de consumo en la UE |
 | **Banco de pruebas E2E (`qa`)** | 🟢 | Arranca en frío desde el 2026-08-14 (G-35). Nuevo `tests/e2e/mirar.js`: una pantalla, una captura, los errores de JS, el desbordamiento y el texto de los `data-testid` que pidas — para mirar mientras diseñas sin correr el examen entero |
 | **Dashboard: mesa de cálculo** | 🟢 | Nueva el 2026-08-14 (`components/desk/`). Capital arriba del todo y con la cuenta, producto, modo de margen según el producto, **tope duro del 10 % de riesgo por operación**, tamaño derivado del riesgo con los tres techos, liquidación en aislado **y cruzado**, parciales y comisiones. Las 14 calculadoras siguen ahí como **modo básico** |
 | **Ajustes del usuario entre dispositivos** | 🟢 | Tema, idioma, preferencias, favoritos, progreso de la Academia y **setups** viajan con la cuenta desde el 2026-08-08 (`lib/cloudPrefs.js`). Ver G-25 |
@@ -405,6 +406,7 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-09-04 (cont.) | El banco E2E completo, por primera vez en esta rama (BUG-082: accesibilidad) |
 | 2026-09-04 | CI llevaba en rojo en todos los PR: el origen del backend no llegaba a la CSP |
 | 2026-09-03 (2) | El panel de ajustes pasa a ser una consola |
 | 2026-09-03 | Seis paneles de ajustes para elegir uno |

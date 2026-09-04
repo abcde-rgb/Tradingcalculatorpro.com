@@ -6546,3 +6546,50 @@ Comprobadas fichero y línea, no de memoria:
 
 Y la fila del semáforo de CI decía 🟢 con CI en rojo desde hacía semanas. Queda dicho
 ahí mismo: un semáforo escrito a mano no ve el color de la última ejecución.
+
+### 2026-09-04 (cont.) — El banco E2E completo, por primera vez en esta rama
+
+Con Postgres en pie para lo anterior, se levantó el stack entero y se corrió
+`tests/e2e/correr.sh`. La sesión del 03-09 dejó escrito que no había podido
+hacerlo; ésta sí. Trece sondas, tres con hallazgos, y los tres reales.
+
+**Verde de entrada** (nada que tocar): recorrido 35/35 en escritorio y móvil,
+analítica 16/16 en los dos, «lo indefinido es una raya», temas 7/7, ticker 5/5,
+precio viejo, brókers, los 10 idiomas 30/30, RGPD 12/12, pantalla-vs-base y
+raíles de cobro.
+
+**Accesibilidad — BUG-082.** Cuatro hallazgos, tres de producto y uno de la
+propia sonda; el detalle está en el diario. En resumen: los cuatro campos de la
+calculadora de la portada no tenían etiqueta (`critical` ×4), el rótulo «Stop»
+de la regleta no llegaba al contraste mínimo en ninguno de los dos temas, la
+Academia pintaba con la paleta cruda de Tailwind —1,67:1 sobre papel— porque su
+fichero se quedó fuera de la migración a tokens al figurar como no conectado, y
+axe contaba como graves cinco nodos de decoración inerte que la WCAG exime.
+Resultado: **0 graves en las 16 combinaciones**, escritorio y móvil.
+
+**Autorización — el centinela funcionó.** `autorizacion.py` exigía que
+`PUT /auth/profile` devolviera 404/405 *para ponerse roja el día que alguien
+añadiera un endpoint de perfil* y obligar a escribir la prueba de asignación
+masiva. BUG-079 lo añadió el 01-09; esta tanda es la primera con backend vivo
+desde entonces y la sonda saltó. Escrita la prueba: es la ruta de escritura
+sobre `db.users` más golosa que tiene un usuario normal —escribe en su propia
+fila, donde viven `is_premium` e `is_admin`—, y no deja colar nada. Las dos
+mitades, porque un endpoint que ignorase todo el cuerpo pasaría la primera con
+nota. 30/30.
+
+**Y una nota de método**: `probar-verificadores.sh` restaura con
+`git checkout -- .`, así que se lleva por delante cualquier cambio sin
+confirmar. Pasó en esta sesión. Confirma antes de lanzarlo.
+
+### Lo que queda dicho para la próxima
+
+- **El despliegue puede fallar ahora**, y a propósito: si el secreto
+  `REACT_APP_BACKEND_URL` estuviera vacío, `check-csp-origenes.js --exigir-todos`
+  para el workflow en vez de publicar una web que carga y no habla con su API.
+- **CI no se ha podido ejecutar desde aquí** (`workflow_dispatch` responde 403 a
+  este integrador). Lo que sí se ha hecho es reproducir su fallo exacto en local
+  —14 problemas con el build sin la variable— y verlo en verde después: 12/12
+  pantallas de SPA y 3/3 estáticas. La confirmación en el runner llega con el
+  primer PR.
+- **`WhyItMatters.jsx`** es el único de los cuatro componentes huérfanos que
+  sigue huérfano; los otros tres estaban borrados o montados desde hace semanas.
