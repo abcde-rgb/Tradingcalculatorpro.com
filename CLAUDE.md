@@ -51,7 +51,11 @@ pytest tests/ -v                  # todos · -k "test_greeks" para uno
 # Frontend (desde frontend/)
 npm ci --legacy-peer-deps
 REACT_APP_BACKEND_URL=http://localhost:8080 npm start
-npm run build
+# La variable tampoco es opcional al COMPILAR: sin ella CRA deja el marcador
+# `%REACT_APP_BACKEND_URL%` dentro de la CSP y el navegador descarta esa fuente,
+# o sea una web que carga entera y no puede llamar a su API. Lo vigila
+# `check-csp-origenes.js`.
+REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npm run build
 ```
 
 ### Verificar antes de commit — atajo: `/verify`
@@ -62,6 +66,7 @@ cd backend && pytest tests/ -q
 cd frontend && npx eslint src scripts       # 0 errores; los avisos de símbolos muertos no bloquean
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
 python scripts/gen-instruments-js.py --check   # catálogo backend ↔ frontend
+cd frontend && node scripts/check-csp-origenes.js  # la CSP compilada autoriza al backend
 python scripts/gen-mapa.py --check             # el mapa refleja el código
 python scripts/gen-asistente.py --check        # skills/reglas/agentes bien cableados
 python scripts/check-rutas-muertas.py          # cada ruta sin pantalla tiene decisión

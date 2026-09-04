@@ -798,6 +798,57 @@ else
   echo "  ⏭️  Identidad de t: sin frontend/node_modules, no se prueba"
 fi
 
+# ── La CSP compilada autoriza al backend (check-csp-origenes.js) ────────────
+# Sólo necesita el ARTEFACTO, no el servidor: por eso va antes del bloque de
+# navegador y con su propia guarda. Sabotear el build y no la fuente es
+# deliberado —recompilar cuesta minutos y lo que se prueba es que el verificador
+# lee lo que se publica, no por dónde entró el valor—. `frontend/build/` está en
+# .gitignore, así que la restauración va a mano con una copia.
+if [ -f frontend/build/index.html ] \
+   && grep -q "ws://127.0.0.1:8080" frontend/build/index.html; then
+  ORIG_COPIA="$(mktemp)"
+  TEMPORALES+=("$ORIG_COPIA")
+  cp frontend/build/index.html "$ORIG_COPIA"
+
+  titulo "Orígenes de la CSP compilada (check-csp-origenes.js)"
+
+  # 1 · El fallo real: la variable no llega al build y CRA deja el marcador.
+  #     Tuvo a CI en rojo en TODOS los PR, y publicaría una web que carga
+  #     entera y no puede hablar con su propia API.
+  probar "el marcador %REACT_APP_BACKEND_URL% sobrevive dentro de connect-src" \
+    "(cd frontend && node scripts/check-csp-origenes.js)" \
+    "sed -i 's|http://127.0.0.1:8080|%REACT_APP_BACKEND_URL%|' frontend/build/index.html" \
+    "cp '$ORIG_COPIA' frontend/build/index.html"
+
+  # 2 · La forma silenciosa: secreto DEFINIDO y vacío. No deja marcador, la
+  #     directiva queda sintácticamente perfecta y sin el backend dentro; el
+  #     navegador no dice ni una palabra.
+  probar "el origen del backend se queda vacío (secreto definido y vacío)" \
+    "(cd frontend && node scripts/check-csp-origenes.js)" \
+    "sed -i 's|http://127.0.0.1:8080 ||' frontend/build/index.html" \
+    "cp '$ORIG_COPIA' frontend/build/index.html"
+
+  # 3 · El esquema de menos: en CSP3 `http://host` NO autoriza `ws://host`.
+  #     Hasta ahora esto sólo lo veía un navegador con sesión iniciada.
+  probar "el esquema ws:// de menos deja el WebSocket fuera de la política" \
+    "(cd frontend && node scripts/check-csp-origenes.js)" \
+    "sed -i 's| ws://127.0.0.1:8080||' frontend/build/index.html" \
+    "cp '$ORIG_COPIA' frontend/build/index.html"
+
+  # 4 · Y que no grite con la política correcta: un verificador que fallara
+  #     siempre pasaría los tres sabotajes de arriba sin verificar nada.
+  # El cuarto argumento es `true` y no el `git checkout -- .` por defecto: aquí
+  # no hay nada que restaurar —el cebo no toca nada— y el restaurador por
+  # defecto se llevaría por delante cualquier cambio sin confirmar del árbol.
+  probar_inverso "la política bien compilada no produce ningún problema" \
+    "(cd frontend && node scripts/check-csp-origenes.js)" \
+    "true" \
+    "true"
+else
+  echo "  ⏭️  Orígenes de la CSP: sin un build compilado con REACT_APP_BACKEND_URL, no se prueba"
+  echo "      (cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npm run build)"
+fi
+
 # ── El presupuesto de peso caza una pantalla que engorda ────────────────────
 # Necesita el build compilado y el servidor en pie, así que sólo se prueba si
 # están; si no, se dice que se salta en vez de figurar como aprobado.

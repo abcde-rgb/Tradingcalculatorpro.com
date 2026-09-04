@@ -59,7 +59,20 @@ Ejecuta en orden y reporta cada resultado. No sigas si uno falla de forma bloque
    confianza falsa, que es peor que no tenerla.
 
 6. **Build de producción** (sólo si tocaste `frontend/**`):
-   `cd frontend && CI=false npm run build`
+   `cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 CI=false npm run build`
+
+   La variable NO es opcional aunque el build salga en verde sin ella. `public/index.html`
+   escribe la CSP con `%REACT_APP_BACKEND_URL%` y CRA deja el marcador si la variable no
+   existe: el navegador descarta esa fuente de `connect-src` y la web queda sin permiso
+   para hablar con su propia API. Es el mismo valor que usan `stack/arriba.sh` y
+   `probar-verificadores.sh`.
+
+6.b **Que ese origen llegara de verdad a la política compilada**:
+   `cd frontend && node scripts/check-csp-origenes.js`
+   Exige el par `http(s)://backend` + `ws(s)://backend` dentro de `connect-src` — en CSP3
+   una fuente `https://host` NO autoriza `wss://host`. Corre en CI tras el build, y en el
+   despliegue con `--exigir-todos`, que es donde un secreto vacío publicaría una web que
+   carga entera y no llama a la API.
 
 7. **Capturas** (sólo si tocaste algo visual, y con el build ya hecho):
    `node scripts/capturas.js`

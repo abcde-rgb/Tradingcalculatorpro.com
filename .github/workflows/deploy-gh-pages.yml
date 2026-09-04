@@ -59,6 +59,23 @@ jobs:
           CI: false
         run: npm run build
 
+      # ── La puerta antes de publicar ────────────────────────────────────────
+      # Un secreto que falte NO rompe este workflow: `${{ secrets.X }}` de un
+      # secreto inexistente vale `''`, el build sale en verde y se publica.
+      # Con `REACT_APP_BACKEND_URL` vacío eso significa dos cosas a la vez:
+      # `API = null` en la aplicación, y una `connect-src` sin el origen del
+      # backend. La web carga entera, se ve bien, y no hay UN SOLO `fetch` que
+      # llegue a la API. Es el fallo más caro que este repositorio puede
+      # publicar y hasta hoy nada lo miraba.
+      #
+      # `--exigir-todos` porque aquí el workflow pasa las seis variables: un
+      # marcador `%…%` vivo en el artefacto significa que se cayó una.
+      - name: La CSP publicada autoriza al backend (y no quedan marcadores)
+        working-directory: frontend
+        env:
+          REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
+        run: node scripts/check-csp-origenes.js --exigir-todos
+
       # React Router SPA — direct URL loads return the app instead of 404
       - name: Copy index.html to 404.html
         run: cp frontend/build/index.html frontend/build/404.html

@@ -243,6 +243,31 @@ jobs:
         run: npm run build
         env:
           CI: false   # mismo criterio que el deploy: warnings no rompen el build
+          # Sin esto el build NO tiene la forma del que se publica, y no es un
+          # matiz: `public/index.html` escribe la CSP con `%REACT_APP_BACKEND_URL%`
+          # y CRA deja el marcador tal cual cuando la variable no existe. El
+          # navegador descarta esa fuente de `connect-src` («contains an invalid
+          # source»), así que la sonda de la CSP encontraba una violación en cada
+          # pantalla y el job de frontend salía ROJO en todos los PR, por algo que
+          # no tenía nada que ver con el diff. Un rojo permanente que no habla del
+          # cambio es un rojo que se deja de mirar, y con él se dejan de mirar las
+          # otras veinte comprobaciones de este job.
+          #
+          # El valor es el mismo que usan `stack/arriba.sh` y los recompilados de
+          # `probar-verificadores.sh`: el backend local del banco de pruebas. Tiene
+          # que ser localhost y no la API real — un runner de GitHub sí tiene red y
+          # las sondas acabarían llamando a producción.
+          REACT_APP_BACKEND_URL: http://127.0.0.1:8080
+
+      # Que el origen del backend llegara DE VERDAD a la política compilada.
+      # Va aquí, offline y sin navegador, porque es la comprobación que hay que
+      # poder hacer en el paso siguiente al build en cualquier sitio —incluido el
+      # despliegue, donde un secreto vacío deja la directiva sintácticamente
+      # perfecta y sin el backend dentro, y ahí ni siquiera hay aviso en consola.
+      - name: La CSP compilada autoriza al backend
+        run: node scripts/check-csp-origenes.js
+        env:
+          REACT_APP_BACKEND_URL: http://127.0.0.1:8080
 
       # El `postbuild` genera 1.630 páginas indexables y un sitemap de 1.639
       # URLs — el mayor activo de captación del proyecto — y hasta el
@@ -276,6 +301,13 @@ jobs:
       # admite report-only: no hay ensayo. Una directiva de menos bloquea
       # TradingView o el botón de Google EN PRODUCCIÓN, y ningún test offline lo
       # nota porque ninguno abre un navegador.
+      #
+      # `--sin-sesion`: este job no levanta backend, y el bloque del WebSocket
+      # necesita entrar de verdad. Sin la bandera fallaba con «NO SE PUDO ENTRAR»
+      # —correcto como diagnóstico, inútil como puerta— y con ella se dice en la
+      # salida que ese bloque queda sin comprobar y dónde se comprueba. La sonda
+      # rechaza la bandera si el backend responde, para que no se extienda a
+      # donde sí se puede probar.
       - name: La CSP no rompe la web
         working-directory: .
-        run: node tests/e2e/navegador/csp.js
+        run: node tests/e2e/navegador/csp.js --sin-sesion
