@@ -26,6 +26,7 @@ y no de la lista cruda: sobre un documento canónico, la lista a secas habría
 borrado `leverage` **en la misma escritura que lo guardaba**. Aquí se fija.
 """
 import asyncio
+import getpass
 import os
 import pathlib
 import sys
@@ -40,15 +41,40 @@ os.environ.setdefault("JWT_SECRET", "test-only-secret")
 import server  # noqa: E402
 
 
+def _usuario() -> str:
+    """El usuario del sistema, de verdad.
+
+    La autenticación por socket es `peer`: el rol tiene que llamarse como el
+    usuario que ejecuta el proceso o no entra jamás. Esto iba como
+    `os.environ.get("USER") or "postgres"`, y `USER` no está exportado en un
+    contenedor no interactivo —el caso normal en una sesión remota—, así que
+    caía a `postgres`, la conexión moría con «Peer authentication failed» y las
+    42 pruebas del shim se SALTABAN en silencio con Postgres en pie al lado.
+    `getpass.getuser()` mira las mismas variables de entorno y, si no están,
+    pregunta al sistema en vez de adivinar.
+    """
+    try:
+        return getpass.getuser()
+    except Exception:  # noqa: BLE001 — sin passwd ni entorno; que decida quien llama
+        return "postgres"
+
+
 def _url() -> str | None:
     """URL de una base desechable. El socket Unix evita el SSL de `init_pool`."""
     for env in ("SHIM_TEST_DATABASE_URL", "DATABASE_URL"):
         if os.environ.get(env):
             return os.environ[env]
     socket = pathlib.Path("/var/run/postgresql")
-    if socket.exists():
-        usuario = os.environ.get("USER") or "postgres"
-        return f"postgresql://{usuario}@/shim_test?host=/var/run/postgresql"
+    # Lo que dice que hay servidor es el SOCKET, no el directorio. El directorio
+    # existe vacío en cualquier contenedor donde esté instalado el cliente de
+    # PostgreSQL, y darlo por bueno tenía consecuencias: `URL` dejaba de ser
+    # None, el `skipif` del módulo no disparaba, y la única prueba que no usa la
+    # fixture `db` —la de TLS, que abre su propia conexión— moría con
+    # `ConnectionRefusedError`. O sea, un contenedor recién clonado terminaba el
+    # suite con «1 failed» que no era del código y que había que explicar en
+    # cada sesión.
+    if any(socket.glob(".s.PGSQL.*")):
+        return f"postgresql://{_usuario()}@/shim_test?host=/var/run/postgresql"
     return None
 
 
@@ -478,13 +504,21 @@ def test_verify_full_rechaza_un_nombre_que_no_casa(bucle):
         except Exception as e:  # noqa: BLE001
             return type(e).__name__
 
-    usuario = os.environ.get("USER") or "root"
+    usuario = _usuario()
     clave = os.environ.get("SHIM_TEST_PASSWORD", "testpw")
     dsn = f"postgresql://{usuario}:{clave}@127.0.0.1:5432/shim_test"
 
     fallo = corre(bucle, intenta(dsn))
     if fallo in ("InvalidPasswordError", "InvalidAuthorizationSpecificationError"):
         pytest.skip("el Postgres local no acepta TCP con contraseña en este entorno")
+    # No es lo mismo «pregunté y me dijo que sí» que «no había a quién preguntar».
+    # Un servidor por socket puede tener el puerto TCP cerrado, y entonces esta
+    # prueba no puede afirmar NADA sobre verify-full: sin conexión no hay
+    # certificado que validar. Fallar ahí sería acusar al código de un fallo del
+    # entorno, que es como se pierde la confianza en un suite.
+    if fallo in ("ConnectionRefusedError", "OSError", "TimeoutError",
+                 "ConnectionResetError", "gaierror"):
+        pytest.skip(f"nada escucha en 127.0.0.1:5432 ({fallo}): no hay TLS que comprobar")
     assert fallo is not None and "Verification" in fallo, (
         "verify-full aceptó un certificado cuyo nombre no casa: la conexión "
         "cifra pero no autentica"
