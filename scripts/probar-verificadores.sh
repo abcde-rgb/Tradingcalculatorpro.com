@@ -1774,6 +1774,15 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
 
   # Las páginas puente de los slugs traducidos. Un puente cuyo canonical y
   # cuyo refresh no coinciden manda dos señales distintas y no transfiere nada.
+  # El refresh de un puente va RELATIVO. Absoluto, saca al visitante del origen
+  # en el que está: la sonda de CSP siguió uno hasta el sitio de PRODUCCIÓN y
+  # midió allí la política equivocada, y desde la URL de proyecto de GitHub
+  # Pages —la red de seguridad si cae el DNS— habría hecho lo mismo.
+  probar "un puente con el refresh absoluto" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'refresh\" content=\"0; url=/' $SEO_PUENTE && sed -i 's|refresh\" content=\"0; url=/|refresh\" content=\"0; url=https://tradingcalculator.pro/|' $SEO_PUENTE" \
+    "$SEO_REST; $SEO_REGEN"
+
   probar "una página puente con canonical y refresh discordantes" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|<link rel=\"canonical\" href=\"|<link rel=\"canonical\" href=\"https://tradingcalculator.pro/otra-cosa/#|' $SEO_PUENTE" \

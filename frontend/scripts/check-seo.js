@@ -142,15 +142,29 @@ function revisarPuente(fichero, html, rel) {
   const destino = attr(html, /<meta http-equiv="refresh" content="0;\s*url=([^"]+)"/i);
   const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
   if (!destino) { anota('puente sin destino', rel, 'el meta refresh no trae URL'); return; }
-  if (!mismoOrigen(destino, DOMAIN)) anota('puente a otro dominio', rel, destino);
+
+  // El refresh va RELATIVO a la raíz y el canonical ABSOLUTO, y cada uno por su
+  // motivo. El canonical nombra el dominio porque es la señal que transfiere la
+  // indexación. El refresh NO puede nombrarlo: un puente servido desde otro
+  // origen sacaría al visitante de donde está. Pasó — la sonda de CSP siguió
+  // uno hasta el sitio de producción y midió allí la política equivocada— y
+  // habría hecho lo mismo desde la URL de proyecto de GitHub Pages.
+  if (/^https?:\/\//i.test(destino))
+    anota('puente con refresh absoluto (saca al visitante de su origen)', rel, destino);
+  else if (!destino.startsWith('/'))
+    anota('puente con refresh relativo a la carpeta', rel, `${destino} — tiene que empezar por "/"`);
+
   if (!canonical) anota('puente sin canonical', rel, 'sólo el refresh no transfiere la señal');
-  else if (unaBarra(canonical) !== unaBarra(destino))
-    anota('puente con canonical y refresh discordantes', rel, `${canonical} ≠ ${destino}`);
+  else if (!mismoOrigen(canonical, DOMAIN)) anota('puente con canonical a otro dominio', rel, canonical);
+  else if (unaBarra(rutaDe(canonical)) !== unaBarra(destino))
+    anota('puente con canonical y refresh discordantes', rel, `${rutaDe(canonical)} ≠ ${destino}`);
   // Un puente NO puede llevar noindex: contradiría al canonical y le diría a
   // Google que no siga la mudanza.
   const robots = attr(html, /<meta name="robots" content="([^"]*)"/);
   if (robots && /noindex/i.test(robots)) anota('puente con noindex', rel, robots);
-  puentes.set(rel, unaBarra(destino));
+  // Se guarda en forma absoluta para poder cruzarlo con el sitemap y con las
+  // páginas generadas, que van así.
+  puentes.set(rel, unaBarra(`${DOMAIN}${destino.startsWith('/') ? destino : `/${destino}`}`));
 }
 
 // ── el examen de una página ─────────────────────────────────────────────────

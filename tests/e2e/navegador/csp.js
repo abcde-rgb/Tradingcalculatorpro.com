@@ -46,10 +46,23 @@ const RUTAS_SPA = [
 // Las estáticas llevan una política MUCHO más dura (`default-src 'none'`),
 // así que se comprueban aparte: un script que se colara ahí sería un fallo
 // distinto y más grave.
+//
+// ⚠️ Las rutas de aquí tienen que ser ESTABLES, y desde que los slugs se
+// derivan del título traducido no todas lo son. `/en/tools/calculadora-tamano-
+// posicion/` —que es lo que había— pasó a ser una PÁGINA PUENTE, y la sonda
+// acabó midiendo la CSP del sitio al que redirigía en vez de la de una página
+// estática.
+//
+// El criterio, para que no vuelva a pudrirse:
+//   · las fichas se piden en ESPAÑOL y sin prefijo. El slug español está
+//     pinchado a propósito (`slugPara` no lo deriva: es el único idioma con
+//     indexación consolidada), así que no se mueve nunca.
+//   · el hub sí puede ir en otro idioma: `/<idioma>/learn/` es un segmento
+//     fijo, no un slug, y vale igual para comprobar esa plantilla.
 const RUTAS_ESTATICAS = [
-  '/en/tools/calculadora-tamano-posicion/',
-  '/en/markets/forex/',
-  '/en/learn/',
+  '/tools/calculadora-tamano-posicion/',   // ficha de calculadora
+  '/markets/forex/',                       // ficha de mercado (con su FAQ)
+  '/en/learn/',                            // hub de sección
 ];
 
 const TEXTO_MINIMO = 40;

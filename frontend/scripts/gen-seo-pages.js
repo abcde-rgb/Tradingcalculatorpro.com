@@ -1306,16 +1306,25 @@ let puenteCount = 0;
 const pisados = [];
 for (const [rel, destino, etiqueta] of puentes) {
   if (escritas.has(rel)) { pisados.push([rel, destino]); continue; }
+  // El `canonical` va ABSOLUTO —es la señal que transfiere la indexación y
+  // tiene que nombrar el dominio— pero el `refresh` y el enlace van RELATIVOS.
+  //
+  // Con el refresh absoluto, un puente servido desde cualquier otro sitio
+  // saca al visitante del origen en el que está: en CI la sonda de CSP siguió
+  // uno hasta el sitio de producción y midió allí, y desde la URL de proyecto
+  // de GitHub Pages —la red de seguridad si cae el DNS— habría hecho lo mismo.
+  // Relativo, el puente se queda donde lo sirvan, que es lo que debe hacer.
+  const ruta = new URL(destino).pathname;
   write(rel, `<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=${esc(destino)}">
+<meta http-equiv="refresh" content="0; url=${esc(ruta)}">
 <link rel="canonical" href="${esc(destino)}">
 <meta name="robots" content="follow">
 <title>${esc(etiqueta || destino)}</title>
 </head>
-<body><p>→ <a href="${esc(destino)}">${esc(etiqueta || destino)}</a></p></body>
+<body><p>→ <a href="${esc(ruta)}">${esc(etiqueta || destino)}</a></p></body>
 </html>`);
   puenteCount++;
 }
