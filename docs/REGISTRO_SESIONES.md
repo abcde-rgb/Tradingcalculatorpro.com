@@ -6426,3 +6426,123 @@ cambios que nadie revisa.
 **Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
 PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
 ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.
+
+## 2026-09-04 — CI llevaba semanas en rojo, y el rojo no hablaba de ningún cambio
+
+Petición: «mejora la web hasta alcanzar la excelencia». Lo primero que apareció al
+mirar el estado real —no la documentación— es que **las ocho últimas ejecuciones de
+CI están en rojo**, todas por lo mismo, y ninguna por el código que se estaba
+revisando. Un rojo permanente que no habla del diff deja de leerse, y con él dejan
+de leerse las otras veinte comprobaciones del job. Ése era el problema de
+«excelencia» más caro que tenía el repositorio, así que va primero.
+
+### Los dos motivos, los dos ajenos a cualquier PR
+
+**1 · El origen del backend no llegaba a la CSP** (BUG-081, hueco G-42).
+`ci.yml` compila sin `REACT_APP_BACKEND_URL`. `public/index.html` escribe la
+política con `%REACT_APP_BACKEND_URL%`, y CRA **deja el marcador tal cual** cuando
+la variable no está en el entorno —sólo interpola las `REACT_APP_*` que existen—.
+El navegador entonces descarta esa fuente:
+
+    The source list for the CSP directive 'connect-src' contains an invalid
+    source: '%REACT_APP_BACKEND_URL%'. It will be ignored.
+
+Y `csp.js` la encontraba en las doce pantallas de la SPA. Estaba **diagnosticado
+desde el 03-09** en el mensaje de un commit del PR #229, y sin arreglo publicado.
+
+**2 · Chromium no está donde las sondas lo buscan** (PR #224, abierto y sin
+fusionar). `entorno.js` mira bajo `/opt/pw-browsers`, que existe en este sandbox y
+no en el runner. El paso del presupuesto de peso muere antes de medir nada y el de
+la CSP queda `skipped`: sin portar esto, el arreglo de arriba no llegaría a
+ejecutarse. Se porta tal cual del #224 —igual que hizo el #229— porque esperar a
+que se fusione es seguir en rojo.
+
+### Lo que hace que esto no sea sólo ruido de CI
+
+El marcador vivo es una de **dos** formas de romperlo, y la otra no deja rastro. Un
+secreto **definido y vacío** —`${{ secrets.X }}` de un secreto que no existe vale
+`''`— hace que CRA sustituya por nada: la directiva queda sintácticamente perfecta,
+sin el backend dentro, y **sin un solo aviso en la consola**. Eso publica una web
+que carga entera, se ve bien y no tiene un `fetch` que llegue a la API (`API = null`
+por un lado, la CSP bloqueando por el otro). Es BUG-067 otra vez, por otra puerta, y
+hasta hoy el despliegue no miraba nada de esto.
+
+Por eso el arreglo no es «poner la variable en CI» sino un verificador:
+
+**`frontend/scripts/check-csp-origenes.js`**. En vez de comparar contra un valor
+esperado —que obliga a acordarse de pasarle el entorno—, exige una propiedad
+estructural: **`connect-src` tiene que llevar el par `http(s)://host` +
+`ws(s)://host` del mismo origen**. Ninguna fuente de terceros de la política es un
+WebSocket, así que el único `ws://` de la lista ES el backend y su gemelo tiene que
+estar al lado. Las dos formas de fallar lo tumban. De regalo cierra **offline** el
+fallo del esquema —en CSP3 `https://host` no autoriza `wss://host`— que hasta ahora
+sólo veía un navegador con sesión iniciada.
+
+Corre tras el build en CI y **en el despliegue con `--exigir-todos`**, donde además
+exige que no sobreviva ningún marcador: allí el workflow pasa las seis variables, así
+que un `%…%` vivo significa que se cayó una.
+
+⚠️ **Consecuencia operativa**: si el secreto `REACT_APP_BACKEND_URL` estuviera vacío,
+el despliegue **fallará** en ese paso en vez de publicar. Es lo que se quiere —mejor
+no publicar que publicar una web muda— pero conviene saberlo antes del próximo push
+a `main`.
+
+### Dos falsos verdes de la propia sonda, encontrados al arreglarla
+
+- **`csp.js` daba verde sobre la SPA creyendo mirar una página estática.** El
+  servidor devuelve `index.html` para toda ruta desconocida —React Router lo
+  necesita—, y `/en/learn/` es un **directorio** de páginas, no una página. Así que
+  el bloque de la política DURA (`default-src 'none'`) llevaba tiempo midiendo la
+  blanda y no podía encontrar nada. Ahora se exige ver esa directiva en la página
+  servida, y la ruta apunta a una estática que existe.
+- **El bloque del WebSocket no puede correr sin backend**, y fallaba con «NO SE PUDO
+  ENTRAR»: correcto como diagnóstico, inútil como puerta. Con `--sin-sesion` se dice
+  en la salida que queda SIN comprobar y dónde sí se cubre. Y para que la bandera no
+  se convierta en el verde barato, **la sonda falla si se le pasa con el backend en
+  pie**.
+
+### El informe de los verificadores acusaba a una sonda perfecta
+
+`probar-verificadores.sh` ejecutaba los tres sabotajes de `csp.js` sin mirar si había
+backend. Sin él, `entra()` falla y `probar()` lo lee como «no pasa ni ANTES de
+sabotear: hay algo roto de verdad» — tres acusaciones falsas y quince minutos de
+reloj por tanda. Ahora se comprueba antes: con backend van los tres casos más uno
+nuevo (que `--sin-sesion` FALLE con el stack en pie); sin backend se prueba lo que sí
+se puede —una directiva de menos se ve sin entrar— y se dice qué queda fuera.
+
+### El suite del shim: 42 pruebas que no corrían y una que fallaba
+
+Al levantar Postgres para lo anterior apareció otra cosa. `_url()` de
+`test_shim_collection_unit.py` daba por buena la base local si **existía el
+directorio** `/var/run/postgresql`. Ese directorio existe **vacío** en cualquier
+contenedor con el cliente instalado, así que el `skipif` del módulo no disparaba y la
+única prueba que no usa la fixture `db` moría con `ConnectionRefusedError`: el «1
+failed» que la sesión del 03-09 dejó anotado sin arreglar. Y con Postgres EN PIE, el
+rol salía de `$USER` —no exportado en un contenedor no interactivo— así que las 42
+restantes morían con «Peer authentication failed» y se **saltaban en silencio**.
+
+Medido en los tres estados:
+
+| | antes | ahora |
+|---|---|---|
+| sin Postgres | 43 skipped + **1 failed** | 44 skipped |
+| con Postgres, sin `USER` | 2 passed + **42 skipped** | **44 passed** |
+| con Postgres y `USER=root` | 44 passed | 44 passed |
+
+CI no cambia: allí manda `SHIM_TEST_DATABASE_URL`.
+
+### Tres filas de la documentación que daban por abierto lo hecho
+
+Comprobadas fichero y línea, no de memoria:
+
+- **BUG-007** (preferencias sólo en `localStorage`): lo cerró G-25 el 2026-08-08 y la
+  fila llevaba un mes diciendo lo contrario. Viajan en `user_states` bajo
+  `preferences_v1` (`cloudPrefs.js:47`, `server.py:5605`).
+- **G-26** (no se puede editar el perfil): `server.py:3720-3721` registra `POST` y
+  `PUT /auth/profile`; lo llaman `store.js:227` y `SettingsPage.jsx:113`. Cerrado por
+  BUG-079 el 2026-09-01.
+- **G-38** (el shim sin tests): 44 pruebas contra PostgreSQL real desde que se cerró
+  G-17 el 2026-08-27. Seguía en 🟠.
+
+Y la fila del semáforo de CI decía 🟢 con CI en rojo desde hacía semanas. Queda dicho
+ahí mismo: un semáforo escrito a mano no ve el color de la última ejecución.
