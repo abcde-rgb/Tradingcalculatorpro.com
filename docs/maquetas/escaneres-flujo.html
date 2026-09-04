@@ -1,0 +1,761 @@
+<title>Seis Escáneres de Flujo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   Seis escáneres de flujo — TradingCalculator.Pro
+   Tokens REALES del producto (frontend/src/index.css). Oscuro primero.
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#101319; --surface:#171B22; --raise:#1D222B; --rule:#262C36;
+  --ink:#E7E2D6; --muted:#949AA3; --faint:#6E747E;
+  --accent:#17CF63; --accent-ink:#08110B; --accent-soft:rgba(23,207,99,.12);
+  --long:#22C55E; --short:#F26969; --warn:#F59E0B; --info:#7FB0FB;
+  --short-soft:rgba(242,105,105,.10); --warn-soft:rgba(245,158,11,.12);
+  --info-soft:rgba(127,176,251,.12);
+  --r-sharp:2px; --r-soft:10px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --paper:#F7F6F2; --surface:#FBFAF9; --raise:#F1EEE8; --rule:#DEDAD3;
+    --ink:#171B25; --muted:#5F6670; --faint:#8A8F98;
+    --accent:#115F31; --accent-ink:#FFFFFF; --accent-soft:rgba(17,95,49,.10);
+    --long:#127A3C; --short:#B21A1A; --warn:#89550B; --info:#1763C4;
+    --short-soft:rgba(178,26,26,.08); --warn-soft:rgba(137,85,11,.10);
+    --info-soft:rgba(23,99,196,.10);
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#F7F6F2; --surface:#FBFAF9; --raise:#F1EEE8; --rule:#DEDAD3;
+  --ink:#171B25; --muted:#5F6670; --faint:#8A8F98;
+  --accent:#115F31; --accent-ink:#FFFFFF; --accent-soft:rgba(17,95,49,.10);
+  --long:#127A3C; --short:#B21A1A; --warn:#89550B; --info:#1763C4;
+  --short-soft:rgba(178,26,26,.08); --warn-soft:rgba(137,85,11,.10);
+  --info-soft:rgba(23,99,196,.10);
+  color-scheme:light;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;font-size:15px;line-height:1.5;
+  font-family:'Inter Tight',Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+h1,h2,h3,h4,p,figure,dl,dd{margin:0}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.mono,.num{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ── Cromo ───────────────────────────────────────────────────────── */
+.chrome{position:sticky;top:0;z-index:60;background:var(--surface);border-bottom:1px solid var(--rule);
+  padding:10px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.chrome .marca{font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;white-space:nowrap}
+.chrome .marca span{color:var(--muted);font-family:'Inter Tight',sans-serif;font-weight:500}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.tabs button{background:none;border:1px solid transparent;border-radius:var(--r-sharp);padding:5px 10px;
+  font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px}
+.tabs button:hover{color:var(--ink);border-color:var(--rule)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--rule);background:var(--raise)}
+.tabs button b{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:var(--accent)}
+.chrome .util button{background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-sharp);
+  padding:5px 9px;font-size:12px;color:var(--muted);cursor:pointer}
+.chrome .util button:hover{color:var(--ink)}
+
+.brief{padding:14px 16px 16px;border-bottom:1px solid var(--rule);
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:8px 32px;align-items:start}
+.brief h2{font-family:'Archivo',sans-serif;font-size:16px;letter-spacing:-.02em}
+.brief h2 em{font-style:normal;color:var(--faint);font-family:'IBM Plex Mono',monospace;font-size:12px;margin-right:8px}
+.brief p{color:var(--muted);font-size:13.5px;max-width:64ch}
+.brief ul{margin:0;padding:0;list-style:none;display:grid;gap:5px;font-size:12.5px}
+.brief li{display:grid;grid-template-columns:74px 1fr;gap:10px;color:var(--muted)}
+.brief li b{font-weight:600;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding-top:1px}
+.brief li.si b{color:var(--long)} .brief li.no b{color:var(--short)}
+@media (max-width:820px){.brief{grid-template-columns:1fr}}
+
+.aviso{display:flex;gap:10px;align-items:flex-start;padding:11px 16px;background:var(--warn-soft);
+  border-bottom:1px solid var(--rule);font-size:12.5px;color:var(--ink)}
+.aviso b{color:var(--warn)}
+
+.escenario{padding:20px 16px 64px}
+.stage{container-type:inline-size;container-name:esc;background:var(--paper);border:1px solid var(--rule);
+  border-radius:var(--r-soft);overflow:clip;margin:0 auto;max-width:1320px}
+.vista{display:none}
+.vista.on{display:block}
+
+/* ── Primitivas ──────────────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 8px;
+  font-size:10.5px;font-weight:600;border:1px solid transparent;white-space:nowrap}
+.ev-medido{color:var(--long);background:var(--accent-soft);border-color:color-mix(in srgb,var(--long) 32%,transparent)}
+.ev-inferido{color:var(--info);background:var(--info-soft);border-color:color-mix(in srgb,var(--info) 32%,transparent)}
+.ev-heuristica{color:var(--warn);background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 32%,transparent)}
+.pill.neu{color:var(--muted);background:var(--raise);border-color:var(--rule)}
+.pill.ya{color:var(--long);background:var(--accent-soft);border-color:color-mix(in srgb,var(--long) 30%,transparent)}
+.pill.posible{color:var(--info);background:var(--info-soft);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.pill.bloq{color:var(--short);background:var(--short-soft);border-color:color-mix(in srgb,var(--short) 30%,transparent)}
+.cab{padding:16px 22px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;
+  align-items:flex-end;gap:16px;flex-wrap:wrap}
+.cab h1{font-family:'Archivo',sans-serif;font-size:20px;letter-spacing:-.03em}
+.cab p{font-size:12.5px;color:var(--muted);margin-top:3px;max-width:70ch}
+.simbolo{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted)}
+.simbolo b{color:var(--ink)}
+.regleta{height:8px;border-top:1px solid var(--rule);position:relative;overflow:hidden}
+.regleta::before{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px 8px);
+  mask-image:linear-gradient(to bottom,#000 0 4px,transparent 4px);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0 4px,transparent 4px)}
+.nota-pie{font-size:11px;color:var(--faint);padding:12px 22px;border-top:1px solid var(--rule);line-height:1.6}
+.nota-pie code{font-family:'IBM Plex Mono',monospace;color:var(--muted)}
+
+/* ══ 1 · TERMINAL — una fila por señal, ordenada por peso ═════════ */
+#v1 .filtros{display:flex;gap:8px;flex-wrap:wrap;padding:12px 22px;border-bottom:1px solid var(--rule);align-items:center}
+#v1 .filtros .et{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:700;margin-right:2px}
+#v1 .filtros button{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-sharp);
+  padding:4px 9px;font-size:11.5px;color:var(--muted);cursor:pointer}
+#v1 .filtros button[aria-pressed="true"]{color:var(--ink);border-color:var(--accent);background:var(--accent-soft)}
+#v1 table{width:100%;border-collapse:collapse;font-size:12.5px}
+#v1 thead th{text-align:left;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+  font-weight:700;padding:9px 10px;border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--surface)}
+#v1 tbody td{padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+#v1 tbody tr:hover{background:var(--surface)}
+#v1 .nom{font-weight:500;color:var(--ink)}
+#v1 .ref{display:block;font-size:10.5px;color:var(--faint);margin-top:1px}
+#v1 .val{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+#v1 .dir-alcista{color:var(--long)} #v1 .dir-bajista{color:var(--short)} #v1 .dir-neutro{color:var(--muted)}
+#v1 .tabla-envoltura{overflow-x:auto}
+@container esc (max-width:760px){ #v1 .ocultable{display:none} }
+
+/* ══ 2 · REJILLA DE CONFLUENCIA — escalón × familia ═══════════════ */
+#v2 .malla{overflow-x:auto;padding:18px 22px 22px}
+#v2 table{border-collapse:separate;border-spacing:3px;min-width:640px}
+#v2 th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:700;padding:4px 6px;text-align:center}
+#v2 th.lat{text-align:right;white-space:nowrap;font-family:'IBM Plex Mono',monospace;
+  letter-spacing:0;text-transform:none;font-size:12px;color:var(--muted)}
+#v2 td{width:74px;height:44px;text-align:center;border-radius:var(--r-sharp);border:1px solid var(--rule);
+  font-family:'IBM Plex Mono',monospace;font-size:14px;font-variant-numeric:tabular-nums;cursor:default}
+#v2 td.n0{color:var(--faint);background:transparent}
+#v2 td b{font-weight:600}
+#v2 td small{display:block;font-size:9px;font-family:'Inter Tight',sans-serif;color:var(--muted);margin-top:-2px}
+#v2 .leyenda{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:0 22px 18px;font-size:11.5px;color:var(--muted)}
+#v2 .muestra{display:inline-block;width:22px;height:12px;border-radius:2px;border:1px solid var(--rule);vertical-align:-2px;margin-right:5px}
+
+/* ══ 3 · PILA DE EVIDENCIA — tres carriles por peso ═══════════════ */
+#v3 .carriles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule)}
+#v3 .carril{background:var(--paper);padding:16px 16px 22px;min-width:0}
+#v3 .carril > header{margin-bottom:12px}
+#v3 .carril h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+#v3 .carril p{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+#v3 .carril .cuenta{font-family:'Archivo',sans-serif;font-size:28px;letter-spacing:-.04em;line-height:1}
+#v3 .c-medido h3,#v3 .c-medido .cuenta{color:var(--long)}
+#v3 .c-inferido h3,#v3 .c-inferido .cuenta{color:var(--info)}
+#v3 .c-heuristica h3,#v3 .c-heuristica .cuenta{color:var(--warn)}
+#v3 .sig{border:1px solid var(--rule);border-radius:var(--r-sharp);padding:9px 11px;margin-top:8px;background:var(--surface)}
+#v3 .sig .t{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+#v3 .sig b{font-weight:500;font-size:13px}
+#v3 .sig .v{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+#v3 .sig small{display:block;font-size:10.5px;color:var(--faint);margin-top:3px;line-height:1.45}
+@container esc (max-width:820px){ #v3 .carriles{grid-template-columns:1fr} }
+
+/* ══ 4 · RADAR DE MICROESTRUCTURA ════════════════════════════════ */
+#v4 .rej{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1px;background:var(--rule)}
+#v4 .m{background:var(--paper);padding:15px 16px;display:grid;gap:9px;align-content:start;min-width:0}
+#v4 .m > header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+#v4 .m h3{font-size:12.5px;font-weight:600}
+#v4 .m .cita{font-size:10px;color:var(--faint);font-family:'IBM Plex Mono',monospace}
+#v4 .cifra{font-family:'Archivo',sans-serif;font-size:26px;letter-spacing:-.035em;line-height:1}
+#v4 .cifra small{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0;margin-left:5px}
+#v4 .barra{height:16px;position:relative;border-bottom:1px solid var(--rule)}
+#v4 .barra .m0{position:absolute;inset:0;background:repeating-linear-gradient(to right,var(--rule) 0 1px,transparent 1px 9px)}
+#v4 .barra .v{position:absolute;left:0;bottom:0;height:6px;background:var(--accent)}
+#v4 .barra .v.alto{background:var(--warn)} #v4 .barra .v.critico{background:var(--short)}
+#v4 .m p{font-size:11.5px;color:var(--muted);line-height:1.5}
+#v4 .m.bloqueado{background:var(--surface)}
+#v4 .m.bloqueado .cifra{color:var(--faint)}
+#v4 .falta{font-size:11px;color:var(--short);display:flex;gap:6px;align-items:flex-start;line-height:1.45}
+
+/* ══ 5 · COPILOTO ════════════════════════════════════════════════ */
+#v5 .doble{display:grid;grid-template-columns:minmax(0,1fr) 320px}
+#v5 .lectura{padding:20px 24px 26px;min-width:0}
+#v5 .burbuja{border:1px solid var(--rule);border-left:2px solid var(--accent);border-radius:var(--r-sharp);
+  background:var(--surface);padding:15px 17px;font-size:13.5px;line-height:1.65}
+#v5 .burbuja p + p{margin-top:10px}
+#v5 .burbuja .cita-det{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--accent);
+  border-bottom:1px dotted color-mix(in srgb,var(--accent) 50%,transparent);cursor:help}
+#v5 .firma{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--faint);margin-top:10px}
+#v5 aside{border-left:1px solid var(--rule);background:var(--surface);padding:18px 16px}
+#v5 aside h3{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:9px}
+#v5 aside h3.no{color:var(--short)}
+#v5 .base{display:grid;gap:0}
+#v5 .base li{list-style:none;display:flex;gap:9px;padding:7px 0;border-top:1px solid var(--rule);font-size:12px}
+#v5 .base li:first-child{border-top:0}
+#v5 .base b{font-weight:500}
+#v5 ul{margin:0;padding:0}
+#v5 .nolo{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:6px}
+#v5 .nolo li{list-style:none;padding:5px 0 5px 14px;position:relative}
+#v5 .nolo li::before{content:"×";position:absolute;left:0;color:var(--short);font-weight:700}
+@container esc (max-width:860px){ #v5 .doble{grid-template-columns:1fr} #v5 aside{border-left:0;border-top:1px solid var(--rule)} }
+
+/* ══ 6 · CATÁLOGO FILTRABLE ══════════════════════════════════════ */
+#v6 .facetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;
+  padding:16px 22px;border-bottom:1px solid var(--rule);background:var(--surface)}
+#v6 .faceta h4{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:7px}
+#v6 .faceta label{display:flex;gap:7px;align-items:center;font-size:12px;color:var(--muted);padding:2px 0;cursor:pointer}
+#v6 .faceta input{accent-color:var(--accent);width:13px;height:13px}
+#v6 .faceta label:hover{color:var(--ink)}
+#v6 .resumen{padding:10px 22px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--rule)}
+#v6 .resumen b{color:var(--ink);font-family:'IBM Plex Mono',monospace}
+#v6 .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1px;background:var(--rule)}
+#v6 .det{background:var(--paper);padding:13px 15px;display:grid;gap:7px;align-content:start;min-width:0}
+#v6 .det .t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+#v6 .det b{font-weight:500;font-size:13px}
+#v6 .det .ref{font-size:10.5px;color:var(--faint);font-family:'IBM Plex Mono',monospace}
+#v6 .det p{font-size:11.5px;color:var(--muted);line-height:1.5}
+#v6 .det .tags{display:flex;gap:5px;flex-wrap:wrap}
+#v6 .vacio{padding:36px 22px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+
+<header class="chrome">
+  <div class="marca">Escáner de flujo <span>· 6 propuestas</span></div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" aria-selected="true" data-v="v1"><b>01</b> Terminal</button>
+    <button role="tab" aria-selected="false" data-v="v2"><b>02</b> Confluencia</button>
+    <button role="tab" aria-selected="false" data-v="v3"><b>03</b> Evidencia</button>
+    <button role="tab" aria-selected="false" data-v="v4"><b>04</b> Microestructura</button>
+    <button role="tab" aria-selected="false" data-v="v5"><b>05</b> Copiloto</button>
+    <button role="tab" aria-selected="false" data-v="v6"><b>06</b> Catálogo</button>
+  </div>
+  <div class="util"><button id="btn-tema">Claro</button></div>
+</header>
+
+<section class="brief" id="brief">
+  <div>
+    <h2><em id="b-num">01</em><span id="b-nombre">Terminal</span></h2>
+    <p id="b-tesis">Una fila por señal disparada, ordenada por peso de evidencia y no por vistosidad. Lo medido arriba, la heurística abajo, y cada fila dice de qué dato sale y quién lo publicó.</p>
+  </div>
+  <ul>
+    <li class="si"><b>A favor</b><span id="b-si">Densidad máxima y orden defendible: el trader ve en un vistazo qué se ha medido y qué es convención de dibujo.</span></li>
+    <li class="no"><b>En contra</b><span id="b-no">Sesenta detectores en una tabla abruman a quien empieza. Necesita los filtros de serie, no como extra.</span></li>
+    <li><b>Coste</b><span id="b-coste">Medio · tabla + orden por evidencia sobre el catálogo</span></li>
+  </ul>
+</section>
+
+<p class="aviso">
+  <span>⚠️</span>
+  <span><b>Datos de ejemplo.</b> Ninguna cifra corresponde a un mercado real. Y dos cosas que ninguna
+  pantalla puede saltarse: <b>nada de esto predice</b> —se enseña evidencia con su fiabilidad, no un
+  pronóstico— y el <b>«volumen oculto» en vivo no existe como dato libre</b>: lo legal y gratuito es
+  inferir compras/ventas de los ticks (Lee-Ready, 72–84 % de acierto) y el volumen de dark pools que
+  FINRA publica <b>semanalmente</b>.</span>
+</p>
+
+<div class="escenario">
+<div class="stage" id="stage">
+
+  <section class="vista on" id="v1" aria-label="Terminal de señales">
+    <div class="cab">
+      <div>
+        <h1>Señales activas</h1>
+        <p>Ordenadas por peso de evidencia: primero lo que se mide del dato, después lo que se infiere con error conocido, al final la convención de dibujo.</p>
+      </div>
+      <div class="simbolo">símbolo <b>EURUSD</b> · escalón <b>15m</b> · <span id="v1-sello">—</span></div>
+    </div>
+    <div class="filtros" id="v1-filtros">
+      <span class="et">Evidencia</span>
+      <button data-ev="medido" aria-pressed="true">Medido</button>
+      <button data-ev="inferido" aria-pressed="true">Inferido</button>
+      <button data-ev="heuristica" aria-pressed="true">Heurística</button>
+      <span class="et" style="margin-left:10px">Dato</span>
+      <button data-dato="disponible" aria-pressed="true">Con lo que hay</button>
+      <button data-dato="bloqueado" aria-pressed="true">Requiere dato nuevo</button>
+    </div>
+    <div class="tabla-envoltura">
+      <table>
+        <thead><tr>
+          <th>Detector</th><th>Familia</th><th>Evidencia</th>
+          <th class="ocultable">Dato</th><th style="text-align:right">Lectura</th><th class="ocultable">Estado</th>
+        </tr></thead>
+        <tbody id="v1-cuerpo"></tbody>
+      </table>
+    </div>
+    <p class="nota-pie" id="v1-pie"></p>
+  </section>
+
+  <section class="vista" id="v2" aria-label="Rejilla de confluencia">
+    <div class="cab">
+      <div>
+        <h1>Confluencia por escalón</h1>
+        <p>Dónde se acumulan las señales. Una familia que dispara en cinco escalones a la vez dice algo que la misma familia en uno solo no dice — y la celda enseña el conteo, no una nota inventada.</p>
+      </div>
+      <div class="simbolo">símbolo <b>EURUSD</b></div>
+    </div>
+    <div class="malla" id="v2-malla"></div>
+    <div class="leyenda">
+      <span><span class="muestra" style="background:var(--accent-soft);border-color:color-mix(in srgb,var(--long) 40%,transparent)"></span>señales medidas</span>
+      <span><span class="muestra" style="background:var(--info-soft);border-color:color-mix(in srgb,var(--info) 40%,transparent)"></span>inferidas</span>
+      <span><span class="muestra" style="background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 40%,transparent)"></span>heurísticas</span>
+      <span>El color dice de qué tipo es la mayoría de la celda; el número, cuántas.</span>
+    </div>
+  </section>
+
+  <section class="vista" id="v3" aria-label="Pila de evidencia">
+    <div class="cab">
+      <div>
+        <h1>Pila de evidencia</h1>
+        <p>La misma lectura repartida por lo que cada señal <em>es</em>: medida, inferida con un error publicado, o convención sin tasa base revisada. Es la única de las seis que pone el peso epistémico antes que la señal.</p>
+      </div>
+      <div class="simbolo">símbolo <b>EURUSD</b> · escalón <b>15m</b></div>
+    </div>
+    <div class="carriles" id="v3-carriles"></div>
+  </section>
+
+  <section class="vista" id="v4" aria-label="Radar de microestructura">
+    <div class="cab">
+      <div>
+        <h1>Microestructura</h1>
+        <p>El bloque institucional: las medidas que la literatura académica publica y usa. Las tarjetas apagadas <strong>dicen qué dato les falta</strong> en vez de enseñar un número que no se puede calcular.</p>
+      </div>
+      <div class="simbolo">símbolo <b>EURUSD</b> · ventana <b>20 sesiones</b></div>
+    </div>
+    <div class="rej" id="v4-rej"></div>
+    <p class="nota-pie">
+      Las cuatro primeras se calculan <strong>con el dato diario que ya hay</strong>. Las bloqueadas exigen
+      ticks o libro de órdenes: no se enseñan a medias ni con un sustituto — <code>None</code> no es cero.
+    </p>
+  </section>
+
+  <section class="vista" id="v5" aria-label="Copiloto">
+    <div class="cab">
+      <div>
+        <h1>Copiloto</h1>
+        <p>El modelo lee <em>los detectores que han disparado</em> y redacta la lectura citando cada uno. Resume evidencia y la ordena; no pronostica, y lo dice.</p>
+      </div>
+      <div class="simbolo">símbolo <b>EURUSD</b> · escalón <b>15m</b></div>
+    </div>
+    <div class="doble">
+      <div class="lectura">
+        <div class="burbuja" id="v5-texto"></div>
+        <div class="firma">
+          <span>Redactado por el copiloto sobre 7 detectores disparados · 0 cifras generadas por el modelo</span>
+        </div>
+      </div>
+      <aside>
+        <h3>En qué se basa</h3>
+        <ul class="base" id="v5-base"></ul>
+        <h3 class="no" style="margin-top:18px">Lo que no puede saber</h3>
+        <ul class="nolo">
+          <li>Quién está detrás de una operación: el dato público no lleva identidad.</li>
+          <li>Si el volumen es «institucional»: eso no se observa, se supone.</li>
+          <li>Qué va a pasar. Ningún detector de esta lista es un pronóstico.</li>
+          <li>Órdenes ocultas en vivo: exige libro L2, que no es dato libre.</li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+
+  <section class="vista" id="v6" aria-label="Catálogo filtrable">
+    <div class="cab">
+      <div>
+        <h1>Catálogo de detectores</h1>
+        <p>Todo lo listado, con su cita, el dato que exige y su nivel de evidencia. El usuario filtra; la herramienta no decide por él qué merece la pena.</p>
+      </div>
+    </div>
+    <div class="facetas" id="v6-facetas"></div>
+    <p class="resumen" id="v6-resumen"></p>
+    <div class="lista" id="v6-lista"></div>
+  </section>
+
+</div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════════
+// EL CATÁLOGO. Una sola fuente de verdad: las seis pantallas son seis
+// formas de mirar ESTA lista, no seis listas que se desincronizan.
+//
+//   e (evidencia) · medido     se calcula del dato, sin suponer nada
+//                 · inferido   estimación con un error publicado
+//                 · heuristica convención de dibujo, sin tasa base revisada
+//   d (dato)      · ohlc-d diario · ohlc-i intradía · ticks · l2 libro · externo
+//   s (estado)    · ya en el producto · posible con el dato de hoy · bloqueado
+// ═══════════════════════════════════════════════════════════════════════
+var D = [
+ // ── Microestructura ────────────────────────────────────────────────
+ {n:'VPIN (toxicidad del flujo)',f:'micro',e:'inferido',d:'ticks',r:'Easley, López de Prado & O’Hara 2012',s:'bloqueado',x:'Desequilibrio compra/venta por cubos de volumen, no por tiempo. Su capacidad predictiva está DISCUTIDA en la literatura (Andersen & Bondarenko): se publica como medida de desequilibrio, no como aviso.'},
+ {n:'Lambda de Kyle (impacto)',f:'micro',e:'medido',d:'ticks',r:'Kyle 1985',s:'bloqueado',x:'Cuánto mueve el precio cada unidad de flujo firmado. Es la definición formal de «hay alguien grande dentro».'},
+ {n:'Iliquidez de Amihud',f:'micro',e:'medido',d:'ohlc-d',r:'Amihud 2002',s:'posible',x:'|retorno| / volumen en dinero. Mide impacto por unidad negociada y sale del dato DIARIO: se puede calcular hoy.'},
+ {n:'Horquilla efectiva de Roll',f:'micro',e:'medido',d:'ohlc-d',r:'Roll 1984',s:'posible',x:'Estima la horquilla real desde la autocovarianza de los retornos. Sólo necesita cierres.'},
+ {n:'Horquilla Corwin-Schultz',f:'micro',e:'medido',d:'ohlc-d',r:'Corwin & Schultz 2012',s:'posible',x:'Horquilla a partir de máximos y mínimos de dos días. Otro estimador que el dato diario ya permite.'},
+ {n:'Clasificación de operaciones (Lee-Ready)',f:'micro',e:'inferido',d:'ticks',r:'Lee & Ready 1991',s:'bloqueado',x:'ESTO es «compras o ventas ocultas»: firma cada operación como iniciada por comprador o vendedor. Acierto medido entre 72 % y 84 % según mercado — se publica CON su error.'},
+ {n:'Delta acumulado',f:'micro',e:'inferido',d:'ticks',r:'deriva de Lee-Ready',s:'bloqueado',x:'Suma corrida del volumen firmado. Hereda el error de la clasificación: no es un dato, es una estimación acumulada.'},
+ {n:'Desequilibrio del libro (OFI)',f:'micro',e:'medido',d:'l2',r:'Cont, Kukanov & Stoikov 2014',s:'bloqueado',x:'Cambios en las mejores puntas del libro. Predice el movimiento a muy corto plazo mejor que el volumen.'},
+ {n:'Absorción',f:'micro',e:'inferido',d:'ticks',r:'práctica de flujo de órdenes',s:'bloqueado',x:'Volumen grande que NO mueve el precio: alguien está absorbiendo. Sin ticks no se distingue de un rango.'},
+ {n:'Órdenes iceberg',f:'micro',e:'inferido',d:'l2',r:'práctica de libro',s:'bloqueado',x:'Recargas repetidas al mismo precio. Es lo más parecido a «orden oculta» que se puede observar, y exige libro.'},
+ {n:'Perfil de volumen · POC, VAH, VAL',f:'micro',e:'medido',d:'ohlc-i',r:'Steidlmayer, Market Profile (CBOT)',s:'posible',x:'Dónde se negoció de verdad, por precio y no por tiempo. Con velas intradía se aproxima bien.'},
+ {n:'VWAP y bandas de desviación',f:'micro',e:'medido',d:'ohlc-i',r:'Berkowitz, Logue & Noser 1988',s:'posible',x:'La referencia que usa la ejecución institucional para medirse. Aproximable con intradía.'},
+
+ // ── Estructura de precio ───────────────────────────────────────────
+ {n:'Hueco de valor razonable (FVG)',f:'estructura',e:'medido',d:'ohlc-d',r:'imbalance de 3 velas',s:'ya',x:'Ya implementado, con relleno marcado y el hueco de sesión separado — un salto de cierre a apertura NO es un imbalance.'},
+ {n:'Ruptura de estructura (BOS)',f:'estructura',e:'medido',d:'ohlc-d',r:'estructura de mercado',s:'ya',x:'Ya implementado sobre swings fractales.'},
+ {n:'Cambio de carácter (CHoCH)',f:'estructura',e:'medido',d:'ohlc-d',r:'estructura de mercado',s:'ya',x:'Ya implementado.'},
+ {n:'Swings fractales',f:'estructura',e:'medido',d:'ohlc-d',r:'Williams 1995',s:'ya',x:'Ventana fractal ajustada por escalón: un fractal de 2 barras en 5m marca cada micro-onda.'},
+ {n:'Soportes y resistencias + confluencia',f:'estructura',e:'medido',d:'ohlc-d',r:'geometría de swings',s:'ya',x:'Ya implementado, con marca de los niveles que dos escalones comparten.'},
+ {n:'Barrido de liquidez / fakeout',f:'estructura',e:'medido',d:'ohlc-d',r:'ruptura fallida',s:'ya',x:'Mecha que perfora el nivel y cierra dentro. Ya se detecta y se dice qué lado entra.'},
+ {n:'Bloque de órdenes (order block)',f:'estructura',e:'heuristica',d:'ohlc-d',r:'convención SMC',s:'posible',x:'Última vela contraria antes del impulso. No hay estudio revisado por pares que publique su tasa base: se puede dibujar, pero se etiqueta como convención.'},
+ {n:'Breaker y mitigation block',f:'estructura',e:'heuristica',d:'ohlc-d',r:'convención SMC',s:'posible',x:'Variantes del anterior. Misma advertencia.'},
+ {n:'Máximos/mínimos iguales (bolsas)',f:'estructura',e:'medido',d:'ohlc-d',r:'geometría',s:'posible',x:'Igualdad dentro de una tolerancia. Es geometría medible; lo que se supone es la intención detrás.'},
+ {n:'Premium / discount (50 % del rango)',f:'estructura',e:'medido',d:'ohlc-d',r:'geometría del rango',s:'posible',x:'Mitad del último tramo. Trivial de calcular y muy usado como filtro.'},
+ {n:'Patrones chartistas (42)',f:'estructura',e:'heuristica',d:'ohlc-d',r:'Bulkowski, Encyclopedia of Chart Patterns',s:'posible',x:'H-C-H, triángulos, banderas, cuñas, taza con asa. Las 42 ilustraciones ya existen en la Academia; el detector geométrico no. Es el hueco G-40.'},
+ {n:'Patrones de vela (35)',f:'estructura',e:'medido',d:'ohlc-d',r:'Nison 1991',s:'ya',x:'Ya implementado. La forma es medible; su valor predictivo es otra discusión.'},
+ {n:'Rango de apertura (ORB)',f:'estructura',e:'medido',d:'ohlc-i',r:'Crabel 1990',s:'posible',x:'Rango de los primeros N minutos y su ruptura. Necesita intradía con horario de sesión.'},
+
+ // ── Estadística y leyes matemáticas ────────────────────────────────
+ {n:'Exponente de Hurst',f:'estadistica',e:'medido',d:'ohlc-d',r:'Hurst 1951 · Mandelbrot',s:'posible',x:'H > 0,5 persistente (la tendencia continúa), H < 0,5 antipersistente (revierte). Es el eje natural para clasificar régimen.'},
+ {n:'Ratio de varianza',f:'estadistica',e:'medido',d:'ohlc-d',r:'Lo & MacKinlay 1988',s:'posible',x:'Contrasta la serie contra un paseo aleatorio. Da un estadístico con su p-valor, no una opinión.'},
+ {n:'Test de rachas (Wald-Wolfowitz)',f:'estadistica',e:'medido',d:'ohlc-d',r:'Wald & Wolfowitz 1940',s:'posible',x:'¿Hay más o menos rachas de las que daría el azar?'},
+ {n:'Reversión a la media (ADF)',f:'estadistica',e:'medido',d:'ohlc-d',r:'Dickey & Fuller 1979',s:'posible',x:'Contraste de raíz unitaria. Base de cualquier estrategia de reversión.'},
+ {n:'Cambio estructural (CUSUM)',f:'estadistica',e:'medido',d:'ohlc-d',r:'Page 1954',s:'posible',x:'Detecta el punto donde el régimen cambia, sin fijarlo a mano.'},
+ {n:'Régimen oculto de Markov',f:'estadistica',e:'inferido',d:'ohlc-d',r:'Hamilton 1989',s:'posible',x:'Dos o tres estados (calma / estrés) con su probabilidad. Es inferencia: el estado no se observa.'},
+ {n:'Volatilidad de Parkinson',f:'estadistica',e:'medido',d:'ohlc-d',r:'Parkinson 1980',s:'posible',x:'Usa máximo y mínimo: mucho más eficiente que la desviación de cierres.'},
+ {n:'Volatilidad Garman-Klass',f:'estadistica',e:'medido',d:'ohlc-d',r:'Garman & Klass 1980',s:'posible',x:'Usa las cuatro puntas de la vela. Aún más eficiente.'},
+ {n:'GARCH(1,1)',f:'estadistica',e:'inferido',d:'ohlc-d',r:'Bollerslev 1986',s:'posible',x:'Agrupamiento de volatilidad y su previsión condicional. Modelo ajustado: sus supuestos van escritos.'},
+ {n:'Colas y curtosis (Jarque-Bera)',f:'estadistica',e:'medido',d:'ohlc-d',r:'Jarque & Bera 1980',s:'posible',x:'Cuánto se aleja la distribución de la normal. Importa para dimensionar, no para entrar.'},
+ {n:'Entropía aproximada',f:'estadistica',e:'medido',d:'ohlc-d',r:'Pincus 1991',s:'posible',x:'Cuánta estructura repetible hay en la serie. Baja entropía = más regularidad.'},
+ {n:'Ley de Benford sobre el volumen',f:'estadistica',e:'medido',d:'ohlc-d',r:'Benford 1938',s:'posible',x:'Distribución del primer dígito. Se usa en auditoría forense para detectar cifras amañadas; sobre volumen señala anomalía, no culpable.'},
+ {n:'Multifractalidad (MFDFA)',f:'estadistica',e:'medido',d:'ohlc-d',r:'Kantelhardt et al. 2002',s:'posible',x:'El espectro de escalas. Detecta cambios de comportamiento que un solo Hurst se pierde.'},
+ {n:'Autoexcitación (proceso de Hawkes)',f:'estadistica',e:'inferido',d:'ticks',r:'Hawkes 1971 · Bacry et al.',s:'bloqueado',x:'Las operaciones llaman a más operaciones. Explica el agrupamiento de actividad; exige marcas de tiempo por operación.'},
+ {n:'Ley de potencias en tamaños',f:'estadistica',e:'medido',d:'ticks',r:'Gopikrishnan et al. 2000 · Gabaix',s:'bloqueado',x:'La cola de los tamaños de operación. Una desviación es la firma estadística de un participante grande troceando.'},
+ {n:'Matriz aleatoria (RMT)',f:'estadistica',e:'medido',d:'ohlc-d',r:'Laloux et al. 1999 · Plerou et al.',s:'posible',x:'Separa la correlación real entre activos del ruido. Sirve para saber si «todo se mueve junto» es señal o azar.'},
+ {n:'Análogos históricos (DTW)',f:'estadistica',e:'inferido',d:'ohlc-d',r:'Berndt & Clifford 1994',s:'posible',x:'Busca tramos parecidos en el pasado y publica QUÉ PASÓ DESPUÉS con su muestra. Es una tasa base, no una promesa.'},
+
+ // ── Volumen ────────────────────────────────────────────────────────
+ {n:'Z-score de volumen',f:'volumen',e:'medido',d:'ohlc-d',r:'estadística descriptiva',s:'posible',x:'Cuántas desviaciones por encima de su media está el volumen de hoy.'},
+ {n:'Volumen relativo (RVOL)',f:'volumen',e:'medido',d:'ohlc-d',r:'práctica de mesa',s:'posible',x:'Volumen frente a la misma hora de los N días anteriores. Filtro de actividad anómala.'},
+ {n:'Clímax y secamiento de volumen',f:'volumen',e:'medido',d:'ohlc-d',r:'Wyckoff 1931',s:'posible',x:'Pico extremo o agotamiento. Medible; la interpretación es otra cosa.'},
+ {n:'Divergencia precio/volumen',f:'volumen',e:'heuristica',d:'ohlc-d',r:'análisis técnico clásico',s:'posible',x:'Precio sube, volumen baja. Convención muy extendida y sin tasa base auditada.'},
+ {n:'On-Balance Volume (OBV)',f:'volumen',e:'heuristica',d:'ohlc-d',r:'Granville 1963',s:'posible',x:'Acumula volumen según el signo del día.'},
+ {n:'Línea de acumulación/distribución',f:'volumen',e:'heuristica',d:'ohlc-d',r:'Williams',s:'posible',x:'Pondera el volumen por dónde cierra la vela dentro de su rango.'},
+ {n:'Chaikin Money Flow',f:'volumen',e:'heuristica',d:'ohlc-d',r:'Chaikin',s:'posible',x:'Versión normalizada de la anterior sobre una ventana.'},
+ {n:'Money Flow Index',f:'volumen',e:'heuristica',d:'ohlc-d',r:'Quong & Soudack 1989',s:'posible',x:'RSI ponderado por volumen.'},
+ {n:'Fases de Wyckoff',f:'volumen',e:'heuristica',d:'ohlc-d',r:'Wyckoff 1931',s:'posible',x:'Acumulación, resorte, distribución. Es el marco original del «dinero institucional» y sigue siendo interpretación, no medida.'},
+
+ // ── Derivados y posicionamiento ────────────────────────────────────
+ {n:'Exposición gamma (GEX)',f:'derivados',e:'medido',d:'externo',r:'cadena de opciones',s:'ya',x:'Ya implementado en el panel de opciones.'},
+ {n:'Interés abierto',f:'derivados',e:'medido',d:'externo',r:'exchange / CME',s:'posible',x:'En cripto lo publica el propio exchange y es gratuito; en futuros, la cámara.'},
+ {n:'Tipo de financiación (funding)',f:'derivados',e:'medido',d:'externo',r:'perpetuos de cripto',s:'posible',x:'Quién paga a quién por mantener la posición. Dato gratuito en los exchanges y directamente interpretable como posicionamiento.'},
+ {n:'Liquidaciones',f:'derivados',e:'medido',d:'externo',r:'exchanges de cripto',s:'posible',x:'Cierres forzosos, en vivo y gratis. Es de lo poco «institucional» que se observa sin licencia.'},
+ {n:'Ratio put/call',f:'derivados',e:'medido',d:'externo',r:'CBOE',s:'posible',x:'Posicionamiento agregado en opciones.'},
+ {n:'Informe COT (CFTC)',f:'derivados',e:'medido',d:'externo',r:'CFTC, semanal',s:'ya',x:'Posiciones reales de comerciales y grandes especuladores. Público, gratuito y redistribuible. Ya está en el producto.'},
+ {n:'Interés corto (FINRA)',f:'derivados',e:'medido',d:'externo',r:'FINRA, quincenal',s:'posible',x:'Público. Retrasado, pero es dato declarado, no inferido.'},
+ {n:'Volumen en dark pools (FINRA ATS)',f:'derivados',e:'medido',d:'externo',r:'FINRA ATS Transparency',s:'posible',x:'Lo más cerca del «volumen oculto» que existe de forma legal y gratuita: volumen agregado por ATS, SEMANAL y con retraso. En vivo no existe para nadie fuera del propio ATS.'},
+
+ // ── IA ─────────────────────────────────────────────────────────────
+ {n:'Lectura del copiloto',f:'ia',e:'inferido',d:'ohlc-d',r:'modelo Claude sobre detectores',s:'posible',x:'El modelo NO mira el gráfico ni inventa cifras: recibe los detectores que dispararon y redacta la lectura citando cada uno. Ordena y explica evidencia; no pronostica.'},
+ {n:'Tasa base del montaje actual',f:'ia',e:'medido',d:'ohlc-d',r:'medición propia con contraste barajado',s:'ya',x:'Ya implementado: recorre el histórico redetectando niveles barra a barra y compara contra la misma medición sobre la serie barajada. Sin la muestra, el porcentaje no se publica.'},
+];
+
+// Etiquetas
+var FAM = {micro:'Microestructura', estructura:'Estructura', estadistica:'Estadística',
+           volumen:'Volumen', derivados:'Derivados', ia:'IA'};
+var EV  = {medido:'Medido', inferido:'Inferido', heuristica:'Heurística'};
+var DAT = {'ohlc-d':'OHLC diario','ohlc-i':'OHLC intradía','ticks':'Ticks','l2':'Libro L2','externo':'Fuente externa'};
+var EST = {ya:'Ya en el producto', posible:'Posible hoy', bloqueado:'Falta dato'};
+var PESO = {medido:0, inferido:1, heuristica:2};
+
+// Señales de EJEMPLO (nombre del detector → lectura). Ninguna es real.
+var SIG = [
+  {n:'Iliquidez de Amihud',            v:'0,41 · p50 de 20 sesiones', dir:'neutro',  tf:'1d'},
+  {n:'Horquilla efectiva de Roll',     v:'1,8 pips',                  dir:'neutro',  tf:'1d'},
+  {n:'Exponente de Hurst',             v:'H = 0,61 · persistente',    dir:'alcista', tf:'15m'},
+  {n:'Ratio de varianza',              v:'VR = 1,34 · p = 0,02',      dir:'alcista', tf:'15m'},
+  {n:'Volatilidad Garman-Klass',       v:'0,84 % · +38 % vs media',   dir:'neutro',  tf:'15m'},
+  {n:'Hueco de valor razonable (FVG)', v:'2 abiertos · 1,0842–1,0851',dir:'alcista', tf:'15m'},
+  {n:'Ruptura de estructura (BOS)',    v:'al alza · hace 6 velas',    dir:'alcista', tf:'15m'},
+  {n:'Barrido de liquidez / fakeout',  v:'mínimo barrido · cierre dentro', dir:'alcista', tf:'15m'},
+  {n:'Z-score de volumen',             v:'+2,3 σ',                    dir:'neutro',  tf:'15m'},
+  {n:'Régimen oculto de Markov',       v:'estado calma · p = 0,78',   dir:'neutro',  tf:'1d'},
+  {n:'Tasa base del montaje actual',   v:'54 % · n = 61 · azar 49 %', dir:'alcista', tf:'15m'},
+  {n:'Bloque de órdenes (order block)',v:'1,0838 · sin mitigar',      dir:'alcista', tf:'15m'},
+  {n:'Fases de Wyckoff',               v:'posible acumulación',       dir:'alcista', tf:'1h'},
+  {n:'Divergencia precio/volumen',     v:'precio ↑ · volumen ↓',      dir:'bajista', tf:'1h'},
+  {n:'Informe COT (CFTC)',             v:'comerciales netos −18 %',   dir:'bajista', tf:'1d'},
+  {n:'Tipo de financiación (funding)', v:'+0,013 % · largos pagan',   dir:'bajista', tf:'1d'},
+];
+var porNombre = {}; D.forEach(function (d) { porNombre[d.n] = d; });
+var señales = SIG.map(function (s) {
+  var d = porNombre[s.n];
+  return { s: s, d: d };
+}).filter(function (x) { return x.d; });
+señales.sort(function (a, b) { return PESO[a.d.e] - PESO[b.d.e]; });
+
+function esc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function pill(clase, texto, titulo) {
+  return '<span class="pill ' + clase + '"' + (titulo ? ' title="' + esc(titulo) + '"' : '') + '>' + esc(texto) + '</span>';
+}
+
+// ── 1 · Terminal ───────────────────────────────────────────────────
+var filtroEv = {medido:true, inferido:true, heuristica:true};
+var filtroDato = {disponible:true, bloqueado:true};
+
+function pintaTerminal() {
+  var filas = señales.filter(function (x) {
+    if (!filtroEv[x.d.e]) return false;
+    var bloqueado = x.d.s === 'bloqueado';
+    return bloqueado ? filtroDato.bloqueado : filtroDato.disponible;
+  });
+  document.getElementById('v1-cuerpo').innerHTML = filas.map(function (x) {
+    var d = x.d, s = x.s;
+    return '<tr>'
+      + '<td><span class="nom">' + esc(d.n) + '</span><span class="ref">' + esc(d.r) + '</span></td>'
+      + '<td>' + pill('neu', FAM[d.f]) + '</td>'
+      + '<td>' + pill('ev-' + d.e, EV[d.e], d.x) + '</td>'
+      + '<td class="ocultable"><span class="mono" style="font-size:11px;color:var(--muted)">' + esc(DAT[d.d]) + '</span></td>'
+      + '<td class="val dir-' + s.dir + '">' + esc(s.v) + '<br><span style="font-size:10px;color:var(--faint)">' + esc(s.tf) + '</span></td>'
+      + '<td class="ocultable">' + pill(d.s === 'ya' ? 'ya' : d.s === 'posible' ? 'posible' : 'bloq', EST[d.s]) + '</td>'
+      + '</tr>';
+  }).join('') || '<tr><td colspan="6" style="padding:26px;text-align:center;color:var(--muted)">Ningún detector pasa los filtros.</td></tr>';
+  document.getElementById('v1-pie').innerHTML =
+    '<strong>' + filas.length + '</strong> de ' + señales.length + ' señales visibles. '
+    + 'El orden es por evidencia, no por «fuerza»: una heurística vistosa no puede colocarse por encima de una medida. '
+    + 'Las lecturas son de ejemplo.';
+  document.getElementById('v1-sello').textContent = 'velas descargadas hace 12 s';
+}
+document.getElementById('v1-filtros').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  var on = b.getAttribute('aria-pressed') !== 'true';
+  b.setAttribute('aria-pressed', String(on));
+  if (b.dataset.ev) filtroEv[b.dataset.ev] = on; else filtroDato[b.dataset.dato] = on;
+  pintaTerminal();
+});
+
+// ── 2 · Confluencia ────────────────────────────────────────────────
+var ESCALONES = ['5m','15m','1h','4h','1d'];
+var FAM_ORDEN = ['estructura','volumen','estadistica','micro','derivados'];
+// Conteos de EJEMPLO: [familia][escalón] = [medidas, inferidas, heurísticas]
+var MATRIZ = {
+  estructura:  [[2,0,1],[4,0,2],[3,0,1],[1,0,1],[1,0,0]],
+  volumen:     [[1,0,1],[2,0,2],[1,0,1],[0,0,1],[1,0,0]],
+  estadistica: [[1,1,0],[3,1,0],[2,1,0],[2,0,0],[3,1,0]],
+  micro:       [[0,0,0],[0,0,0],[1,0,0],[1,0,0],[2,0,0]],
+  derivados:   [[0,0,0],[0,0,0],[0,0,0],[1,0,0],[2,0,0]],
+};
+function pintaConfluencia() {
+  var h = '<table><thead><tr><th class="lat"></th>'
+    + ESCALONES.map(function (t) { return '<th>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
+  FAM_ORDEN.forEach(function (f) {
+    h += '<tr><th class="lat">' + FAM[f] + '</th>';
+    MATRIZ[f].forEach(function (c, i) {
+      var total = c[0] + c[1] + c[2];
+      var mayor = c[0] >= c[1] && c[0] >= c[2] ? 'medido' : (c[1] >= c[2] ? 'inferido' : 'heuristica');
+      var fondo = total === 0 ? 'transparent'
+        : mayor === 'medido' ? 'var(--accent-soft)' : mayor === 'inferido' ? 'var(--info-soft)' : 'var(--warn-soft)';
+      var borde = total === 0 ? 'var(--rule)'
+        : mayor === 'medido' ? 'color-mix(in srgb,var(--long) 40%,transparent)'
+        : mayor === 'inferido' ? 'color-mix(in srgb,var(--info) 40%,transparent)'
+        : 'color-mix(in srgb,var(--warn) 40%,transparent)';
+      h += '<td class="' + (total === 0 ? 'n0' : '') + '" style="background:' + fondo + ';border-color:' + borde + '"'
+        + ' title="' + FAM[f] + ' · ' + ESCALONES[i] + ' — ' + c[0] + ' medidas, ' + c[1] + ' inferidas, ' + c[2] + ' heurísticas">'
+        + '<b>' + (total || '·') + '</b>' + (total ? '<small>' + c[0] + '/' + c[1] + '/' + c[2] + '</small>' : '') + '</td>';
+    });
+    h += '</tr>';
+  });
+  document.getElementById('v2-malla').innerHTML = h + '</tbody></table>';
+}
+
+// ── 3 · Pila de evidencia ──────────────────────────────────────────
+var TEXTO_CARRIL = {
+  medido: 'Sale del dato con una fórmula publicada. Si el dato es correcto, el número es correcto.',
+  inferido: 'Estimación con un error conocido y publicado. Se enseña el número Y su margen.',
+  heuristica: 'Convención de dibujo muy extendida, sin tasa base revisada por pares. Vale como contexto, no como prueba.',
+};
+function pintaPila() {
+  document.getElementById('v3-carriles').innerHTML = ['medido','inferido','heuristica'].map(function (ev) {
+    var xs = señales.filter(function (x) { return x.d.e === ev; });
+    return '<div class="carril c-' + ev + '">'
+      + '<header><div class="cuenta">' + xs.length + '</div>'
+      + '<h3>' + EV[ev] + '</h3><p>' + TEXTO_CARRIL[ev] + '</p></header>'
+      + xs.map(function (x) {
+          return '<div class="sig"><div class="t"><b>' + esc(x.d.n) + '</b>'
+            + '<span class="v">' + esc(x.s.v) + '</span></div>'
+            + '<small>' + esc(x.d.r) + ' · ' + esc(x.s.tf) + '</small></div>';
+        }).join('')
+      + '</div>';
+  }).join('');
+}
+
+// ── 4 · Microestructura ────────────────────────────────────────────
+var RADAR = [
+  {n:'Iliquidez de Amihud', v:'0,41', u:'×10⁻⁶', pct:41, tono:'', p:'Impacto por unidad negociada. Por encima de su mediana de 20 sesiones: hoy el mercado absorbe peor.'},
+  {n:'Horquilla de Roll', v:'1,8', u:'pips', pct:30, tono:'', p:'Horquilla efectiva estimada desde la autocovarianza de los cierres.'},
+  {n:'Horquilla Corwin-Schultz', v:'2,1', u:'pips', pct:36, tono:'', p:'Segundo estimador, desde máximos y mínimos. Dos métodos que no coinciden es información, no un error.'},
+  {n:'Volatilidad Garman-Klass', v:'0,84', u:'%', pct:72, tono:'alto', p:'Usa las cuatro puntas de la vela: mucho más eficiente que la desviación de cierres.'},
+];
+var RADAR_BLOQ = [
+  {n:'VPIN', r:'Easley, López de Prado & O’Hara 2012', falta:'Ticks con volumen por operación', p:'Desequilibrio compra/venta por cubos de volumen. Su valor predictivo está discutido en la literatura; se publicaría como medida de desequilibrio, nunca como aviso.'},
+  {n:'Lambda de Kyle', r:'Kyle 1985', falta:'Ticks con flujo firmado', p:'Cuánto mueve el precio cada unidad de flujo. La definición formal de «hay alguien grande dentro».'},
+  {n:'Clasificación Lee-Ready', r:'Lee & Ready 1991', falta:'Ticks y, para el 84 %, cotizaciones', p:'Firma cada operación como compra o venta: esto es lo que la gente llama «compras y ventas ocultas». Acierto medido 72–84 % según mercado.'},
+  {n:'Desequilibrio del libro (OFI)', r:'Cont, Kukanov & Stoikov 2014', falta:'Libro de órdenes L2', p:'Cambios en las mejores puntas. Sin libro no hay aproximación honesta.'},
+];
+function pintaRadar() {
+  var h = RADAR.map(function (m) {
+    return '<div class="m"><header><h3>' + esc(m.n) + '</h3></header>'
+      + '<div class="cifra">' + esc(m.v) + '<small>' + esc(m.u) + '</small></div>'
+      + '<div class="barra"><div class="m0"></div><div class="v ' + m.tono + '" style="width:' + m.pct + '%"></div></div>'
+      + '<p>' + esc(m.p) + '</p></div>';
+  }).join('');
+  h += RADAR_BLOQ.map(function (m) {
+    return '<div class="m bloqueado"><header><h3>' + esc(m.n) + '</h3>'
+      + '<span class="cita">' + esc(m.r) + '</span></header>'
+      + '<div class="cifra">—</div>'
+      + '<p class="falta"><span>✕</span><span>Falta: ' + esc(m.falta) + '</span></p>'
+      + '<p>' + esc(m.p) + '</p></div>';
+  }).join('');
+  document.getElementById('v4-rej').innerHTML = h;
+}
+
+// ── 5 · Copiloto ───────────────────────────────────────────────────
+function cita(n) {
+  var d = porNombre[n];
+  return '<span class="cita-det" title="' + esc(d ? d.r + ' — ' + d.x : n) + '">' + esc(n) + '</span>';
+}
+function pintaCopiloto() {
+  document.getElementById('v5-texto').innerHTML =
+    '<p>En 15m el mercado está <strong>persistente</strong>: el ' + cita('Exponente de Hurst')
+    + ' da 0,61 y el ' + cita('Ratio de varianza') + ' rechaza el paseo aleatorio con p = 0,02. '
+    + 'Eso no dice hacia dónde; dice que <em>lo que empiece tiende a continuar</em>.</p>'
+    + '<p>La estructura acompaña: hay ' + cita('Ruptura de estructura (BOS)') + ' al alza hace seis velas, '
+    + 'un ' + cita('Barrido de liquidez / fakeout') + ' del mínimo previo con cierre dentro, y quedan '
+    + 'dos huecos sin rellenar en 1,0842–1,0851 (' + cita('Hueco de valor razonable (FVG)') + ').</p>'
+    + '<p><strong>Lo que va en contra:</strong> el ' + cita('Informe COT (CFTC)') + ' tiene a los comerciales '
+    + 'un 18 % más cortos que hace un mes, y hay ' + cita('Divergencia precio/volumen') + ' en 1h. '
+    + 'La divergencia es una convención, no una medida — pesa menos que las dos primeras.</p>'
+    + '<p>La ' + cita('Tasa base del montaje actual') + ' de montajes parecidos en este histórico es del '
+    + '<strong>54 %</strong> con n = 61, contra un 49 % sobre la serie barajada. Cinco puntos de ventaja con '
+    + 'esa muestra <strong>no son significativos</strong>: es contexto, no una razón para operar.</p>';
+  document.getElementById('v5-base').innerHTML = señales.slice(0, 7).map(function (x) {
+    return '<li>' + pill('ev-' + x.d.e, EV[x.d.e]) + '<span><b>' + esc(x.d.n) + '</b><br>'
+      + '<span class="mono" style="font-size:11px;color:var(--muted)">' + esc(x.s.v) + '</span></span></li>';
+  }).join('');
+}
+
+// ── 6 · Catálogo ───────────────────────────────────────────────────
+var facetas = {
+  f: {t:'Familia', op:['estructura','volumen','estadistica','micro','derivados','ia'], et:FAM, sel:{}},
+  e: {t:'Evidencia', op:['medido','inferido','heuristica'], et:EV, sel:{}},
+  d: {t:'Dato que exige', op:['ohlc-d','ohlc-i','ticks','l2','externo'], et:DAT, sel:{}},
+  s: {t:'Estado', op:['ya','posible','bloqueado'], et:EST, sel:{}},
+};
+Object.keys(facetas).forEach(function (k) {
+  facetas[k].op.forEach(function (o) { facetas[k].sel[o] = true; });
+});
+function pintaFacetas() {
+  document.getElementById('v6-facetas').innerHTML = Object.keys(facetas).map(function (k) {
+    var f = facetas[k];
+    return '<div class="faceta"><h4>' + esc(f.t) + '</h4>' + f.op.map(function (o) {
+      var n = D.filter(function (d) { return d[k] === o; }).length;
+      return '<label><input type="checkbox" data-k="' + k + '" data-o="' + o + '"'
+        + (f.sel[o] ? ' checked' : '') + '> ' + esc(f.et[o]) + ' <span style="color:var(--faint)">(' + n + ')</span></label>';
+    }).join('') + '</div>';
+  }).join('');
+}
+function pintaCatalogo() {
+  var vis = D.filter(function (d) {
+    return Object.keys(facetas).every(function (k) { return facetas[k].sel[d[k]]; });
+  });
+  document.getElementById('v6-resumen').innerHTML =
+    '<b>' + vis.length + '</b> de <b>' + D.length + '</b> detectores · '
+    + '<b>' + vis.filter(function (d) { return d.s === 'ya'; }).length + '</b> ya en el producto · '
+    + '<b>' + vis.filter(function (d) { return d.s === 'posible'; }).length + '</b> posibles con el dato de hoy · '
+    + '<b>' + vis.filter(function (d) { return d.s === 'bloqueado'; }).length + '</b> a la espera de dato';
+  document.getElementById('v6-lista').innerHTML = vis.length ? vis.map(function (d) {
+    return '<div class="det"><div class="t"><b>' + esc(d.n) + '</b>'
+      + pill(d.s === 'ya' ? 'ya' : d.s === 'posible' ? 'posible' : 'bloq', EST[d.s]) + '</div>'
+      + '<div class="ref">' + esc(d.r) + '</div>'
+      + '<p>' + esc(d.x) + '</p>'
+      + '<div class="tags">' + pill('ev-' + d.e, EV[d.e]) + pill('neu', FAM[d.f]) + pill('neu', DAT[d.d]) + '</div>'
+      + '</div>';
+  }).join('') : '<p class="vacio">Ningún detector pasa los filtros. Vuelve a marcar alguna casilla.</p>';
+}
+document.getElementById('v6-facetas').addEventListener('change', function (e) {
+  var i = e.target; if (!i.dataset || !i.dataset.k) return;
+  facetas[i.dataset.k].sel[i.dataset.o] = i.checked;
+  pintaCatalogo();
+});
+
+// ── Cromo ──────────────────────────────────────────────────────────
+var BRIEFS = {
+ v1:{num:'01',nombre:'Terminal',
+   tesis:'Una fila por señal disparada, ordenada por peso de evidencia y no por vistosidad. Lo medido arriba, la heurística abajo, y cada fila dice de qué dato sale y quién lo publicó.',
+   si:'Densidad máxima y orden defendible: se ve en un vistazo qué se ha medido y qué es convención de dibujo.',
+   no:'Sesenta detectores en una tabla abruman a quien empieza. Necesita los filtros de serie, no como extra.',
+   coste:'Medio · tabla + orden por evidencia sobre el catálogo'},
+ v2:{num:'02',nombre:'Confluencia',
+   tesis:'Matriz de escalones × familias. Lo que importa no es que dispare un detector, sino que la misma familia dispare en cinco escalones a la vez — y la celda enseña el conteo, no una nota inventada.',
+   si:'Responde en un golpe de vista a «¿esto es ruido de un escalón o hay algo en todos?». Es la vista que más rápido descarta.',
+   no:'No dice QUÉ ha disparado: hay que entrar en la celda. Por sí sola no basta.',
+   coste:'Bajo · agregación del catálogo por dos ejes'},
+ v3:{num:'03',nombre:'Evidencia',
+   tesis:'Tres carriles: medido, inferido, heurística. La misma lectura repartida por lo que cada señal ES, con el peso epistémico ANTES que la señal.',
+   si:'Es la más honesta de las seis y la que mejor educa: al tercer día el usuario ya sabe que un order block no pesa lo que un ratio de varianza.',
+   no:'Un carril casi vacío (lo medido en microestructura, sin ticks) se lee como que la herramienta tiene poco, cuando lo que pasa es que el dato no da para más.',
+   coste:'Bajo · agrupar por un campo que el catálogo ya tiene'},
+ v4:{num:'04',nombre:'Microestructura',
+   tesis:'El bloque institucional de verdad: Amihud, Roll, Corwin-Schultz y Garman-Klass calculados con el dato diario que ya hay, y VPIN, Kyle, Lee-Ready y OFI apagados diciendo qué dato les falta.',
+   si:'Cuatro medidas académicas reales, hoy, sin comprar nada. Y las apagadas convierten «no lo tenemos» en una hoja de ruta con nombre y precio.',
+   no:'Es la vista más técnica: sin una línea de explicación por tarjeta, «lambda de Kyle» no le dice nada a la mayoría.',
+   coste:'Alto · cuatro estimadores nuevos en el backend, con sus tests'},
+ v5:{num:'05',nombre:'Copiloto',
+   tesis:'El modelo recibe los detectores que dispararon —no el gráfico— y redacta la lectura citando cada uno, con un panel de «en qué me baso» y otro de «lo que no puedo saber».',
+   si:'Convierte sesenta números en una lectura que se entiende, sin que el modelo invente ni una cifra: cada afirmación enlaza a su detector.',
+   no:'Es la que más fácil se puede leer como consejo. El panel de «no puedo saber» no es decorativo: es lo que impide que lo parezca.',
+   coste:'Medio · el modelo ya está integrado (AI Trade Coach); falta el contrato de entrada'},
+ v6:{num:'06',nombre:'Catálogo',
+   tesis:'Los 61 detectores con su cita, el dato que exigen y su nivel de evidencia, filtrables por cuatro facetas. Lo que pediste: la herramienta enseña todo y el usuario filtra.',
+   si:'Es la vista que justifica el producto: nadie más publica su catálogo con las citas y con lo que NO puede calcular.',
+   no:'No es una pantalla de operar, es una de configurar. Vive en Ajustes o en la Academia, no en la mesa.',
+   coste:'Bajo · es el propio catálogo, que hay que escribir una vez'},
+};
+var brief = {num:document.getElementById('b-num'), nombre:document.getElementById('b-nombre'),
+  tesis:document.getElementById('b-tesis'), si:document.getElementById('b-si'),
+  no:document.getElementById('b-no'), coste:document.getElementById('b-coste')};
+
+function mostrar(id) {
+  document.querySelectorAll('.vista').forEach(function (s) { s.classList.toggle('on', s.id === id); });
+  document.querySelectorAll('#tabs button').forEach(function (b) {
+    b.setAttribute('aria-selected', String(b.dataset.v === id));
+  });
+  var b = BRIEFS[id];
+  if (b) { brief.num.textContent = b.num; brief.nombre.textContent = b.nombre;
+    brief.tesis.textContent = b.tesis; brief.si.textContent = b.si;
+    brief.no.textContent = b.no; brief.coste.textContent = b.coste; }
+  // Ancla con barra: si coincidiera con el id, el navegador saltaría a la
+  // sección y dejaría la página desplazada por debajo del contenido.
+  try { if (location.hash !== '#/' + id) history.replaceState(null, '', '#/' + id); } catch (e) {}
+  window.scrollTo(0, 0);
+}
+document.getElementById('tabs').addEventListener('click', function (e) {
+  var b = e.target.closest('button[data-v]'); if (b) mostrar(b.dataset.v);
+});
+
+var raiz = document.documentElement, btnTema = document.getElementById('btn-tema');
+function claro() {
+  var s = raiz.getAttribute('data-theme');
+  return s ? s === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
+}
+function pintaBoton() { btnTema.textContent = claro() ? 'Oscuro' : 'Claro'; }
+btnTema.addEventListener('click', function () {
+  raiz.setAttribute('data-theme', claro() ? 'dark' : 'light'); pintaBoton();
+});
+
+pintaTerminal(); pintaConfluencia(); pintaPila(); pintaRadar(); pintaCopiloto();
+pintaFacetas(); pintaCatalogo(); pintaBoton();
+var params = new URLSearchParams(location.search);
+if (params.get('tema') === 'claro') { raiz.setAttribute('data-theme','light'); pintaBoton(); }
+if (params.get('tema') === 'oscuro') { raiz.setAttribute('data-theme','dark'); pintaBoton(); }
+var pedida = location.hash.replace(/^#\/?/, '');
+if (BRIEFS[pedida]) mostrar(pedida);
+})();
+</script>

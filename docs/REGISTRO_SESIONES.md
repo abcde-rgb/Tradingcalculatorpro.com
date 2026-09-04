@@ -6481,3 +6481,41 @@ caché) con el mismo fallo preexistente de `test_verify_full…` que pide un
 PostgreSQL local, ESLint 0 errores, `i18n-check` 0 huecos con la clave nueva en
 los 10 idiomas, `engine-check` 535/535, catálogo, rutas muertas, enlaces de doc y
 `npm run build`.
+
+
+## 2026-09-04 — Seis escáneres sobre un catálogo de 61 detectores
+
+Petición: escáneres de precio con «todo lo detectable» —volumen oculto, order blocks,
+leyes matemáticas, IA— para incluirlo en el plan gratis y que el usuario filtre.
+Maquetas en [`docs/maquetas/escaneres-flujo.html`](./maquetas/escaneres-flujo.html).
+
+**Lo que NO se puede prometer, y por eso el diseño lo dice en pantalla:**
+
+- **«Volumen oculto» en vivo no existe como dato libre.** Lo que sí existe: inferir
+  compras/ventas de los ticks con **Lee-Ready** —acierto medido **72–84 %** según
+  mercado, no 100— y el volumen agregado de dark pools que **FINRA publica
+  semanalmente**. Un detector de «ventas ocultas» en tiempo real sería inventado.
+- **Nada predice de forma fiable.** Hasta **VPIN** (Easley, López de Prado & O'Hara
+  2012), el estándar académico de toxicidad de flujo, tiene su capacidad predictiva
+  discutida (Andersen & Bondarenko). Se publica como medida de desequilibrio, no como
+  aviso.
+- **Gratis ≠ redistribuible.** No se puede inferir derecho de comercialización de un
+  precio de 0 €. Es el mismo problema que G-16 con Yahoo.
+
+**El catálogo es el entregable de verdad**, y es una sola fuente de datos que las seis
+vistas leen. Cada detector lleva: **cita**, **dato que exige** (OHLC diario / intradía /
+ticks / libro L2 / fuente externa), **nivel de evidencia** y **estado**. El reparto sale
+solo: **10 ya están en el producto, 42 son posibles con el dato de hoy, 9 esperan dato**.
+
+Los tres niveles de evidencia son el eje del diseño: **medido** (sale del dato con una
+fórmula publicada), **inferido** (estimación con error publicado) y **heurística**
+(convención extendida sin tasa base revisada — ahí caen order block, breaker, divergencia
+precio/volumen y las fases de Wyckoff). Ordenar por ese peso impide que una heurística
+vistosa se coloque por encima de un ratio de varianza.
+
+Las **42 posibles con el dato de hoy** son la lista de trabajo más barata que tiene el
+proyecto: Amihud, Roll, Corwin-Schultz, Hurst, ratio de varianza, Garman-Klass, Parkinson,
+Benford sobre volumen, RMT… todas se calculan con OHLC diario, que ya se descarga.
+
+Sin elegir todavía. Las seis vistas llevan escrito lo que ganan, lo que pierden y lo que
+cuestan.

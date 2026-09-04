@@ -1,4 +1,15 @@
-# Maquetas — panel de configuración del cliente
+# Maquetas
+
+Propuestas de diseño para **elegir antes de tocar código**. Dos series:
+
+| Fichero | Qué propone |
+|---|---|
+| [`panel-cliente.html`](./panel-cliente.html) | 6 rediseños de `/settings` — **elegida la 1, «Consola»**, ya implementada |
+| [`escaneres-flujo.html`](./escaneres-flujo.html) | 6 escáneres sobre un catálogo de **61 detectores** con su cita, el dato que exigen y su nivel de evidencia — sin elegir |
+
+---
+
+# Panel de configuración del cliente
 
 Seis propuestas de rediseño de `/settings` para **elegir una antes de tocar código**.
 
