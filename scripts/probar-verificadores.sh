@@ -1726,6 +1726,27 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
 
   # El icono de los resultados de búsqueda. Ninguna de las 1.640 páginas lo
   # declaraba, y por eso el sitio salía en Yandex con el globo genérico.
+  # El icono declarado con URL ABSOLUTA. Parece inofensivo y no lo es: estas
+  # páginas llevan `default-src 'none'` con `img-src 'self'`, así que en cuanto
+  # no se sirven desde ese dominio exacto el navegador bloquea los cuatro
+  # iconos. Pasó — `csp.js` cantó 31 violaciones sirviendo el build desde
+  # 127.0.0.1— y en producción habría funcionado por casualidad, sólo mientras
+  # el dominio coincidiera. Se comprueba SIN navegador porque `csp.js` necesita
+  # CI y un Chromium: lo que sólo caza la sonda cara es lo que vuelve.
+  probar "un icono con URL absoluta en una página de política dura" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'rel=\"icon\" href=\"/favicon.ico\"' $SEO_PAG && sed -i 's|rel=\"icon\" href=\"/favicon.ico\"|rel=\"icon\" href=\"https://tradingcalculator.pro/favicon.ico\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # El otro lado: los shells de las rutas del SPA llevan OTRA CSP, que sí
+  # permite Google Fonts y GTM a propósito. Si la regla de arriba se aplicara a
+  # todas las páginas serían 18 falsos positivos por build, y un verificador que
+  # grita sin motivo se acaba apagando.
+  probar_inverso "los recursos externos del shell del SPA no son un fallo" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'fonts.googleapis.com' frontend/build/about/index.html" \
+    "$SEO_REST"
+
   probar "una página sin favicon declarado" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i '/rel=\"icon\"/d' $SEO_PAG" \

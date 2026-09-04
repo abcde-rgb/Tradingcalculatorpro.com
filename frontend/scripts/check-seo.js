@@ -170,6 +170,39 @@ function revisar(fichero) {
   // páginas que se indexan son éstas, no la portada.
   if (!/<link rel="icon"/i.test(html)) anota('sin favicon declarado', rel, '');
 
+  // 0b · ningún subrecurso con URL absoluta.
+  //
+  // Estas páginas llevan una CSP dura propia: `default-src 'none'` con
+  // `img-src 'self' data:`. Un icono declarado como
+  // `https://tradingcalculator.pro/favicon.ico` es «otro origen» en cuanto la
+  // página NO se sirve exactamente desde ahí, y el navegador lo bloquea. Pasó:
+  // los cuatro iconos salían absolutos y la sonda `csp.js` cantó 31
+  // violaciones sirviendo el build desde `127.0.0.1`.
+  //
+  // En producción habría funcionado por casualidad, mientras el dominio
+  // coincidiera, y se habría roto en el banco de pruebas, en la URL de proyecto
+  // de GitHub Pages —que se conserva por si cae el DNS— y en cualquier
+  // previsualización. Se comprueba aquí, sin navegador, porque `csp.js`
+  // necesita CI y un Chromium: los fallos que sólo caza la sonda cara son los
+  // que vuelven.
+  //
+  // `canonical`, `alternate` y `og:*` quedan fuera a propósito: son metadatos,
+  // NO los carga la página, y deben ser absolutos.
+  //
+  // Y la regla se aplica SÓLO a las páginas de política dura, las que declaran
+  // `default-src 'none'`: ésas no autorizan ningún origen externo, así que
+  // cualquier URL absoluta es una violación. Los shells de las rutas del SPA
+  // llevan otra CSP —que sí permite Google Fonts y GTM a propósito— y
+  // prohibírselo aquí serían 18 falsos positivos por build. Un verificador que
+  // grita sin motivo se acaba apagando, y con él la comprobación que sí servía.
+  const csp = attr(html, /<meta http-equiv="Content-Security-Policy" content="([^"]*)"/i) || '';
+  if (/default-src\s+'none'/.test(csp)) {
+    for (const m of html.matchAll(/<link\s+rel="(?!canonical|alternate)([^"]+)"[^>]*href="(https?:\/\/[^"]+)"/gi))
+      anota('subrecurso absoluto en una página con default-src \'none\'', rel, `${m[1]} → ${m[2]}`);
+    for (const m of html.matchAll(/<(?:img|script|iframe)[^>]+src="(https?:\/\/[^"]+)"/gi))
+      anota('subrecurso absoluto en una página con default-src \'none\'', rel, m[1]);
+  }
+
   // 1 · canonical
   const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
   if (!canonical) anota('canonical ausente', rel, '');

@@ -107,10 +107,23 @@ const OG_LOCALE = {
 // genérico en el resultado — que es exactamente lo que le pasa hoy al sitio en
 // Yandex. La CSP de estas páginas ya permite `img-src 'self'`, así que no hay
 // nada más que abrir.
-const ICONOS = (d) => `<link rel="icon" href="${d}/favicon.ico" sizes="32x32">
-<link rel="icon" href="${d}/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="${d}/icon-192.png" type="image/png" sizes="192x192">
-<link rel="apple-touch-icon" href="${d}/apple-touch-icon.png">
+//
+// ⚠️ Rutas RELATIVAS a la raíz, no absolutas. Con `https://tradingcalculator.pro/…`
+// el navegador trata el icono como un origen distinto en cuanto la página se
+// sirve desde otro sitio, y la CSP de arriba —`img-src 'self'`— lo bloquea:
+// la sonda `tests/e2e/navegador/csp.js` lo cazó con 31 violaciones sirviendo el
+// build desde `127.0.0.1`. En producción habría funcionado por casualidad, sólo
+// mientras el dominio coincidiera; se rompía en el banco de pruebas, en la URL
+// de proyecto de GitHub Pages —que se conserva como red de seguridad si cae el
+// DNS— y en cualquier previsualización.
+//
+// Relativas funcionan en los tres casos y son lo que ya hace `public/index.html`
+// (`%PUBLIC_URL%/favicon.ico` con `PUBLIC_URL: /`). El `og:image` sí sigue
+// siendo absoluto, y debe serlo: no lo carga la página, lo pide Facebook.
+const ICONOS = () => `<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#080808">`;
 
 // ─── Slugs por idioma ─────────────────────────────────────────────
@@ -564,7 +577,7 @@ function render({ lang, url, alts, title, description, h1, kw, ui, sectionLabel,
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
-${ICONOS(DOMAIN)}
+${ICONOS()}
 ${hreflang}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -965,7 +978,7 @@ function renderMarket({ lang, url, alts, id, name, body, mui, related }) {
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
-${ICONOS(DOMAIN)}
+${ICONOS()}
 ${hreflang}
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -1204,7 +1217,7 @@ function renderHub({ lang, seccion, entradas }) {
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
-${ICONOS(DOMAIN)}
+${ICONOS()}
 ${hreflang}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TradingCalculator.Pro">
