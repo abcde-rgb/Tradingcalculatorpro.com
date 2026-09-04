@@ -6519,3 +6519,49 @@ Benford sobre volumen, RMT… todas se calculan con OHLC diario, que ya se desca
 
 Sin elegir todavía. Las seis vistas llevan escrito lo que ganan, lo que pierden y lo que
 cuestan.
+
+
+## 2026-09-04 (2) — Los seis prototipos de escáner, sobre el brief
+
+Llega [`docs/BRIEF-ESCANERES.md`](./BRIEF-ESCANERES.md) (587 líneas, v1.0) con las cinco
+reglas no negociables, los contratos de datos, el catálogo de detectores por escáner, las
+fuentes y el marco de cumplimiento. Se implementa en `prototypes/`.
+
+**Qué hay ahora**
+
+- `prototypes/_core.js` — contratos (§3), adaptador de Binance con reconexión exponencial
+  y **resincronización de libro por número de secuencia**, buffers `Float64Array`,
+  Benjamini-Hochberg, y los detectores como **funciones puras**: OFI, desequilibrio de
+  cola, CVD, VPIN con clasificación BVC, lambda de Kyle, Amihud, absorción, barrido,
+  Hawkes, reposición de iceberg, ejecutado sobre visible, perfil de volumen, Hurst por
+  DFA, entropía de permutación, cuadrantes de OI, z robusto por MAD y números redondos.
+- `prototypes/_vistas.js` + `scripts/gen-prototipos.js` — seis `.html` **autocontenidos**
+  que se abren con doble clic. Lo generado no se edita a mano.
+- `scripts/test-escaneres.js` — **60 comprobaciones** de las funciones puras contra sus
+  fórmulas publicadas.
+- `scripts/check-escaneres.js` — puerta del §9: hace fallar el build si aparece
+  vocabulario de recomendación de inversión en la interfaz.
+- Las dos se han enganchado a `/verify`.
+
+**Tres fallos que sólo aparecieron al mirar el render**
+
+1. `.evid div` pillaba también al contenedor y las fichas de evidencia se pintaban unas
+   encima de otras.
+2. **OFI y CVD enseñaban `0.0` sin conexión.** Un cero fabricado, que es exactamente lo
+   que prohíbe R1 y la regla 2 de honestidad numérica del repo. Ahora sin eventos es
+   «—» y el motivo. Lo mismo con la barra de desequilibrio, que arrancaba al 50 %
+   sugiriendo un equilibrio que nadie había medido.
+3. La comprobación de R1 casaba con **el propio comentario** que dice «aquí no hay
+   `Math.random()`» y acusaba al fichero de lo contrario de lo que hacía. Ahora mira el
+   código sin comentarios, y se le mete el patrón a mano para exigir que lo cace.
+
+**Verificado**: 60 comprobaciones de detectores · puerta de cumplimiento con 0 usos
+prohibidos · los seis prototipos renderizan **sin un solo error de JavaScript**, sin
+desbordamiento horizontal y con las fichas de evidencia completas · la generación es
+determinista (regenerar no produce diff).
+
+**Lo que NO está probado**: los datos en vivo. Binance está bloqueado en el sandbox, así
+que los prototipos se han visto en su estado de fallo —«reconectando…», todo no
+disponible—, que es el que R1 exige, pero **nadie ha visto todavía un tick real entrar
+por ahí**. Eso, y la medición de <16 ms/frame con 20 símbolos del §2.3, exigen abrirlos
+en un navegador con red.
