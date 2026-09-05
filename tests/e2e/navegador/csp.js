@@ -34,7 +34,7 @@
  *     node tests/e2e/navegador/csp.js
  */
 const { chromium } = require('../lib/playwright-core');
-const { rutaChromium, BASE, entra, descartaCookies } = require('../entorno');
+const { rutaChromium, BASE, API, entra, descartaCookies } = require('../entorno');
 
 // La SPA: las públicas más una privada, que redirige al muro pero carga el
 // mismo bundle y las mismas integraciones.
@@ -141,6 +141,18 @@ async function revisaWebSocket(navegador) {
   return problemas;
 }
 
+/** ¿Hay un backend al otro lado? Dos segundos y una respuesta, la que sea:
+ *  lo que se pregunta es si hay algo escuchando, no si está sano. */
+async function backendResponde() {
+  try {
+    const corte = AbortSignal.timeout(2000);
+    await fetch(`${API}/api/health`, { signal: corte });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 (async () => {
   const navegador = await chromium.launch({ executablePath: rutaChromium() });
   let fallos = 0;
@@ -166,6 +178,20 @@ async function revisaWebSocket(navegador) {
   }
 
   console.log('\n\x1b[1mWebSocket de alertas (requiere sesión: sin token no se abre)\x1b[0m');
+  // Esta parte necesita un backend VIVO: `entra()` hace login de verdad. En el
+  // job de frontend de CI no hay ni backend ni base de datos, así que exigirlo
+  // allí no probaba la CSP, sólo informaba de que no había con qué probarla —14
+  // «problemas de CSP» de los que uno era «no se pudo entrar»—.
+  //
+  // Se comprueba si el backend responde ANTES de decidir. Si no responde, se
+  // salta diciéndolo. Si responde y aun así no se puede entrar, eso SÍ es un
+  // fallo: es la diferencia entre «no hay con qué probar» y «se probó y falló»,
+  // y perderla es lo que convierte una sonda en un adorno.
+  if (!(await backendResponde())) {
+    console.log('  ⏭️  se salta: el backend no responde en ' + API + '.');
+    console.log('      Esta comprobación necesita sesión real (skill `qa`, que');
+    console.log('      levanta Postgres y uvicorn). En CI no hay backend.');
+  } else {
   const wsProblemas = await revisaWebSocket(navegador);
   if (wsProblemas.length) {
     fallos += wsProblemas.length;
@@ -173,6 +199,7 @@ async function revisaWebSocket(navegador) {
     wsProblemas.slice(0, 6).forEach((p) => console.log(`       ${p}`));
   } else {
     console.log('  ✅ /dashboard → el WebSocket se abre y la política lo autoriza');
+  }
   }
 
   await navegador.close();

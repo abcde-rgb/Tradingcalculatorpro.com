@@ -1249,6 +1249,16 @@ _ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").s
 _FREE_ACCESS_EMAILS = {
     e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()
 }
+# Cuántas hay, en el arranque. Sin esto, desplegar sin definir
+# FREE_ACCESS_EMAILS deja las cuentas de cortesía sin premium y nada lo dice.
+# `log_safe` sobre un entero parece de más, pero `test_log_injection_unit` no
+# distingue tipos a propósito —vigila también las llamadas que aún no existen—
+# y relajarla para dejar pasar un `len()` la relajaría para todo lo demás.
+logging.info(
+    "[acceso] cuentas de cortesía configuradas: %s "
+    "(se definen en FREE_ACCESS_EMAILS, no en el código)",
+    log_safe(len(_FREE_ACCESS_EMAILS)),
+)
 
 
 def normalize_email(email: str | None) -> str:
@@ -8565,6 +8575,15 @@ try:
             require_admin_dep=require_admin,
             subscription_plans=SUBSCRIPTION_PLANS,
             log_admin_action_fn=log_admin_action,
+            # LAMBDA A PROPÓSITO, no la simplifiques al nombre pelado.
+            # Este bloque corre al importar el módulo, en la línea ~7920, y
+            # `_encrypt_setting` no se define hasta la ~8472. Pasar el nombre
+            # directamente lanza NameError aquí mismo… y lo recoge el `except`
+            # de abajo, que sólo escribe una línea de log: el resultado sería
+            # quedarse SIN NINGUNA ruta de admin y con la web aparentemente
+            # bien. La lambda resuelve el nombre al llamarla, con el módulo ya
+            # cargado entero.
+            encrypt_setting_fn=lambda _v: _encrypt_setting(_v),
         ),
         prefix="/admin",
     )
@@ -9116,9 +9135,20 @@ def _get_fernet():
         return None
 
 def cifrado_activo() -> bool:
-    """Si es False, `_encrypt_setting` está devolviendo el valor tal cual."""
+    """¿Hay clave de cifrado utilizable para los secretos de la base de datos?
+
+    Existe para que este estado se pueda MIRAR. El panel enseña los secretos
+    enmascarados (`••••1234`) tanto si están cifrados como si no, así que quien
+    los teclea no tenía ninguna forma de saber en cuál de los dos casos estaba.
+    Si devuelve False, `_encrypt_setting` está guardando el valor tal cual.
+    """
     return _get_fernet() is not None
 
+
+# Se avisa DOS veces a propósito, y no sobra ninguna: aquí en el arranque, para
+# que quien lea los logs del servicio lo sepa antes de que nadie guarde nada, y
+# otra vez en `_encrypt_setting` por cada secreto que se escribe en claro. La
+# primera se pierde en el arranque; la segunda señala el momento exacto.
 if not cifrado_activo():
     logging.warning(
         "⚠️  SECRET_ENCRYPTION_KEY no está configurada — las claves de Stripe, "
@@ -9133,6 +9163,20 @@ def _encrypt_setting(value: str) -> str:
     f = _get_fernet()
     if f:
         return _ENC_PREFIX + f.encrypt(value.encode()).decode()
+    # Sin clave se guarda en claro, que es el comportamiento de siempre — pero
+    # ya no en silencio. La caída era muda en los dos extremos: ni un log aquí
+    # ni una señal en el panel, así que una instalación sin
+    # SECRET_ENCRYPTION_KEY escribía la clave secreta de Stripe sin cifrar y
+    # nada en el sistema lo decía. No se aborta el guardado: dejar al
+    # administrador sin poder configurar la pasarela sería peor que el riesgo
+    # que se evita, y Cloud SQL sigue cifrando en reposo por debajo.
+    logging.error(
+        "[settings] SECRET_ENCRYPTION_KEY ausente o inválida: el secreto se "
+        "guarda EN CLARO en la base de datos. Genera una clave "
+        "(python -c \"from cryptography.fernet import Fernet; "
+        "print(Fernet.generate_key().decode())\"), guárdala en Secret Manager y "
+        "vuelve a guardar los secretos para que se reescriban cifrados."
+    )
     return value
 
 def _decrypt_setting(value: str) -> str:
@@ -9185,9 +9229,13 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
         flags[f"{k}_set"] = bool(raw)
 
     out.update(flags)
+    # Que el administrador pueda VER si lo que guarda queda cifrado. Es la mitad
+    # del arreglo que no depende de tocar infraestructura: la máscara se pinta
+    # igual en los dos casos, así que sin esta bandera el estado era
+    # indistinguible desde el panel.
+    out["encryption_active"] = cifrado_activo()
     out["updated_at"] = doc.get("updated_at")
     out["updated_by"] = doc.get("updated_by")
-    out["encryption_active"] = cifrado_activo()
     return out
 
 

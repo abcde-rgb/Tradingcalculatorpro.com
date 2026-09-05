@@ -1068,7 +1068,9 @@ function IntegrationsEditor({ headers, t }) {
               <p className="text-xs text-muted-foreground mt-0.5">
                 Falta <code className="px-1 py-0.5 rounded bg-muted font-mono text-[11px]">SECRET_ENCRYPTION_KEY</code> en
                 el entorno del backend. Las claves de Stripe, SendGrid, PayPal y Google que guardes aquí
-                quedan legibles en la base de datos hasta que se configure.
+                quedan legibles en la base de datos hasta que se configure. Los que ya estén
+                guardados <strong>no se cifran solos</strong>: hay que volver a guardarlos desde
+                aquí una vez la clave esté puesta.
               </p>
             </div>
           </div>

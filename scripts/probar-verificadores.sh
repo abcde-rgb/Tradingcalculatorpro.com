@@ -1091,6 +1091,134 @@ else
   echo "  ⏭️  Alfabeto por idioma y techo de los diagramas: sin frontend/node_modules"
 fi
 
+# ── Las dependencias de test, declaradas en un solo sitio ──────────────────
+# El fallo tuvo dos caras y las dos se vivieron: pytest-asyncio instalado «de
+# arrastre» en local y no en CI (las `async def` fallaban sólo allí), y luego
+# CLAUDE.md documentando `pip install -r requirements.txt`, que tampoco basta
+# (fallaban sólo para quien siguiera la guía). La causa era la misma: la
+# dependencia no estaba declarada. Ahora vive en requirements-dev.txt.
+titulo "Dependencias de test (check-deps-test.py)"
+
+# El sabotaje reescribe la línea de instalación SEA CUAL SEA, en vez de casar
+# un texto concreto. La versión anterior llevaba escrito
+# `pip install -r requirements-dev.txt`, y al traer main la línea pasó a ser
+# `pip install -r requirements.txt -r requirements-dev.txt`: el sed dejó de
+# casar, el sabotaje no se aplicaba, y el caso salía como «SOBREVIVE» — un
+# sabotaje que no sabotea se lee igual que un verificador que no verifica.
+probar "CI vuelve a listar los plugins a mano" \
+  "python scripts/check-deps-test.py" \
+  "python -c \"
+import pathlib, re
+p = pathlib.Path('.github/workflows/ci.yml'); t = p.read_text(encoding='utf-8')
+nuevo, n = re.subn(r'run: pip install[^\\n]*requirements-dev\\.txt[^\\n]*',
+                   'run: pip install -r requirements.txt pytest pytest-asyncio', t, count=1)
+assert n == 1, 'el sabotaje no encontró la línea de instalación'
+p.write_text(nuevo, encoding='utf-8')\""
+
+probar "la guía vuelve a documentar sólo requirements.txt" \
+  "python scripts/check-deps-test.py" \
+  "sed -i 's|pip install -r requirements-dev.txt|pip install -r requirements.txt|' CLAUDE.md"
+
+probar "requirements-dev deja de arrastrar requirements.txt" \
+  "python scripts/check-deps-test.py" \
+  "sed -i 's|^-r requirements.txt||' backend/requirements-dev.txt"
+
+probar "se cae pytest-asyncio de la declaración" \
+  "python scripts/check-deps-test.py" \
+  "sed -i '/^pytest-asyncio/d' backend/requirements-dev.txt"
+
+probar "desaparece requirements-dev.txt" \
+  "python scripts/check-deps-test.py" \
+  "rm -f backend/requirements-dev.txt"
+
+# ── Exposición de secretos ─────────────────────────────────────────────────
+# Leen el TEXTO de server.py, admin_routes.py y AdminPage.jsx, así que no
+# necesitan fastapi: bloque propio, con guarda sólo de pytest, para que corran
+# también donde el de abajo se salta.
+#
+# Los nombres son los de main: al fusionar resultó que main había hecho por su
+# cuenta tres de estos mismos arreglos, con mejor criterio en dos —incluye
+# "test" entre los entornos con /docs porque una sonda E2E lee /openapi.json, y
+# usa el token --warn del sistema de diseño en vez de un amber-500 a pelo—. Las
+# pruebas se adaptaron a su código, no al revés.
+if python -c 'import pytest' >/dev/null 2>&1 && [ -f backend/tests/test_exposicion_secretos_unit.py ]; then
+  titulo "Exposición de secretos (test_exposicion_secretos_unit.py)"
+  EXP="(cd backend && python -m pytest tests/test_exposicion_secretos_unit.py -q -p no:cacheprovider -k"
+
+  probar "vuelve /docs abierto al público" \
+    "$EXP no_publica_su_documentacion)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('backend/server.py'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'app = FastAPI\\((.*?)\\n\\)', 'app = FastAPI(title=\\'x\\'\\n)', t, count=1, flags=re.S), encoding='utf-8')\""
+
+  probar "production pasa a publicar /docs" \
+    "$EXP no_incluyen_produccion)" \
+    "sed -i 's/\"development\", \"dev\", \"local\", \"test\",/\"development\", \"dev\", \"local\", \"test\", \"production\",/' backend/server.py"
+
+  probar "se cae un entorno de desarrollo de la lista" \
+    "$EXP no_incluyen_produccion)" \
+    "sed -i 's/\"development\", \"dev\", \"local\", \"test\",/\"development\", \"dev\", \"test\",/' backend/server.py"
+
+  probar "la caída a texto plano vuelve a ser muda" \
+    "$EXP deja_rastro)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('backend/server.py'); t = p.read_text(encoding='utf-8')
+i = t.index('    logging.error('); j = t.index('    return value', i)
+p.write_text(t[:i] + t[j:], encoding='utf-8')\""
+
+  probar "el GET deja de publicar encryption_active" \
+    "$EXP se_puede_consultar)" \
+    "sed -i 's/    out\[\"encryption_active\"\] = cifrado_activo()//' backend/server.py"
+
+  probar "el panel deja de pintar el aviso de «sin cifrar»" \
+    "$EXP el_panel_avisa)" \
+    "sed -i 's/data-testid=\"encryption-inactive-warning\"//' frontend/src/pages/AdminPage.jsx"
+
+  # El que importa: el POST de admin_routes.py escribía SIEMPRE en claro.
+  probar "el POST de settings vuelve a guardar sin cifrar" \
+    "$EXP cifra_los_secretos)" \
+    "sed -i 's/valor = encrypt_setting_fn(valor)/pass/' backend/admin_routes.py"
+
+  probar "el POST escribe el valor sin pasar por el cifrador" \
+    "$EXP cifra_los_secretos)" \
+    "sed -i 's/await _upsert_setting(db, key, valor)/await _upsert_setting(db, key, str(value).strip())/' backend/admin_routes.py"
+
+  probar "la guarda de máscara vuelve a comparar con ***" \
+    "$EXP rechaza_la_mascara_real)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('backend/admin_routes.py'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace(chr(8226), '*'), encoding='utf-8')\""
+
+  probar "reaparece el _mask muerto que prometía enmascarar" \
+    "$EXP enmascarado_muerto)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('backend/admin_routes.py'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('def build_admin_router(', 'def _mask(v):' + chr(10) + '    return v' + chr(10) + chr(10) + chr(10) + 'def build_admin_router(', 1), encoding='utf-8')\""
+
+  # Era un muro de pago abierto: cualquiera que registrase el correo escrito en
+  # el código entraba premium. Lo diagnosticó main; aquí queda el candado.
+  probar "vuelve un correo al conjunto de acceso de cortesía" \
+    "$EXP concede_acceso_desde_una_cadena)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('backend/server.py'); t = p.read_text(encoding='utf-8')
+v = 'if e.strip()' + chr(10) + '}'
+p.write_text(t.replace(v, v + ' | {' + chr(34) + 'alguien@gmail.com' + chr(34) + '}', 1), encoding='utf-8')\""
+
+  # Y el cebo: un COMENTARIO que advierte de no volver a ponerlo no puede saltar.
+  # Es justo lo que la primera versión de la prueba marcaba, prohibiendo la
+  # advertencia que main había dejado escrita.
+  probar_inverso "un comentario que advierte del correo no es el correo" \
+    "$EXP concede_acceso_desde_una_cadena)" \
+    "sed -i '1i # ojo: nunca vuelvas a poner alguien@gmail.com aqui' backend/server.py"
+else
+  echo "  ⏭️  Exposición de secretos: sin pytest, no se prueba"
+fi
+
 # ── Los sabotajes que corren pytest necesitan las dependencias del backend ──
 # El job de «Doc» de CI monta Python pero NO instala `requirements.txt`, así que
 # ahí `python -m pytest` no existe. Sin esta guarda los cinco bloques de abajo

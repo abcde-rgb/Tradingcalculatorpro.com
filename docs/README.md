@@ -78,6 +78,7 @@ Fotos de un momento concreto. Se leen por su fecha, no como estado actual.
 
 | Documento | Fecha |
 |---|---|
+| [`AUDITORIA_SEGURIDAD_2026-08-31.md`](./AUDITORIA_SEGURIDAD_2026-08-31.md) | 2026-08-31 — **exposición**: credenciales en el árbol y en los 356 commits de historia, qué llega al navegador, y la superficie del backend. Historia limpia; el hallazgo alto es que los secretos de pago se guardan sin cifrar y nada lo dice |
 | [`CIERRE_RAMAS_2026-08-18.md`](./CIERRE_RAMAS_2026-08-18.md) | 2026-08-18 — **qué se hizo con cada rama sin fusionar, y por qué**. Cierra G-32 salvo cinco decisiones |
 | [`AUDITORIA_REPOSITORIO_2026-08-13.md`](./AUDITORIA_REPOSITORIO_2026-08-13.md) | 2026-08-13 — **lo obsoleto, lo perdido en ramas sin fusionar y lo que se pasó por alto** |
 | [`AUDITORIA_DIARIO.md`](./AUDITORIA_DIARIO.md) | 2026-08-06 — auditoría del diario de operaciones |

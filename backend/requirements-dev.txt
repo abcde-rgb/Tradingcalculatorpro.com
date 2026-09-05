@@ -7,6 +7,12 @@
 # Como toda sesión remota empieza con un clon fresco, fallaba SIEMPRE.
 #
 #     pip install -r requirements.txt -r requirements-dev.txt
+#
+# `scripts/check-deps-test.py` comprueba que CI y CLAUDE.md sigan apuntando
+# aquí. Hace falta porque el arreglo original dejó a medias la otra mitad: se
+# creó este fichero y se cambió el workflow, pero CLAUDE.md se quedó
+# documentando `pip install -r requirements.txt` a secas, que es la orden que
+# NO basta. El fallo no había desaparecido, se había mudado de sitio.
 -r requirements.txt
 pytest>=8.0
 pytest-asyncio>=0.23
