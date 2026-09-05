@@ -6560,6 +6560,18 @@ prohibidos · los seis prototipos renderizan **sin un solo error de JavaScript**
 desbordamiento horizontal y con las fichas de evidencia completas · la generación es
 determinista (regenerar no produce diff).
 
+**Los contratos del §3, en `frontend/src/lib/scanners/contratos.js`.** El brief pedía
+`types.ts`; este frontend **no tiene TypeScript** —ni dependencia, ni `tsconfig`, ni un
+solo `.ts`—, así que añadirlo habría metido una cadena de herramientas entera de rebote.
+Y hay una razón mejor para no hacerlo: **una interfaz de TypeScript desaparece al
+compilar**, y R1 tiene que morder justo donde eso ya no existe. Los contratos van como
+tipos JSDoc —que el editor sí comprueba— **más un validador que se ejecuta**:
+`fallosDeSignal()` rechaza una señal sin procedencia, con procedencia inventada, con
+«no disponible» y un valor dentro, con un score fuera de 0-100, o **con un valor p sin su
+q corregido** (§8.1). Y `sinDato()` revienta si no se dice QUÉ falta: un hueco mudo no se
+puede enseñar. 14 comprobaciones nuevas en `engine-check` (535 → 549), que ya corre en
+CI, y las cuatro garantías **saboteadas una a una** para exigir que fallen.
+
 **Lo que NO está probado**: los datos en vivo. Binance está bloqueado en el sandbox, así
 que los prototipos se han visto en su estado de fallo —«reconectando…», todo no
 disponible—, que es el que R1 exige, pero **nadie ha visto todavía un tick real entrar

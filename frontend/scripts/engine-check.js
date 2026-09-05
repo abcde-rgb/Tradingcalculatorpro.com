@@ -803,6 +803,57 @@ async function checkProjection() {
     pj.sensitivity(95, 2, [10])[0].winRate === 100);
 }
 
+// ── Escáneres: los contratos del §3 se cumplen en EJECUCIÓN ────────────────
+// Una interfaz de TypeScript desaparece al compilar, y R1 del brief tiene que
+// morder justo donde eso ya no existe: cuando alguien construye una señal mal
+// y está a punto de pintarla. Por eso los contratos son JSDoc + validador, y
+// por eso el validador se prueba aquí.
+async function checkContratosEscaner() {
+  console.log('\nlib/scanners/contratos.js');
+  const { PROCEDENCIA, VEREDICTO, sinDato, fallosDeSignal, esSignalValida } =
+    await imp('lib/scanners/contratos.js');
+
+  const buena = {
+    id: 's1', scanner: 1, symbol: 'BTCUSDT', timeframe: '1m', ts: Date.now(),
+    score: 72, direction: 'up',
+    measurement: { name: 'OFI', value: 1240, unit: 'contratos', percentile: 98 },
+    evidence: { verdict: VEREDICTO.SOLIDO, refs: ['CKS2014'] },
+    provenance: PROCEDENCIA.VIVO,
+    explain: 'El desequilibrio de flujo está en el percentil 98 de la sesión.',
+  };
+  ok('una señal completa pasa el validador', esSignalValida(buena),
+     JSON.stringify(fallosDeSignal(buena)));
+
+  // R1: sin procedencia no se pinta. Es EL fallo que TypeScript no evita en runtime.
+  ok('sin procedencia no pasa', !esSignalValida({ ...buena, provenance: undefined }));
+  ok('con una procedencia inventada no pasa', !esSignalValida({ ...buena, provenance: 'quizás' }));
+
+  // Coherencia, no forma: «no disponible» con un valor dentro es una mentira.
+  ok('«no disponible» con valor dentro se rechaza',
+     !esSignalValida({ ...buena, provenance: PROCEDENCIA.NO_DISPONIBLE }));
+  ok('«no disponible» sin valor sí pasa',
+     esSignalValida({ ...buena, provenance: PROCEDENCIA.NO_DISPONIBLE,
+                      measurement: { name: 'OFI', value: null, unit: '', percentile: 0 } }));
+
+  // §8.1: publicar un p sin su q corregido es exactamente lo que el brief prohíbe.
+  ok('un valor p sin su q se rechaza', !esSignalValida({ ...buena, pValue: 0.03 }));
+  ok('p con q sí pasa', esSignalValida({ ...buena, pValue: 0.03, qValue: 0.11 }));
+  ok('un q fuera de 0-1 se rechaza', !esSignalValida({ ...buena, pValue: 0.03, qValue: 1.4 }));
+
+  ok('un score fuera de 0-100 se rechaza', !esSignalValida({ ...buena, score: 140 }));
+  ok('sin veredicto de evidencia no pasa',
+     !esSignalValida({ ...buena, evidence: { verdict: 'Regular', refs: [] } }));
+  ok('sin explicación no pasa', !esSignalValida({ ...buena, explain: '' }));
+  ok('un escáner fuera de 1-6 se rechaza', !esSignalValida({ ...buena, scanner: 9 }));
+
+  // sinDato() obliga a decir QUÉ falta: un hueco mudo no se puede enseñar.
+  const s = sinDato('faltan ticks con volumen por operación');
+  ok('sinDato devuelve null, nunca cero', s.value === null && s.provenance === PROCEDENCIA.NO_DISPONIBLE);
+  let exigeMotivo = false;
+  try { sinDato(); } catch (_e) { exigeMotivo = true; }
+  ok('sinDato() sin motivo revienta en vez de callar', exigeMotivo);
+}
+
 // ── Ajustes: este navegador contra la cuenta ────────────────────────────────
 // La sincronización decide qué copia de cada ajuste sobrevive. Equivocarse aquí
 // no da un número raro: borra los setups que el usuario escribió a mano. Por eso
@@ -2399,6 +2450,7 @@ async function checkTailRisk() {
   await checkSimulatorEngine();
   await checkTradingSystemModel();
   await checkPrefsMerge();
+  await checkContratosEscaner();
   await checkProjection();
   await checkInstruments();
   await checkSinCatalogosParalelos();
