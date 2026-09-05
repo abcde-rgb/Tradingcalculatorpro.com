@@ -147,8 +147,24 @@ async function pedir(url) {
   // 4 · una muestra del sitemap responde de verdad y se declara canónica de sí
   //     misma. Repartida a lo largo de la lista, no las N primeras: las primeras
   //     son siempre las rutas principales, y son justo las que nunca fallan.
-  const paso = Math.max(1, Math.floor(locs.length / MUESTRA));
-  const muestra = locs.filter((_, i) => i % paso === 0).slice(0, MUESTRA);
+  // El muestreo a paso fijo se saltaba justo las URLs que más importan.
+  //
+  // Con 1.648 `<loc>` y `--muestra 25` el paso sale 65, así que de las ocho
+  // rutas de aplicación —que van las primeras del sitemap, índices 0 a 7— sólo
+  // se comprobaba la 0, la portada. Las otras siete (`/pricing`, `/education`,
+  // `/options`, `/about`, `/contact`, `/legal`…) llevaban meses devolviendo 404
+  // de GitHub Pages sin que este verificador pudiera verlo: no es que fallara,
+  // es que no las miraba. Un muestreo regular sobre una lista ordenada tiene
+  // exactamente esta forma de punto ciego.
+  //
+  // Ahora las rutas cortas (un solo segmento, o ninguno) entran SIEMPRE, y el
+  // paso reparte el resto de la muestra por las páginas generadas.
+  const esRutaDeApp = (u) => rutaDe(u).replace(/^\/|\/$/g, '').split('/').filter(Boolean).length <= 1;
+  const fijas = locs.filter(esRutaDeApp);
+  const resto = locs.filter((u) => !esRutaDeApp(u));
+  const hueco = Math.max(0, MUESTRA - fijas.length);
+  const paso = Math.max(1, Math.floor(resto.length / Math.max(1, hueco)));
+  const muestra = [...fijas, ...resto.filter((_, i) => i % paso === 0).slice(0, hueco)];
   let vistas = 0;
   for (const url of muestra) {
     const r = await pedir(aBase(url));

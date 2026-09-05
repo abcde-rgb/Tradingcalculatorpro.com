@@ -27,8 +27,6 @@ const LOCALE_META = {
   it: { og: 'it_IT', html: 'it', dir: 'ltr' },
 };
 
-const SUPPORTED_LOCALES = Object.keys(LOCALE_META);
-
 /**
  * useSEO — per-page, fully i18n-aware SEO updater.
  *
@@ -37,7 +35,7 @@ const SUPPORTED_LOCALES = Object.keys(LOCALE_META);
  *  - meta description / og:* / twitter:*
  *  - canonical link
  *  - <html lang="…" dir="…">
- *  - hreflang alternates for the current path across every locale
+ *  - the x-default hreflang for the current path
  *
  * Both literal strings and translation keys are accepted via `titleKey` /
  * `descriptionKey`. Plain `title` / `description` props still work.
@@ -61,8 +59,8 @@ export function useSEO({
 
     const fullTitle = localizedTitle ? `${localizedTitle} | ${BRAND}` : BRAND;
     const path = canonicalPath || (typeof window !== 'undefined' ? window.location.pathname : '/');
-    // Canonical always points to the bare path (no ?lang param) — search engines
-    // pick the correct locale via hreflang alternates below.
+    // El canonical es siempre la ruta desnuda (sin `?lang`): la SPA sirve UNA
+    // URL por ruta y traduce en cliente, así que `?lang=de` no es otra página.
     const canonical = `${ORIGIN}${path}`;
 
     document.title = fullTitle;
@@ -89,33 +87,29 @@ export function useSEO({
 }
 
 /**
- * Replace the existing rel="alternate" hreflang link list to point every locale
- * to the **current path** (instead of the static `/` from index.html). This is
- * what makes Google, Bing and Yandex serve the right localised version for
- * each user's region on every route — not just the homepage.
+ * Mantiene el `x-default` apuntando a la RUTA ACTUAL, y no declara más
+ * alternativas.
+ *
+ * Aquí se emitían diez `hreflang` a `?lang=xx` sobre esta misma URL. Es
+ * exactamente el patrón que `public/index.html` documenta y quitó de la
+ * portada, reintroducido en cada una de las rutas de la SPA: el idioma se
+ * traduce en CLIENTE, así que `/pricing?lang=de` devuelve byte por byte el
+ * mismo HTML que `/pricing`. Peor todavía, este mismo hook pone el canonical de
+ * esas URLs en la ruta desnuda (sin `?lang`), de modo que las dos señales se
+ * contradecían: el hreflang decía «ésta es la versión alemana», el canonical
+ * decía «ésta no es una página, la buena es la otra», y gana el canonical.
+ * Resultado: cero idiomas indexados de más y rastreo gastado en diez URLs que
+ * Google ya sabía que eran una.
+ *
+ * `hreflang` sólo significa algo cuando hay una URL POR IDIOMA. Las que sí las
+ * tienen —las 1.640 páginas estáticas de `gen-seo-pages.js`, con
+ * `/de/learn/…`— emiten su propio juego completo y correcto. Mientras la SPA
+ * sirva una sola URL por ruta, lo honesto es no declarar alternativas.
  */
 function syncHreflangAlternates(path) {
   const head = document.head;
-  // Remove any previously-added hreflang link nodes managed by this hook.
-  head.querySelectorAll('link[rel="alternate"][data-i18n-managed="true"]').forEach((n) => n.remove());
+  head.querySelectorAll('link[rel="alternate"][hreflang]').forEach((n) => n.remove());
 
-  // Also drop the static index.html alternates so we don't have stale hreflang
-  // values pointing to `/` from the homepage when the user is on /options etc.
-  head.querySelectorAll('link[rel="alternate"][hreflang]:not([data-i18n-managed])').forEach((n) => n.remove());
-
-  for (const code of SUPPORTED_LOCALES) {
-    const link = document.createElement('link');
-    link.setAttribute('rel', 'alternate');
-    link.setAttribute('hreflang', LOCALE_META[code].html);
-    link.setAttribute('data-i18n-managed', 'true');
-    link.setAttribute(
-      'href',
-      code === 'es' ? `${ORIGIN}${path}` : `${ORIGIN}${path}?lang=${code}`,
-    );
-    head.appendChild(link);
-  }
-
-  // x-default → Spanish (the project's default locale).
   const xDefault = document.createElement('link');
   xDefault.setAttribute('rel', 'alternate');
   xDefault.setAttribute('hreflang', 'x-default');

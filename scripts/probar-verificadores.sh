@@ -767,6 +767,18 @@ import pathlib
 p = pathlib.Path('backend/server.py')
 p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"price\\\": 21.00', 1))\""
 
+# El precio que vive FUERA de las claves `<plan>Price`. Es el que estuvo mal:
+# `seoPricingTitle` —el <title> de /pricing, lo que Google enseña— anunciaba
+# «9,99 $/Monat» en seis idiomas mientras Stripe cobraba 17 €, y este verificador
+# pasaba en verde porque sólo miraba las claves `monthlyPrice`, `annualPrice`…
+# Un verificador que recorre una lista de claves protege esa lista y nada más.
+probar "un precio falso en el <title> de la página de precios" \
+  "python scripts/check-precios.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/de.js')
+p.write_text(p.read_text().replace('Premium ab 17 €/Mo', 'Premium ab 9,99 \$/Mo', 1))\""
+
 # ── La identidad de `t` acompaña al idioma ──────────────────────────────────
 # Corre en Node contra el store, sin navegador ni build: la invariante vive en
 # `lib/i18n.js` y se comprueba ahí. El cebo es la forma EXACTA de BUG-066 —una
@@ -1634,6 +1646,32 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \
     "$SEO_REST"
+
+  # Una URL del sitemap que GitHub Pages serviría con 404.
+  #
+  # Es el fallo que estuvo puesto y que ningún verificador veía: `/pricing`,
+  # `/about`, `/legal`, `/education`, `/options`, `/options/strategies` y
+  # `/contact` iban en el sitemap con prioridad 0.85-0.9 y NINGUNA tenía fichero
+  # en el build. Pages no reescribe rutas: sin `pricing/index.html` ni
+  # `pricing.html` sirve `404.html` con estado 404. Y como el workflow copia el
+  # shell a `404.html`, la SPA arranca y la página se ve perfecta — sólo Google
+  # veía el 404. La comprobación anterior no podía cazarlo: saltaba las rutas de
+  # app por ser rutas de app, y sólo miraba las de dos segmentos o más.
+  SEO_APP_DIR=$(mktemp -d); TEMPORALES+=("$SEO_APP_DIR")
+  cp frontend/build/pricing/index.html "$SEO_APP_DIR/dir.html"
+  cp frontend/build/pricing.html "$SEO_APP_DIR/plano.html"
+  probar "una ruta del sitemap sin fichero que servir (404 de Pages)" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "rm -f frontend/build/pricing/index.html frontend/build/pricing.html" \
+    "cp $SEO_APP_DIR/dir.html frontend/build/pricing/index.html; cp $SEO_APP_DIR/plano.html frontend/build/pricing.html"
+
+  # Y el shell de una ruta de app con el canonical de la portada: las siete
+  # copias salen del MISMO `build/index.html`, así que olvidar reescribir el
+  # canonical deja seis páginas diciendo que la buena es `/`.
+  probar "un shell de ruta de app con el canonical de la portada" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|rel=\"canonical\" href=\"https://tradingcalculator.pro/about\"|rel=\"canonical\" href=\"https://tradingcalculator.pro/\"|' frontend/build/about/index.html" \
+    "sed -i 's|rel=\"canonical\" href=\"https://tradingcalculator.pro/\"|rel=\"canonical\" href=\"https://tradingcalculator.pro/about\"|' frontend/build/about/index.html"
 
   # El sitemap anunciando una ruta que robots.txt prohíbe. Pasó de verdad:
   # `/performance` es premium y robots la bloqueaba, pero el sitemap la anunciaba

@@ -2787,7 +2787,7 @@ export default {
   "seoPerformanceDesc": "Why 90% of traders lose and how to join the profitable 10%. Trading journal with CSV import/export, 25+ metrics (Sharpe, Expectancy, Drawdown).",
   "seoEducationTitle": "Learning Center — Trading Patterns, Candlesticks & Strategies",
   "seoEducationDesc": "Complete guide: 42 chart patterns, 30 candlestick patterns with a live detector, Rules, Dow Theory, psychology and capital management.",
-  "seoPricingTitle": "Pricing — Free Plan and Premium from €17/month",
+  "seoPricingTitle": "Pricing — Premium from €17/mo with a 7-day free trial",
   "seoPricingDesc": "Start with a 7-day free trial. Premium from €17/mo unlocks AI Trade Coach, Strategy Optimizer, Simulator Pro, Backtesting and all advanced tools.",
   "seoLoginTitle": "Sign In — Access Your Account",
   "seoLoginDesc": "Sign in to your Trading Calculator PRO account. Calculate leverage, position size and manage risk like a professional.",

@@ -126,22 +126,38 @@ function idiomaDe(rel) {
 }
 
 // ── el examen de una página ─────────────────────────────────────────────────
+// Las rutas de aplicación (`APP` en gen-seo-pages.js) son copias del shell de la
+// SPA escritas para que GitHub Pages las sirva con estado 200 en vez de 404.
+// Tienen UNA sola URL —la SPA traduce en cliente—, así que no llevan el juego de
+// hreflang de las páginas generadas y su canonical no lleva barra final. Se les
+// exige lo que sí les aplica: canonical propio, título y descripción.
+const APP_RUTAS = (() => {
+  const src = fs.readFileSync(path.join(__dirname, 'gen-seo-pages.js'), 'utf8');
+  const m = src.match(/const APP\s*=\s*\[([\s\S]*?)\n\];/);
+  return new Set((m ? [...m[1].matchAll(/^\s*\['([^']+)'/gm)].map((x) => x[1]) : [])
+    .map((r) => r.replace(/^\//, '')).filter(Boolean));
+})();
+
 function revisar(fichero) {
   const html = fs.readFileSync(fichero, 'utf8');
   const rel = path.relative(BUILD, path.dirname(fichero)).split(path.sep).join('/');
   const propia = urlDe(fichero);
   const lang = idiomaDe(rel);
+  const esApp = APP_RUTAS.has(rel);
 
   // 1 · canonical
   const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
   if (!canonical) anota('canonical ausente', rel, '');
   else if (!mismoOrigen(canonical, DOMAIN)) anota('canonical a otro dominio', rel, canonical);
-  else if (unaBarra(canonical) !== unaBarra(propia))
+  else if (esApp) {
+    if (sinBarras(canonical) !== sinBarras(propia))
+      anota('canonical NO auto-referente', rel, `dice ${canonical}`);
+  } else if (unaBarra(canonical) !== unaBarra(propia))
     anota('canonical NO auto-referente', rel, `dice ${canonical}`);
 
   // 2 · hreflang
   const alt = [...html.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]+)"/g)];
-  if (alt.length) {
+  if (alt.length && !esApp) {
     const vistos = alt.map((m) => m[1]);
     const faltan = [...HREFLANGS].filter((h) => !vistos.includes(h));
     const dup = vistos.filter((h, i) => vistos.indexOf(h) !== i);
@@ -221,23 +237,48 @@ if (!fs.existsSync(SITEMAP)) {
   // detectar las que sí faltan. Una exención escrita a mano se pudre igual que
   // cualquier otra lista escrita a mano.
   const genSrc = fs.readFileSync(path.join(__dirname, 'gen-seo-pages.js'), 'utf8');
-  const mMain = genSrc.match(/const MAIN\s*=\s*\[([\s\S]*?)\];/);
+  const mApp = genSrc.match(/const APP\s*=\s*\[([\s\S]*?)\n\];/);
   const rutasApp = new Set(
-    (mMain ? [...mMain[1].matchAll(/\['([^']+)'/g)].map((m) => m[1]) : [])
-      .flatMap((r) => LANGS.map(([, pref]) =>
-        sinBarras(`${DOMAIN}${pref}${r}`) || DOMAIN)));
-  if (!mMain) anota('no se pudo leer MAIN de gen-seo-pages.js', 'scripts/gen-seo-pages.js',
-                    'sin esa lista no se distingue una ruta de app de una página que falta');
+    (mApp ? [...mApp[1].matchAll(/^\s*\['([^']+)'/gm)].map((m) => m[1]) : [])
+      .map((r) => sinBarras(`${DOMAIN}${r}`) || DOMAIN));
+  if (!mApp) anota('no se pudo leer APP de gen-seo-pages.js', 'scripts/gen-seo-pages.js',
+                   'sin esa lista no se distingue una ruta de app de una página que falta');
 
+  // Toda URL del sitemap tiene que resolver a un fichero que GitHub Pages sepa
+  // servir con estado 200.
+  //
+  // Pages NO reescribe rutas: para `/pricing` prueba `pricing.html` y
+  // `pricing/index.html`, y si no encuentra ninguno sirve `404.html` **con
+  // estado HTTP 404**. Como el workflow copia el shell de la SPA a `404.html`,
+  // la aplicación arranca y la página se ve perfectamente — así que el fallo es
+  // invisible para una persona y total para un rastreador.
+  //
+  // Existe porque pasó, y en las URLs más caras del sitio: `/pricing`,
+  // `/education`, `/options`, `/options/strategies`, `/about`, `/contact` y
+  // `/legal` estaban en el sitemap con prioridad 0.85-0.9 y las siete devolvían
+  // 404 a Google. Search Console las marca «Enviada: no encontrada (404)», y
+  // encima los dos botones verdes de las 1.640 páginas estáticas apuntan a
+  // `/pricing`. Nada lo dijo: la comprobación anterior sólo miraba las rutas de
+  // dos segmentos o más, y a las de app las saltaba por ser rutas de app.
+  const sirvePages = (ruta) => {
+    const limpia = ruta.replace(/^\/|\/$/g, '');
+    if (!limpia) return fs.existsSync(path.join(BUILD, 'index.html'));
+    return fs.existsSync(path.join(BUILD, limpia, 'index.html'))
+        || fs.existsSync(path.join(BUILD, `${limpia}.html`));
+  };
   for (const loc of enSitemap) {
-    const sinBarra = sinBarras(loc);
-    if (rutasApp.has(sinBarra)) continue;
-    const ruta = rutaDe(loc).replace(/^\/|\/$/g, '');
-    if (ruta.split('/').length >= 2 && !norm.has(loc))
-      anota('sitemap anuncia una página que no existe', ruta, '');
+    if (!sirvePages(rutaDe(loc)))
+      anota('el sitemap anuncia una URL que GitHub Pages sirve con 404', rutaDe(loc),
+            'falta <ruta>/index.html o <ruta>.html en el build');
   }
-  for (const u of norm) if (!enSitemap.has(u))
-    anota('página generada que el sitemap no anuncia', rutaDe(u), '');
+  // Y al revés: una página generada que el sitemap no anuncia sólo la encuentra
+  // Google por enlaces. Las rutas de app premium (`/education`, `/options`…)
+  // están fuera a propósito —contenido tras el muro— y llevan `noindex`.
+  for (const u of norm) {
+    const rel = rutaDe(u).replace(/^\/|\/$/g, '');
+    if (rutasApp.has(sinBarras(u))) continue;
+    if (!enSitemap.has(u)) anota('página generada que el sitemap no anuncia', rutaDe(u), '');
+  }
 
   // Ninguna URL del sitemap puede estar prohibida en robots.txt.
   //

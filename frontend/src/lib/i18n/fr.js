@@ -2861,7 +2861,7 @@ export default {
   "seoPerformanceDesc": "Pourquoi 90% des traders perdent et comment rejoindre les 10% rentables. Journal avec import/export CSV, 25+ métriques (Sharpe, Expectancy).",
   "seoEducationTitle": "Centre d’Apprentissage — Figures, Chandeliers et Stratégies",
   "seoEducationDesc": "Guide complet : 42 figures chartistes, 30 figures en chandeliers avec détecteur en direct, règles, théorie de Dow, psychologie et gestion du capital.",
-  "seoPricingTitle": "Tarifs — Plan Gratuit et Premium dès 9,99 $/mois",
+  "seoPricingTitle": "Tarifs — Premium dès 17 €/mois avec 7 jours gratuits",
   "seoPricingDesc": "Commencez avec 7 jours gratuits. Premium dès 17 €/mois débloque AI Trade Coach, Strategy Optimizer, Simulateur Pro, Backtesting et tous les outils.",
   "seoLoginTitle": "Connexion — Accès à votre compte",
   "seoLoginDesc": "Connectez-vous à votre compte Trading Calculator PRO. Calculez le levier et la taille de position comme un professionnel.",

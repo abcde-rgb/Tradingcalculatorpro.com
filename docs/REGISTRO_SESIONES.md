@@ -6426,3 +6426,55 @@ cambios que nadie revisa.
 **Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
 PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
 ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.
+
+## 2026-09-05 — Auditoría contra Google Search Central: siete URLs devolvían 404
+
+Revisión del SEO técnico contra lo que exige Google Search Central. El sandbox no
+tiene salida a internet —`developers.google.com` está bloqueado por el proxy—, así
+que la auditoría se hizo contra el criterio conocido y **verificada entera sobre el
+build compilado**, no sobre lo publicado.
+
+**El hallazgo caro: la web funcionaba y Google veía 404** (BUG-081)
+
+GitHub Pages no reescribe rutas. Sin `pricing.html` ni `pricing/index.html` sirve
+`404.html` **con estado 404**, y como el workflow copia el shell ahí, la SPA arranca
+y la persona ve su página. El estado sólo lo ve el rastreador. Estaban así las
+**siete** rutas de aplicación del sitemap salvo la portada, anunciadas con prioridad
+0.85–0.9. Y los dos botones verdes de las 1.640 páginas estáticas apuntan a
+`/pricing`: 3.280 CTA a un 404.
+
+Lo que hace que esto sea una lección y no un descuido: **los dos verificadores de SEO
+pasaban en verde**, y no por casualidad. `check-seo.js` saltaba las rutas de app *por
+ser* rutas de app; `check-seo-en-vivo.js` muestrea a paso fijo (1.648 ÷ 25 = 65) sobre
+una lista que empieza justo por esas ocho, así que comprobaba la 0 y ninguna más. Un
+muestreo regular sobre una lista ordenada tiene exactamente esa forma de punto ciego.
+
+**El otro hallazgo: el precio del escaparate** (BUG-082)
+
+`seoPricingTitle` —el `<title>` de `/pricing`, lo que Google enseña— anunciaba
+«9,99 $/mes» en seis idiomas y un «Plan Gratis» en los diez. Se cobran 17/45/200/500 €
+y no hay plan gratuito. `check-precios.py` pasaba en verde porque sólo recorría las
+claves `<plan>Price`. Su propio `seoPricingDesc` decía lo correcto en los diez: el
+título y la descripción de la misma página se contradecían.
+
+**Lo demás**: el hreflang `?lang=xx` que `useSEO` reintroducía en cada ruta contra su
+propio canonical (BUG-083); `og:locale` inválido, 643 descripciones cortadas a mitad
+de palabra y un `lastmod` que era la fecha del build en las 1.648 URLs (BUG-084).
+
+**Los tres verificadores quedan con su sabotaje** en `probar-verificadores.sh`: una
+ruta del sitemap sin fichero que servir, un shell de ruta de app con el canonical de
+la portada, y un precio falso en el `<title>`. Los tres se comprobaron: detectan el
+sabotaje y vuelven a verde al restaurar.
+
+**Lo que NO se ha tocado, y hay que decidir**
+
+- **80 de las 100 fichas de mercado publican texto en inglés bajo `<html lang>` de
+  otro idioma**, con hreflang declarándolas versiones distintas y `inLanguage:"ja"`
+  en su FAQPage. El fallback a inglés es una decisión escrita en el generador, pero
+  se tomó sin ver su consecuencia en hreflang. Arreglarlo es traducirlas o dejar de
+  generarlas (como ya hacen calculadoras y academia), y son 80 URLs publicadas: es
+  una decisión de tráfico, no de código.
+- **Las 1.640 páginas estáticas son una isla**: `grep` no encuentra un solo enlace a
+  `/tools/`, `/learn/` o `/markets/` en `src/`. Google llega por el sitemap y por el
+  `<noscript>` del shell, y nada más.
+- **No hay `pytest`** instalado en este entorno; el backend no se ha tocado.

@@ -2861,7 +2861,7 @@ export default {
   "seoPerformanceDesc": "Warum 90% der Trader verlieren und wie du zu den profitablen 10% gehörst. Handelsjournal mit CSV, 25+ Metriken (Sharpe, Expectancy, Drawdown).",
   "seoEducationTitle": "Lernzentrum — Trading-Muster, Kerzen und Strategien",
   "seoEducationDesc": "Kompletter Leitfaden: 42 Chartmuster, 30 Kerzenmuster mit Live-Erkennung, Regeln, Dow-Theorie, Psychologie und Kapitalmanagement.",
-  "seoPricingTitle": "Preise — Kostenloser Plan und Premium ab 9,99 $/Monat",
+  "seoPricingTitle": "Preise — Premium ab 17 €/Mo mit 7 Tagen gratis",
   "seoPricingDesc": "Starte mit 7 Tagen gratis. Premium ab 17 €/Mo schaltet AI Trade Coach, Strategy Optimizer, Simulator Pro, Backtesting und alle erweiterten Tools frei.",
   "seoLoginTitle": "Anmelden — Zugang zu deinem Konto",
   "seoLoginDesc": "Melde dich bei deinem Trading Calculator PRO-Konto an. Berechne Hebel und Positionsgröße wie ein Profi.",

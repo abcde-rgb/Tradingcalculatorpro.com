@@ -23,7 +23,6 @@ const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const BUILD = path.join(__dirname, '..', 'build');
 const I18N_DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
 const OG_IMAGE = `${DOMAIN}/og-image.png`;
-const LASTMOD = new Date().toISOString().slice(0, 10);
 
 // idioma → prefijo de ruta ('' para es) y código hreflang
 const LANGS = [
@@ -32,6 +31,34 @@ const LANGS = [
   ['pt', '/pt', 'pt'], ['it', '/it', 'it'],
 ];
 const RTL = new Set(['ar']);
+
+// `og:locale` NO admite el código corto de idioma: la especificación pide
+// `language_TERRITORY` (ISO 639-1 + «_» + ISO 3166-1). Las 1.640 páginas salían
+// con `es`, `zh`, `ja`… —valor inválido que Facebook, LinkedIn y WhatsApp
+// descartan, así que la tarjeta compartida caía al idioma por defecto—.
+// `public/index.html` y `useSEO.js` ya lo hacían bien; sólo el generador no.
+const OG_LOCALE = {
+  es:'es_ES', en:'en_US', de:'de_DE', fr:'fr_FR', ru:'ru_RU',
+  zh:'zh_CN', ja:'ja_JP', ar:'ar_SA', pt:'pt_PT', it:'it_IT',
+};
+const ogLocale = (lang) => OG_LOCALE[lang] || OG_LOCALE.es;
+
+// Recorta a `max` sin partir la última palabra.
+//
+// Era `String(x).slice(158)` a pelo, y cortaba a mitad de palabra en 643 de las
+// 1.640 páginas: la `meta description` acababa en «…the buyer pays a p». Google
+// no penaliza por ello, pero reescribe el fragmento cuando lo ve truncado, así
+// que el texto que se escribió con cuidado no se usa. Se corta en el último
+// espacio y se cierra con puntos suspensivos.
+const recorta = (texto, max = 158) => {
+  const t = String(texto == null ? '' : texto).trim();
+  if (t.length <= max) return t;
+  const duro = t.slice(0, max - 1);
+  const corte = duro.lastIndexOf(' ');
+  // Sin espacios (zh/ja no los usan) se corta donde toque: partir un ideograma
+  // no existe, cada carácter es una palabra.
+  return `${(corte > max * 0.6 ? duro.slice(0, corte) : duro).replace(/[\s,;:·—-]+$/, '')}…`;
+};
 
 // Cargar traducciones de cada idioma (mismo truco que la auditoría i18n)
 // Academy strings live in `<lang>.edu.js` (lazy chunk at runtime); the static
@@ -136,8 +163,8 @@ const HOWTO = {
 
 const CALCS = [
   { slug: 'calculadora-tamano-posicion', tab: 'position', formula: 'Size = (Capital × Risk%) ÷ Stop distance',
-    es: { title:'Calculadora de Tamaño de Posición — Gratis y Profesional', kw:'calculadora de tamaño de posición', lead:'Calcula exactamente cuántas unidades, lotes o contratos operar para arriesgar solo el porcentaje de tu cuenta que decidas por operación.', pts:['Arriesga siempre un % fijo y controlado (1-2 %)','Acciones, forex, cripto, índices y futuros','Evita el error nº1: el sobreapalancamiento'] },
-    en: { title:'Position Size Calculator — Free & Professional', kw:'position size calculator', lead:'Work out exactly how many units, lots or contracts to trade so you risk only the percentage of your account you choose per trade.', pts:['Always risk a fixed, controlled % (1-2%)','Stocks, forex, crypto, indices and futures','Avoids the #1 account killer: overleverage'] } },
+    es: { title:'Calculadora de Tamaño de Posición — Riesgo por Operación', kw:'calculadora de tamaño de posición', lead:'Calcula exactamente cuántas unidades, lotes o contratos operar para arriesgar solo el porcentaje de tu cuenta que decidas por operación.', pts:['Arriesga siempre un % fijo y controlado (1-2 %)','Acciones, forex, cripto, índices y futuros','Evita el error nº1: el sobreapalancamiento'] },
+    en: { title:'Position Size Calculator — Risk per Trade', kw:'position size calculator', lead:'Work out exactly how many units, lots or contracts to trade so you risk only the percentage of your account you choose per trade.', pts:['Always risk a fixed, controlled % (1-2%)','Stocks, forex, crypto, indices and futures','Avoids the #1 account killer: overleverage'] } },
   { slug: 'calculadora-de-lotes-forex', tab: 'lotsize', formula: 'Lots = Risk($) ÷ (Stop in pips × Pip value)',
     es: { title:'Calculadora de Lotes de Forex — Tamaño de Lote y Pip', kw:'calculadora de lotes forex', lead:'Convierte tu riesgo en euros/dólares al tamaño de lote correcto (estándar, mini o micro) según tu par, tu stop en pips y tu capital.', pts:['Lotes estándar, mini y micro','Valor del pip por par','Ajustado a tu % de riesgo'] },
     en: { title:'Forex Lot Size Calculator — Lot Size & Pip Value', kw:'forex lot size calculator', lead:'Turn your risk in dollars into the correct lot size (standard, mini or micro) based on your pair, your stop in pips and your capital.', pts:['Standard, mini and micro lots','Pip value per currency pair','Matched to your risk % per trade'] } },
@@ -191,13 +218,13 @@ const CALC_I18N = {
   },
   'calculadora-tamano-posicion': {
     de:{ title:`Positionsgrößen-Rechner — Kostenlos & Professionell`, kw:`Positionsgrößen-Rechner`, lead:`Berechne genau, wie viele Einheiten, Lots oder Kontrakte du handeln musst, um pro Trade nur den von dir gewählten Prozentsatz deines Kontos zu riskieren.`, pts:[`Riskiere immer einen festen, kontrollierten Prozentsatz (1–2 %)`,`Aktien, Forex, Krypto, Indizes und Futures`,`Vermeidet den häufigsten Fehler: Überhebelung`] },
-    fr:{ title:`Calculateur de Taille de Position — Gratuit et Professionnel`, kw:`Calculateur de taille de position`, lead:`Calculez exactement combien d'unités, de lots ou de contrats trader pour ne risquer que le pourcentage de votre compte choisi par trade.`, pts:[`Risquez toujours un % fixe et maîtrisé (1–2 %)`,`Actions, forex, crypto, indices et futures`,`Évite l'erreur n°1 : le surlevier`] },
+    fr:{ title:`Calculateur de Taille de Position — Risque par Trade`, kw:`Calculateur de taille de position`, lead:`Calculez exactement combien d'unités, de lots ou de contrats trader pour ne risquer que le pourcentage de votre compte choisi par trade.`, pts:[`Risquez toujours un % fixe et maîtrisé (1–2 %)`,`Actions, forex, crypto, indices et futures`,`Évite l'erreur n°1 : le surlevier`] },
     ru:{ title:`Калькулятор размера позиции — бесплатно и профессионально`, kw:`Калькулятор размера позиции`, lead:`Точно рассчитайте, сколько единиц, лотов или контрактов торговать, чтобы рисковать только выбранным процентом счёта на сделку.`, pts:[`Всегда рискуйте фиксированным контролируемым % (1–2 %)`,`Акции, форекс, крипто, индексы и фьючерсы`,`Избегает ошибки №1 — избыточного плеча`] },
     zh:{ title:`仓位大小计算器 — 免费且专业`, kw:`仓位大小计算器`, lead:`精确计算应交易多少单位、手数或合约，使每笔交易只承担你所选择的账户百分比风险。`, pts:[`始终以固定、可控的百分比（1–2%）承担风险`,`股票、外汇、加密货币、指数和期货`,`避免头号错误：过度杠杆`] },
     ja:{ title:`ポジションサイズ計算ツール — 無料でプロ仕様`, kw:`ポジションサイズ計算`, lead:`1回の取引で口座の決めた割合だけをリスクにするために、何単位・何ロット・何枚を取引すべきかを正確に計算します。`, pts:[`常に一定で管理された割合（1〜2%）でリスクを取る`,`株式・FX・仮想通貨・指数・先物`,`最大の失敗「過剰レバレッジ」を回避`] },
     ar:{ title:`حاسبة حجم المركز — مجانية واحترافية`, kw:`حاسبة حجم المركز`, lead:`احسب بدقة عدد الوحدات أو اللوتات أو العقود التي يجب تداولها لتخاطر فقط بالنسبة المئوية التي تختارها من حسابك في كل صفقة.`, pts:[`خاطر دائمًا بنسبة ثابتة ومنضبطة (1–2%)`,`الأسهم والفوركس والعملات الرقمية والمؤشرات والعقود الآجلة`,`يتجنب الخطأ الأول: الرافعة المفرطة`] },
-    pt:{ title:`Calculadora de Tamanho de Posição — Grátis e Profissional`, kw:`calculadora de tamanho de posição`, lead:`Calcule exatamente quantas unidades, lotes ou contratos operar para arriscar apenas a percentagem da sua conta que decidir por operação.`, pts:[`Arrisque sempre uma % fixa e controlada (1-2 %)`,`Ações, forex, cripto, índices e futuros`,`Evita o erro n.º 1: a sobrealavancagem`] },
-    it:{ title:`Calcolatrice della Size di Posizione — Gratuita e Professionale`, kw:`calcolatrice size posizione`, lead:`Calcola esattamente quante unità, lotti o contratti operare per rischiare solo la percentuale del tuo conto che decidi per ogni operazione.`, pts:[`Rischia sempre una % fissa e controllata (1-2 %)`,`Azioni, forex, cripto, indici e futures`,`Evita l'errore n.1: la leva eccessiva`] },
+    pt:{ title:`Calculadora de Tamanho de Posição — Risco por Operação`, kw:`calculadora de tamanho de posição`, lead:`Calcule exatamente quantas unidades, lotes ou contratos operar para arriscar apenas a percentagem da sua conta que decidir por operação.`, pts:[`Arrisque sempre uma % fixa e controlada (1-2 %)`,`Ações, forex, cripto, índices e futuros`,`Evita o erro n.º 1: a sobrealavancagem`] },
+    it:{ title:`Calcolatrice della Size di Posizione — Rischio per Operazione`, kw:`calcolatrice size posizione`, lead:`Calcola esattamente quante unità, lotti o contratti operare per rischiare solo la percentuale del tuo conto che decidi per ogni operazione.`, pts:[`Rischia sempre una % fissa e controllata (1-2 %)`,`Azioni, forex, cripto, indici e futures`,`Evita l'errore n.1: la leva eccessiva`] },
   },
   'calculadora-de-lotes-forex': {
     de:{ title:`Forex-Lot-Rechner — Lotgröße & Pip-Wert`, kw:`Forex-Lot-Rechner`, lead:`Rechne dein Risiko in Euro/Dollar in die richtige Lotgröße (Standard, Mini oder Micro) um – anhand deines Paars, deines Stops in Pips und deines Kapitals.`, pts:[`Standard-, Mini- und Micro-Lots`,`Pip-Wert je Währungspaar`,`An dein Risiko-% pro Trade angepasst`] },
@@ -423,7 +450,7 @@ ${hreflang}
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${esc(OG_IMAGE)}">
-<meta property="og:locale" content="${lang}">
+<meta property="og:locale" content="${ogLocale(lang)}">
 <meta name="twitter:card" content="summary_large_image">
 ${ld(jsonld)}
 ${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement:[
@@ -502,7 +529,7 @@ CALCS.forEach((c, i) => {
     const alts = LANGS.filter(([l]) => { const dd = calcData(c, l); return dd && dd.title; }).map(([l, p, h]) => [h, `${DOMAIN}/${p ? p.slice(1) + '/' : ''}tools/${c.slug}/`]);
     const ui = UI[lang];
     const related = CALCS.filter((_, j) => j !== i).slice(0, 6).map(r => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}tools/${r.slug}/`, label: cap((calcData(r, lang) || r.en).kw) }));
-    const description = d.lead.slice(0, 158);
+    const description = recorta(d.lead);
     const html = render({
       lang, url, alts, title: d.title, description, h1: cap(d.kw), kw: d.kw, ui,
       sectionLabel: ui.calcs, sectionUrl: `${DOMAIN}/dashboard`, lead: d.lead, formula: c.formula, points: d.pts,
@@ -542,7 +569,7 @@ TOPICS.forEach((tp, i) => {
     // hreflang: solo idiomas que tienen el contenido
     const alts = LANGS.filter(([l]) => T[l][tp.tk] && T[l][tp.ik]).map(([l, p, hl]) => [hl, `${DOMAIN}/${p ? p.slice(1) + '/' : ''}learn/${tp.slug}/`]);
     const related = TOPICS.filter((_, j) => j !== i).filter(r => T[lang][r.tk]).slice(0, 6).map(r => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}learn/${r.slug}/`, label: T[lang][r.tk] }));
-    const description = String(intro).slice(0, 158);
+    const description = recorta(intro);
     const html = render({
       lang, url, alts, title: `${title} | TradingCalculator.Pro`, description, h1: title, kw: title, ui,
       sectionLabel: ui.learn, sectionUrl: `${DOMAIN}/education`, lead: intro, formula: null, points: null,
@@ -595,7 +622,7 @@ function renderMarket({ lang, url, alts, id, name, body, mui, related }) {
   const hreflang = alts.map(([hl, u]) => `<link rel="alternate" hreflang="${hl}" href="${esc(u)}">`).join('\n') +
     `\n<link rel="alternate" hreflang="x-default" href="${esc((alts.find(a => a[0] === 'es') || [null, url])[1])}">`;
   const title = `${name} — ${mui.what} · TradingCalculator.Pro`;
-  const description = String(body.what).slice(0, 155);
+  const description = recorta(body.what, 155);
   const relatedHtml = related.map(r => `<li><a href="${esc(r.url)}">${esc(r.label)}</a></li>`).join('');
 
   // La FAQ se PINTA y se MARCA, en ese orden y desde la misma fuente.
@@ -643,7 +670,7 @@ ${hreflang}
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${esc(OG_IMAGE)}">
-<meta property="og:locale" content="${lang}">
+<meta property="og:locale" content="${ogLocale(lang)}">
 <meta name="twitter:card" content="summary_large_image">
 ${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement:[
   { '@type':'ListItem', position:1, name: MARKET_UI[lang].section, item: DOMAIN + '/education' },
@@ -789,7 +816,7 @@ STRATEGIES.forEach((s, i) => {
     // la receta (patas, riesgo, máximos, cuándo usarla). Eso vive dentro de la
     // app, tras el muro de pago.
     const points = multiExpiry ? [sui.multi] : [];
-    const description = String(lead).slice(0, 158);
+    const description = recorta(lead);
     const html = render({
       lang, url, alts, title: `${name} | ${sui.section}`, description, h1: name, kw: name, ui,
       sectionLabel: sui.section, sectionUrl: `${DOMAIN}/options`,
@@ -809,23 +836,165 @@ STRATEGIES.forEach((s, i) => {
   });
 });
 
-// ── Sitemap ──
-// `/performance` NO va aquí, y la razón ya estaba escrita en gen-sitemap.js: es
-// una ruta premium (`ProtectedRoute premiumOnly`) y robots.txt la bloquea con
-// `Disallow: /performance`. Anunciar en el sitemap una URL que robots prohíbe es
-// la contradicción que Search Console marca como «enviada pero bloqueada por
-// robots.txt», y resta autoridad al resto del sitemap.
+// ── Rutas de aplicación: el shell, servido con estado 200 ────────────────────
 //
-// El arreglo estaba en el generador equivocado: `postbuild` ejecuta SÓLO este
-// fichero, así que gen-sitemap.js —donde sí se había quitado, con su comentario—
-// no llega nunca al sitemap publicado. Por eso `/performance` seguía saliendo.
-const MAIN = [['/','1.0'],['/options','0.9'],['/options/strategies','0.85'],['/education','0.9'],['/pricing','0.85'],['/about','0.7'],['/contact','0.6'],['/legal','0.4']];
-const all = [...MAIN, ...sitemapUrls];
+// EL FALLO QUE ESTO ARREGLA
+// ------------------------
+// GitHub Pages no tiene reescritura de rutas: para `/pricing` busca
+// `pricing.html` y `pricing/index.html`, y si no encuentra ninguno sirve
+// `404.html` **con estado HTTP 404**. El workflow copia `index.html → 404.html`,
+// así que la SPA arranca y el usuario ve la página perfectamente — pero el
+// estado sigue siendo 404. Es el fallo silencioso en estado puro: para una
+// persona la web funciona; para Googlebot `/pricing`, `/about`, `/contact`,
+// `/legal`, `/education`, `/options` y `/options/strategies` no existen.
+//
+// Y estaban las ocho en el sitemap con prioridad 0.85-0.9, es decir: se le
+// pedía a Google que indexara siete URLs que le devolvían 404 («Enviada: no
+// encontrada» en Search Console, que resta autoridad al resto del sitemap).
+// Encima el CTA principal de las 1.640 páginas estáticas —dos botones verdes
+// por página— apunta a `/pricing`.
+//
+// El arreglo es escribir el shell en esas rutas, con SU título, SU descripción
+// y SU canonical en el HTML crudo. Se escriben las dos formas (`pricing.html` y
+// `pricing/index.html`) a propósito: Pages resuelve `/pricing` con la primera y
+// `/pricing/` con la segunda, y así ninguna de las dos depende de que el
+// servidor pruebe la extensión. Las dos declaran el mismo canonical sin barra
+// final, que es el que anuncia el sitemap y el que emite `useSEO`.
+//
+// Los textos salen de las MISMAS claves i18n que usa `useSEO` en cada página
+// (`seoPricingTitle`, `seoAboutTitle`…), así que el HTML crudo y el renderizado
+// no pueden divergir.
+const APP = [
+  // ruta,                prioridad, clave de título,        clave de descripción,  indexable
+  ['/',                   '1.0',  null,                    null,                     true ],
+  ['/pricing',            '0.85', 'seoPricingTitle',       'seoPricingDesc',         true ],
+  ['/about',              '0.7',  'seoAboutTitle',         'seoAboutDesc',           true ],
+  ['/contact',            '0.6',  'seoContactTitle',       'seoContactDesc',         true ],
+  ['/legal',              '0.4',  'seoLegalTitle',         'seoLegalDesc',           true ],
+  // Estas tres son `ProtectedRoute premiumOnly`: su contenido está tras el muro.
+  // Se les da estado 200 porque 750 páginas de academia y 660 de estrategias
+  // enlazan a ellas («Abrir el módulo completo»), y mandar 1.410 enlaces
+  // internos a un 404 es peor que cualquier cosa que hagan aquí. Pero NO van al
+  // sitemap y llevan `noindex`: es exactamente la decisión que ya estaba escrita
+  // para `/performance`, aplicada a las tres que se habían quedado fuera.
+  ['/education',          null,   'seoEducationTitle',     'seoEducationDesc',       false],
+  ['/options',            null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
+  ['/options/strategies', null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
+];
+
+const SHELL = path.join(BUILD, 'index.html');
+let appCount = 0;
+if (!fs.existsSync(SHELL)) {
+  console.error('✗ No hay build/index.html: ¿corrió `craco build` antes del postbuild?');
+  process.exit(1);
+}
+const shellSrc = fs.readFileSync(SHELL, 'utf8');
+// Sustituye el CONTENIDO de una etiqueta ya presente en el shell. Si la etiqueta
+// no está, no se inventa: el shell es la fuente y un cambio ahí tiene que verse
+// aquí, no quedar silenciosamente sin efecto.
+const sust = (html, re, reemplazo, que) => {
+  if (!re.test(html)) { faltantes.add(que); return html; }
+  return html.replace(re, reemplazo);
+};
+const faltantes = new Set();
+
+for (const [ruta, , tk, dk, indexable] of APP) {
+  if (ruta === '/') continue;                       // ya lo sirve build/index.html
+  const titulo = tk ? `${T.es[tk]} | Trading Calculator PRO` : null;
+  const desc = dk ? recorta(T.es[dk], 158) : null;
+  const url = `${DOMAIN}${ruta}`;
+  let html = shellSrc;
+  if (titulo) {
+    html = sust(html, /<title>[^<]*<\/title>/, `<title>${esc(titulo)}</title>`, '<title>');
+    html = sust(html, /(<meta property="og:title" content=")[^"]*"/,
+                `$1${esc(titulo)}"`, 'og:title');
+    html = sust(html, /(<meta name="twitter:title" content=")[^"]*"/,
+                `$1${esc(titulo)}"`, 'twitter:title');
+  }
+  if (desc) {
+    html = sust(html, /(<meta name="description" content=")[^"]*"/, `$1${esc(desc)}"`, 'description');
+    html = sust(html, /(<meta property="og:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'og:description');
+    html = sust(html, /(<meta name="twitter:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'twitter:description');
+  }
+  html = sust(html, /(<link rel="canonical" href=")[^"]*"/, `$1${esc(url)}"`, 'canonical');
+  html = sust(html, /(<meta property="og:url" content=")[^"]*"/, `$1${esc(url)}"`, 'og:url');
+  html = sust(html, /(<meta name="twitter:url" content=")[^"]*"/, `$1${esc(url)}"`, 'twitter:url');
+  html = sust(html, /(<link rel="alternate" hreflang="x-default" href=")[^"]*"/, `$1${esc(url)}"`, 'x-default');
+  if (!indexable) {
+    html = sust(html, /(<meta name="robots" content=")[^"]*"/, '$1noindex, follow"', 'robots');
+    html = sust(html, /(<meta name="googlebot" content=")[^"]*"/, '$1noindex, follow"', 'googlebot');
+  }
+  const dir = ruta.replace(/^\//, '');
+  fs.mkdirSync(path.join(BUILD, dir), { recursive: true });
+  fs.writeFileSync(path.join(BUILD, dir, 'index.html'), html, 'utf8');   // sirve /ruta/
+  fs.writeFileSync(path.join(BUILD, `${dir}.html`), html, 'utf8');       // sirve /ruta
+  appCount++;
+}
+if (faltantes.size) {
+  console.error(`✗ El shell no trae ${[...faltantes].join(', ')}: las rutas de app saldrían`);
+  console.error('  con los metadatos de la portada. Revisa public/index.html.');
+  process.exit(1);
+}
+
+// ── Sitemap ──
+// `/performance` NO va aquí: es una ruta premium (`ProtectedRoute premiumOnly`)
+// y robots.txt la bloquea con `Disallow: /performance`. Anunciar en el sitemap
+// una URL que robots prohíbe es la contradicción que Search Console marca como
+// «enviada pero bloqueada por robots.txt», y resta autoridad al resto del
+// sitemap. Por la misma razón se han sacado `/education`, `/options` y
+// `/options/strategies`, que son premium igual y estaban anunciadas con
+// prioridad 0.9.
+//
+// El arreglo original estaba en el generador equivocado: `postbuild` ejecuta
+// SÓLO este fichero, así que gen-sitemap.js —donde sí se había quitado, con su
+// comentario— no llega nunca al sitemap publicado.
+
+// `lastmod`: la fecha del último cambio REAL, o ninguna.
+//
+// Salían las 1.648 URLs con la fecha del build, así que cada despliegue le decía
+// a Google que las 1.648 páginas habían cambiado. Google documenta que ignora el
+// `lastmod` que no es consistente con lo que ve, de modo que el campo no sólo no
+// servía: gastaba credibilidad. Se saca del git de cada FUENTE (una página de
+// estrategia cambia cuando cambia `mockData.js`), y si el repositorio no tiene
+// historia —un clon superficial— se omite la etiqueta en vez de inventar una
+// fecha. Un dato que no se puede calcular no se rellena con un valor plausible.
+const { execFileSync } = require('child_process');
+const RAIZ = path.join(__dirname, '..', '..');
+const cacheFecha = new Map();
+const fechaDe = (rel) => {
+  if (cacheFecha.has(rel)) return cacheFecha.get(rel);
+  let f = null;
+  try {
+    const d = execFileSync('git', ['log', '-1', '--format=%cs', '--', rel],
+      { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) f = d;
+  } catch { /* sin git: se omite lastmod */ }
+  cacheFecha.set(rel, f);
+  return f;
+};
+// De qué fichero depende el contenido de cada sección.
+const FUENTE = [
+  [/\/tools\//,              'frontend/scripts/gen-seo-pages.js'],
+  [/\/learn\//,              'frontend/src/lib/i18n/es.edu.js'],
+  [/\/markets\//,            'frontend/src/lib/marketTypesContent.js'],
+  [/\/options\/strategies\//, 'frontend/src/data/mockData.js'],
+];
+const lastmodDe = (ruta) => {
+  const m = FUENTE.find(([re]) => re.test(ruta));
+  return fechaDe(m ? m[1] : 'frontend/src/lib/i18n/es.js');
+};
+
+const enSitemap = APP.filter(([, prio]) => prio).map(([ruta, prio]) => [ruta, prio]);
+const all = [...enSitemap, ...sitemapUrls];
 const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-  all.map(([p, pr]) => `  <url><loc>${DOMAIN}${p}</loc><lastmod>${LASTMOD}</lastmod><priority>${pr}</priority></url>`).join('\n') +
+  all.map(([p, pr]) => {
+    const lm = lastmodDe(p);
+    return `  <url><loc>${DOMAIN}${p}</loc>${lm ? `<lastmod>${lm}</lastmod>` : ''}<priority>${pr}</priority></url>`;
+  }).join('\n') +
   '\n</urlset>\n';
 fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
 
+console.log(`✅ Rutas de app: ${appCount} shells con estado 200 (antes: 404 de GitHub Pages)`);
 console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × ${LANGS.length} idiomas)`);
 console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × ${LANGS.length} idiomas)`);
 console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × ${LANGS.length} idiomas)`);

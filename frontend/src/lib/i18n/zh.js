@@ -2861,7 +2861,7 @@ export default {
   "seoPerformanceDesc": "为什么90%的交易者亏损以及如何加入盈利的10%。CSV导入导出日记，25+指标(Sharpe、Expectancy、Drawdown)。",
   "seoEducationTitle": "学习中心 — 形态、K线和交易策略",
   "seoEducationDesc": "完整指南：42 种图表形态、30 种带实时探测的K线形态、规则、道氏理论、心理与资金管理。",
-  "seoPricingTitle": "价格 — 免费方案与Premium起价$9.99/月",
+  "seoPricingTitle": "价格 — Premium 17 欧元/月起，含 7 天免费试用",
   "seoPricingDesc": "从 7 天免费试用开始。Premium 17 欧元/月起解锁AI交易教练、策略优化器、Simulator Pro、回测和所有高级工具。",
   "seoLoginTitle": "登录 — 访问您的账户",
   "seoLoginDesc": "登录您的Trading Calculator PRO账户。像专业人士一样计算杠杆和仓位大小。",

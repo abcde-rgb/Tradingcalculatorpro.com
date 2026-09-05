@@ -2786,7 +2786,7 @@ export default {
   "seoPerformanceDesc": "Perché il 90% dei trader perde e come entrare nel 10% profittevole. Diario di trading con import/export CSV, 25+ metriche (Sharpe, Expectancy, Drawdown).",
   "seoEducationTitle": "Centro di Apprendimento — Pattern, Candele e Strategie di Trading",
   "seoEducationDesc": "Guida completa: 42 pattern grafici, 30 pattern a candele con rilevatore dal vivo, regole, Teoria di Dow, psicologia e gestione del capitale.",
-  "seoPricingTitle": "Prezzi — Piano Gratis e Premium da 17€/mese",
+  "seoPricingTitle": "Prezzi — Premium da 17€/mese con 7 giorni gratis",
   "seoPricingDesc": "Inizia con 7 giorni gratis. Il Premium da 17€/mese sblocca AI Trade Coach, Strategy Optimizer, Simulatore Pro, Backtesting e tutti gli strumenti avanzati.",
   "seoLoginTitle": "Accedi — Entra nel tuo account",
   "seoLoginDesc": "Accedi al tuo account Trading Calculator PRO. Calcola leva, posizione e gestisci il tuo rischio da professionista.",

@@ -19,6 +19,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Historia completa: `gen-seo-pages.js` saca el `lastmod` de cada
+          # sección del último commit de su fuente (`mockData.js`,
+          # `marketTypesContent.js`, `es.edu.js`…). Con el clon superficial que
+          # trae checkout por defecto, `git log -1 -- <fichero>` no devuelve
+          # nada y el sitemap sale SIN `lastmod` — que es el comportamiento
+          # honesto, pero pierde la señal. Aquí sí se puede tener.
+          fetch-depth: 0
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
