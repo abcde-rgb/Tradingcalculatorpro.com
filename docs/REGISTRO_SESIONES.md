@@ -6816,3 +6816,84 @@ llegó a mandar la petición real a `api.indexnow.org`, que respondió 403 porqu
 fichero de clave todavía no está publicado en producción — la respuesta esperada
 antes del primer despliegue con este cambio. No se puede confirmar aquí un 200/202
 real: eso sólo se sabrá tras desplegar.
+
+---
+
+### 2026-09-05 (cont. 2) — Fusionar main en el PR 229: dos arreglos del mismo fallo
+
+`main` avanzó mientras este PR estaba abierto, y lo hizo sobre el MISMO fallo que
+el PR abre: las siete rutas del sitemap que GitHub Pages servía con estado 404.
+Dos sesiones lo encontraron por su cuenta el mismo día y lo arreglaron distinto.
+Lo que quedó no era un conflicto de texto, sino seis ficheros con dos
+implementaciones del mismo arreglo, con nombres distintos y decisiones opuestas.
+
+**Lo que se decidió en cada choque, y por qué**
+
+- **Rutas de aplicación → la tabla `APP` de main.** Cubre diez rutas (las cuatro
+  públicas, las tres premium y las tres de autenticación) frente a las cuatro de
+  esta rama, escribe las DOS formas que Pages sabe servir (`pricing.html` y
+  `pricing/index.html`) y saca los textos de las mismas claves i18n que usa
+  `useSEO`, en vez de un literal inline que puede divergir. De esta rama se
+  conserva la guarda que lee `App.js` y aborta si una ruta anunciada en el
+  sitemap declara `noindex` en su componente — es lo que impide repetir lo de
+  `/brokers` y `/backtesting`.
+- **Canonical sin barra final.** La barra que traía esta rama era correcta para
+  SU diseño (sólo el directorio, servido tras un 301 de Pages). Con las dos
+  formas escritas no hay redirección que compensar, así que canonical,
+  `x-default` y sitemap dicen la misma cadena. `conBarra()` desaparece.
+- **Premium con `noindex`, no con `Disallow`.** Esta rama bloqueaba
+  `/education`, `/options` y `/options/strategies` en `robots.txt`; main les da
+  200 con `noindex, follow`. Gana main, y el motivo es el que ya costó el caso
+  `/performance`: **una ruta prohibida en robots nunca llega a leer su propio
+  `noindex`**, así que Google puede indexar la URL a secas por los enlaces que
+  la citan — y aquí la citan miles de páginas de academia y de estrategia. En
+  `robots.txt` queda sólo lo que NO tiene fichero: `/options/calculator`,
+  `/plan`, `/news` y `/affiliate`.
+- **Todo lo demás de esta rama entra tal cual**: los 60 hubs, los slugs
+  traducidos con sus 949 páginas puente, los 6.360 conceptos, los 77 patrones,
+  el favicon, IndexNow, el `lastmod` por fichero fuente y el muestreo de
+  extremos de `check-seo-en-vivo.js`.
+
+**Dos arreglos habían llegado por duplicado con otro nombre** —`recorta`/
+`recortar` y `ogLocale`/`OG_LOCALE`—, y el fichero ni siquiera parseaba: dos
+`const` con el mismo identificador. Se queda una implementación de cada uno.
+
+**La numeración chocaba en los dos diarios.** Las dos sesiones registraron en
+paralelo BUG-081…085, y tres de esos cinco eran el MISMO fallo contado dos
+veces. Se conservan los de main; de los de esta rama, los tres duplicados se
+retiran del diario y los dos propios pasan a **BUG-088** (páginas huérfanas) y
+**BUG-089** (parser de `robots.txt` y el `--` de más en `fechaReal`), con sus
+referencias remapeadas en código, reglas y skill. Lo mismo con los huecos: la
+sesión paralela reusó **G-37** y **G-38**, que ya existían desde agosto con otro
+significado; sus dos huecos nuevos pasan a **G-43** (fichas de mercado en inglés)
+y **G-44** (páginas huérfanas), y G-44 se cierra aquí.
+
+**Lo que encontró el arnés, y no se habría visto de otra forma**
+
+`probar-verificadores.sh` marcó **tres sabotajes que ya no sabotean**, los tres
+con su ✅ puesto hasta que se ejecutó: el que inserta una ruta con `noindex`
+apuntaba a `RUTAS_SPA`, que ya no existe; el que borra el fichero de `/pricing`
+borraba sólo el directorio, y `pricing.html` seguía sirviendo la ruta; y el que
+quita el `Allow` de `/options/strategies/` no casaba nada, porque esa línea ya no
+está en `robots.txt`. Los tres reescritos, y el último partido en dos —el
+sabotaje que añade el `Disallow`, y su mitad inversa con el `Allow` más largo,
+que es la que de verdad prueba el parser—.
+
+⚠️ **Y una trampa del propio arnés, para quien venga detrás**: `probar()`
+restaura con `git checkout -- .`, así que **se lleva por delante cualquier
+cambio sin commitear**. Editar documentación mientras corre cuesta el trabajo
+hecho. Se commitea antes de lanzarlo.
+
+**Verificado** sobre un `npm run build` real: `check-seo.js` (3.429 páginas,
+2.475 URLs), `i18n-check` (7.431 claves × 10), `engine-check` (535/535), `eslint
+src scripts` (0 errores), `check-precios.py`, `check-edu-index`,
+`check-enlaces-academia`, `check-fetch-credentials`, `check-i18n-identidad`,
+`check-quiz`, `gen-instruments-js --check`, `gen-mapa --check`, `gen-asistente
+--check`, `check-rutas-muertas`, `check-doc-links` y el arnés completo.
+
+**Lo que sigue sin poderse comprobar aquí**: el sandbox no tiene salida a
+internet, así que no se ha pedido ni una URL del sitio publicado. Que `/pricing`
+responda 200 está comprobado sobre el `build/` —los dos ficheros existen—, pero
+el 404 era un comportamiento del servidor: la prueba definitiva sigue siendo el
+workflow `seo-en-vivo.yml` tras el despliegue.
+

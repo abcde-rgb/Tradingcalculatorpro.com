@@ -36,24 +36,40 @@ resuelve literal o clave i18n indistintamente.
 persona ve la web perfecta y el rastreador ve un 404 y no indexa. Siete rutas llevaban
 así desde siempre, anunciadas en el sitemap (BUG-081).
 
-Por eso `gen-seo-pages.js` escribe un `build/<ruta>/index.html` real para cada ruta
-pública del SPA (`RUTAS_SPA`). **Si añades una ruta pública a `src/App.js` y quieres que
-se indexe, añádela también ahí.** Si no, será un 404 para Google y nadie se enterará.
+Por eso `gen-seo-pages.js` escribe el shell en cada ruta de aplicación (la tabla `APP`),
+y en **las dos formas** que Pages sabe resolver: `pricing.html` sirve `/pricing` y
+`pricing/index.html` sirve `/pricing/`, así que ninguna de las dos depende de una
+redirección. **Si añades una ruta a `src/App.js` y quieres que responda 200, añádela
+también ahí.** Si no, será un 404 — para Google y para cualquiera que comparta el enlace.
+
+La quinta columna de `APP` dice si la ruta es **indexable**. Las que no lo son reciben
+`noindex, follow` en el HTML crudo y se quedan fuera del sitemap; las que sí, entran con
+su prioridad. Los títulos y descripciones salen de las **mismas claves i18n** que usa
+`useSEO`, para que el HTML crudo y el renderizado no puedan divergir.
 
 Y al revés: **nunca escribas un fichero estático sobre una ruta que sirve el SPA**. Le
 robarías la pantalla a quien recargue esa URL. Es la razón de que el hub de estrategias
 viva en `/strategies/` y no en `/options/strategies/`, que es `OptionsStrategiesIndexPage`.
 
-## Lo que tiene muro NO va al sitemap
+## Lo que tiene muro NO va al sitemap — pero tampoco a `robots.txt`
 
 `/education`, `/options`, `/options/strategies`, `/dashboard`, `/performance` y `/plan`
 son `ProtectedRoute` en `src/App.js`: mandan a `/login` a quien no ha entrado. Anunciarlas
-sólo consigue que Google indexe una pantalla de acceso. Están en `robots.txt` y fuera del
-sitemap; su contenido público vive en las páginas estáticas, que no tienen muro.
+en el sitemap sólo consigue que Google indexe una pantalla de acceso, así que fuera; su
+contenido público vive en las páginas estáticas, que no tienen muro.
 
-⚠️ `robots.txt` resuelve por **coincidencia más larga**, no por orden. Por eso
-`Disallow: /options` convive con `Allow: /options/strategies/`: sin ese `Allow`, el
-`Disallow` se llevaría por delante las 66 fichas públicas de estrategia.
+⚠️ **Y la reacción natural —bloquearlas en `robots.txt`— es la equivocada cuando la ruta
+SÍ tiene fichero.** Un rastreador que no puede leer la página nunca ve su `noindex`, así
+que puede indexar la URL a secas por los enlaces que la citan — y a `/education` la citan
+miles de páginas de academia. Por eso las tres primeras responden 200 con
+`noindex, follow` (están en `APP` como no indexables) y NO aparecen en `robots.txt`. Ahí
+sólo va lo que no tiene fichero y nadie va a leer: `/options/calculator`, `/plan`,
+`/news`, `/affiliate`, `/dashboard`, `/performance`…
+
+⚠️ `robots.txt` resuelve por **coincidencia más larga**, no por orden, y `check-seo.js` lo
+lee así. Es lo que permitiría un `Allow: /options/strategies/` bajo un `Disallow:
+/options` — hoy no hace falta ninguno de los dos, pero si añades un `Disallow` sobre una
+rama que contiene páginas del sitemap, el `Allow` más largo es lo que las salva.
 
 ## Hubs, slugs y páginas puente
 

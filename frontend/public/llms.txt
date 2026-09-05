@@ -34,7 +34,8 @@ refritos. Las cifras de abajo salen del código y CI las comprueba en cada cambi
 
 Todo lo enlazable es PÚBLICO y sin muro. `/education`, `/options`, `/dashboard`
 y `/performance` exigen sesión y suscripción: mandan a `/login` a quien no ha
-entrado, así que no sirven como fuente y `robots.txt` las excluye.
+entrado, así que no sirven como fuente. Las dos primeras responden 200 y
+declaran `noindex`; `/dashboard` y `/performance` están además en `robots.txt`.
 
 - [Mapa completo de URLs](https://tradingcalculator.pro/sitemap.xml): unas 1.680
   páginas estáticas ya renderizadas, con `hreflang` en los diez idiomas.

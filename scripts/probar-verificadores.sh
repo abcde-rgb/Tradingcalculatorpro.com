@@ -993,10 +993,19 @@ else
 fi
 
 # ── Contraste del texto en los dos temas ────────────────────────────────────
-# Levanta su propio servidor, así que basta con el build. Se sabotea el token
-# que causó el fallo real: el verde del tema claro a `35%`, que dejaba 48
-# textos por debajo de la WCAG. Un umbral escrito y nunca roto no prueba nada.
-if [ -d frontend/build ]; then
+# Levanta su propio servidor, así que basta con el build… y con un navegador:
+# `contraste.js` hace `require('../lib/playwright-core')`. Faltaba esa segunda
+# condición —la de al lado sí la tiene— y sin el módulo el caso no se saltaba:
+# moría con MODULE_NOT_FOUND y el arnés lo contaba como «no pasa ni ANTES de
+# sabotear: hay algo roto de verdad». En cualquier sandbox sin playwright-core
+# —o sea, en el entorno normal de trabajo— el informe acusaba de un fallo del
+# producto lo que era una dependencia ausente. Un arnés que grita sin motivo se
+# acaba ignorando, que es justo lo que este fichero existe para evitar.
+#
+# Se sabotea el token que causó el fallo real: el verde del tema claro a `35%`,
+# que dejaba 48 textos por debajo de la WCAG. Un umbral escrito y nunca roto no
+# prueba nada.
+if [ -d frontend/build ] && [ -d tests/e2e/lib/playwright-core ]; then
   titulo "Contraste WCAG (contraste.js)"
   RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   probar "el verde del tema claro vuelve a un tono que no contrasta" \
@@ -1016,7 +1025,7 @@ p.write_text(t[:i] + trozo + t[j:])\" \
      && $RECOMPILA_CSS" \
     "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
 else
-  echo "  ⏭️  Contraste: sin build, no se prueba"
+  echo "  ⏭️  Contraste WCAG: sin build o sin playwright-core, no se prueba"
 fi
 
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
@@ -1777,7 +1786,8 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   # 404. `/pricing`, `/about`, `/contact` y `/legal` llevaban así desde siempre,
   # anunciadas en el sitemap. Borrar el fichero reproduce exactamente ese
   # estado.
-  # Una ruta con `noindex` en su componente, metida en RUTAS_SPA. Pasó: entraron
+  # Una ruta con `noindex` en su componente, metida en `APP` como indexable.
+  # Pasó: entraron
   # `/brokers` y `/backtesting`, que declaran `noindex: true` con el motivo
   # escrito al lado, y quedó una contradicción de tres bandas —el sitemap
   # pidiendo que se indexaran, el HTML estático diciendo `index, follow` y

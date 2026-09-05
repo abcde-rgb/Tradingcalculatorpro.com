@@ -101,9 +101,11 @@ useSEO({ titleKey: 'seoMiPaginaTitle', descriptionKey: 'seoMiPaginaDesc',
 ```
 
 `noindex: true` en cualquier pantalla tras `ProtectedRoute`. Si una ruta con
-`noindex: true` en su componente aparece también en `RUTAS_SPA` de `gen-seo-pages.js`,
-el generador **aborta el build** (guarda IIFE tras la definición de `RUTAS_SPA`) — es
-la contradicción exacta que sacó `/brokers` y `/backtesting` del sitemap.
+`noindex: true` en su componente aparece en la tabla `APP` de `gen-seo-pages.js` **como
+indexable**, el generador **aborta el build** (guarda IIFE tras la definición de `APP`)
+— es la contradicción exacta que sacó `/brokers` y `/backtesting` del sitemap. Una ruta
+premium o de acceso sí puede estar en `APP`: entra con la última columna a `false`, así
+que recibe fichero (200) y `noindex, follow`, y no se anuncia.
 
 ## 3. Verificadores (usa el más barato para lo que preguntas)
 
@@ -148,9 +150,10 @@ pasar). Un verificador que nunca se ha visto fallar no es un verificador.
 
 - **GitHub Pages sólo sirve `index.html` en la RAÍZ.** Cualquier otra ruta sin fichero
   físico recibe `404.html` **con código HTTP 404** — invisible para una persona (ve el
-  SPA perfecto), fatal para un rastreador. Por eso las rutas públicas de la SPA
-  (`RUTAS_SPA` en `gen-seo-pages.js`) tienen su propio `build/<ruta>/index.html`, y por
-  eso una ruta nueva que quieras indexar necesita entrar ahí. Detalle completo:
+  SPA perfecto), fatal para un rastreador. Por eso las rutas de la SPA (la tabla `APP`
+  de `gen-seo-pages.js`) se escriben en las dos formas —`<ruta>.html` y
+  `<ruta>/index.html`—, y por eso una ruta nueva que quieras servir con 200 necesita
+  entrar ahí. Detalle completo:
   `.claude/rules/i18n-seo.md` (se carga solo al tocar ficheros de esta zona).
 - **`gen-sitemap.js` existe pero está MUERTO.** Nada lo ejecuta (`postbuild` sólo corre
   `gen-seo-pages.js`). Se queda en el repo a propósito: `check-seo.js` comprueba que
@@ -166,9 +169,14 @@ pasar). Un verificador que nunca se ha visto fallar no es un verificador.
   idioma sobre una indexación que ya se está consolidando no resuelve nada y sí puede
   costar caro.
 - **`robots.txt` resuelve por coincidencia MÁS LARGA**, no por orden ni sólo por
-  `Disallow`. `Disallow: /options` + `Allow: /options/strategies/` dejan fuera la
-  pantalla premium y dentro las fichas públicas de estrategia — sin ese `Allow`, el
-  `Disallow` se las lleva todas por delante.
+  `Disallow`, y así lo lee `check-seo.js`. Si añades un `Disallow` sobre una rama que
+  contiene páginas del sitemap (`Disallow: /options` se llevaría las 660 fichas de
+  `/options/strategies/…`), es el `Allow` más largo lo que las salva.
+- **Una ruta con página propia NO se bloquea en `robots.txt`.** `/education`, `/options`
+  y `/options/strategies` tienen muro, pero responden 200 con `noindex, follow` y están
+  fuera de `robots.txt` a propósito: prohibida ahí, un rastreador nunca leería su
+  `noindex` y podría indexar la URL a secas por los miles de enlaces internos que la
+  citan. En `robots.txt` sólo va lo que no tiene fichero.
 - **El dominio es `tradingcalculator.pro`** (con punto). `tradingcalculatorpro.com` es
   el nombre del repositorio y pertenece a un tercero — ponerlo en un canonical o en el
   CORS del backend ya tumbó la web una vez (BUG-067). Si cambia, se actualiza a la vez
