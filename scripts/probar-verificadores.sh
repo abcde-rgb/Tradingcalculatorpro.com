@@ -1794,14 +1794,32 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   # leen distinto, y aquí sí se distinguió—, pero el sabotaje seguía sin
   # probar nada. `sed -i … /i\` con un ancla sin backticks no tiene ese punto
   # de fallo.
-  probar "una ruta con noindex metida en RUTAS_SPA" \
+  # La lista se llama `APP` desde que se fusionaron las dos versiones del
+  # arreglo del 404 (la de esta rama y la que entró antes en main): cinco
+  # columnas, y la última dice si la ruta es indexable. El sabotaje mete
+  # `/brokers` como indexable, que es exactamente lo que pasó.
+  #
+  # El ancla es `seoPricingTitle` —única en el fichero— y no la ruta: un
+  # patrón con `/` obliga a escapar la barra dentro de una cadena de bash ya
+  # entrecomillada, y ese exceso de capas es de donde salió el sabotaje que no
+  # se aplicaba nunca.
+  #
+  # La restauración borra además los ficheros que el generador llegó a escribir
+  # para `/brokers` antes de fallar: `process.exitCode = 1` no detiene el
+  # script, así que la regeneración sola no los quita y el siguiente caso
+  # encontraría una página que el sitemap no anuncia.
+  probar "una ruta con noindex metida en APP (como pasó con /brokers)" \
     "(cd frontend && node scripts/gen-seo-pages.js >/dev/null)" \
-    "sed -i \"/ruta: 'pricing'/i\\\\  { ruta: 'brokers', prio: '0.6', t: { es:'x', en:'x' }, d: { es:'x', en:'x' } },\" frontend/scripts/gen-seo-pages.js" \
-    "git checkout -- frontend/scripts/gen-seo-pages.js; $SEO_REST; $SEO_REGEN"
+    "sed -i \"/seoPricingTitle/i\\\\  ['/brokers', '0.6', 'seoAboutTitle', 'seoAboutDesc', true ],\" frontend/scripts/gen-seo-pages.js" \
+    "git checkout -- frontend/scripts/gen-seo-pages.js; rm -rf frontend/build/brokers frontend/build/brokers.html; $SEO_REST; $SEO_REGEN"
 
+  # Se borran LAS DOS formas. Pages resuelve `/pricing` con `pricing.html` y
+  # `/pricing/` con `pricing/index.html`, y el generador escribe ambas: quitar
+  # sólo el directorio deja la ruta servida igual, así que el sabotaje no
+  # reproducía el 404 y el caso pasaba por bueno sin probar nada.
   probar "una ruta pública del SPA sin fichero propio (vuelve a ser un 404)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "rm -rf frontend/build/pricing" \
+    "rm -rf frontend/build/pricing frontend/build/pricing.html" \
     "$SEO_REST; $SEO_REGEN"
 
   # El icono de los resultados de búsqueda. Ninguna de las 1.640 páginas lo
@@ -1919,13 +1937,23 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
     "printf '%s' '{\"consultas\":42,\"fallos\":42}' > frontend/build/.lastmod-meta.json" \
     "$SEO_REST"
 
-  # robots.txt resuelve por coincidencia MÁS LARGA. `Disallow: /options` +
-  # `Allow: /options/strategies/` deja fuera la pantalla premium y dentro las
-  # 66 fichas públicas. Sin ese `Allow`, el `Disallow` se lleva las 66 — que
-  # es justo lo que el sitemap anuncia.
-  probar "el Allow que salva las 66 fichas de estrategia, borrado" \
+  # El sitemap no puede anunciar una URL que robots prohíbe. `robots.txt` ya no
+  # lleva `Disallow: /options` —las rutas premium con página propia se resuelven
+  # con `noindex`, no bloqueándolas—, así que el sabotaje lo AÑADE: con él, las
+  # 660 fichas de `/options/strategies/…` que el sitemap anuncia quedan
+  # prohibidas y el verificador tiene que cantarlo.
+  probar "el sitemap anunciando 660 fichas que un Disallow nuevo prohíbe" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "sed -i '/^Allow: \\/options\\/strategies\\/\$/d' frontend/build/robots.txt" \
+    "printf '\\nUser-agent: *\\nDisallow: /options\\n' >> frontend/build/robots.txt" \
+    "cp frontend/public/robots.txt frontend/build/robots.txt; $SEO_REST"
+
+  # Y la otra mitad, que es la que de verdad prueba el parser: con el `Allow`
+  # más largo delante, esas mismas 660 SÍ están permitidas. Un lector que
+  # ignorara los `Allow` —como hacía éste— denunciaría 660 páginas perfectas, y
+  # el arreglo evidente sería apagar la comprobación entera.
+  probar_inverso "un Allow más largo que el Disallow que lo cubre" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "printf '\\nUser-agent: *\\nDisallow: /options\\nAllow: /options/strategies/\\n' >> frontend/build/robots.txt" \
     "cp frontend/public/robots.txt frontend/build/robots.txt; $SEO_REST"
 
   # El otro lado: una página puente NO va en el sitemap, y eso no es un fallo.
