@@ -1613,14 +1613,18 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   # siguientes fallaban con «no pasa ni ANTES de sabotear». Lo cazó la
   # comprobación post-restauración de `probar()`.
   SEO_REGEN="(cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
-  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp)
-  TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL")
+  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp); SEO_LMMETA=$(mktemp)
+  TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL" "$SEO_LMMETA")
   cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
   # El shell también, que ahora hay sabotajes que lo tocan y `build/` está en
   # .gitignore: sin esta copia el sabotaje se quedaría puesto y los casos
   # siguientes medirían una portada ya rota.
   cp frontend/build/index.html "$SEO_SHELL"
-  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml; cp $SEO_SHELL frontend/build/index.html"
+  # El informe de fechas de `gen-seo-pages.js` (BUG-085): el sabotaje del
+  # lastmod uniforme lo corrompe directamente, así que también hace falta
+  # copia y restauración propias.
+  cp frontend/build/.lastmod-meta.json "$SEO_LMMETA"
+  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml; cp $SEO_SHELL frontend/build/index.html; cp $SEO_LMMETA frontend/build/.lastmod-meta.json"
 
   # El canonical cruzado es el fallo más caro y el menos visible: la página se
   # ve perfecta y le está diciendo a Google que indexe otra.
@@ -1838,13 +1842,27 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
     "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|g' $SEO_HUB" \
     "$SEO_REST; $SEO_REGEN"
 
-  # El fallo que `lastmod` real sustituye: la fecha del build repetida en las
-  # 1.685 URLs. `gen-seo-pages.js` sólo cae ahí cuando `git log` no tiene
-  # historial que mirar; el sabotaje reproduce esa misma foto sin tocar el
-  # generador, aplastando el sitemap ya escrito a una fecha única.
-  probar "el sitemap vuelve a llevar una sola fecha en todo" \
+  # `patterns`/`candles` son hubs tan de verdad como `learn`: el regex que
+  # decide qué carpeta cuenta como hub (`check-seo.js`) llevaba una lista de
+  # cuatro nombres a mano y no incluía los dos nuevos — con eso puesto, las
+  # 770 fichas de patrones eran huérfanas SIEMPRE, aunque su propio hub las
+  # enlazara de verdad. Sabotea el hub de patrones, no el de aprendizaje, para
+  # que este caso no se solape con el de arriba.
+  probar "una página de patrones que su propio hub no enlaza" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "sed -i 's|<lastmod>[^<]*</lastmod>|<lastmod>2026-01-01</lastmod>|g' frontend/build/sitemap.xml" \
+    "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/patterns/ninguna/\"|g' frontend/build/patterns/index.html" \
+    "$SEO_REST; $SEO_REGEN"
+
+  # El fallo que `lastmod` real sustituye: la fecha del build repetida en
+  # todas las URLs. La guarda ya NO cuenta fechas distintas en el sitemap —un
+  # día con cambios anchos de verdad (los diez `<lang>.js` tocados a la vez)
+  # produce esa misma foto con fechas reales, y sería un falso positivo (visto
+  # en el propio build de este cambio, BUG-085) — sino que lee cuántas
+  # CONSULTAS a git cayeron al build-date en `.lastmod-meta.json`, que sólo
+  # escribe el generador. El sabotaje tiene que corromper ESE fichero.
+  probar "las consultas de fecha caen todas al build-date" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "printf '%s' '{\"consultas\":42,\"fallos\":42}' > frontend/build/.lastmod-meta.json" \
     "$SEO_REST"
 
   # robots.txt resuelve por coincidencia MÁS LARGA. `Disallow: /options` +

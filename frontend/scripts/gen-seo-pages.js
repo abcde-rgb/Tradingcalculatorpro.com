@@ -56,8 +56,16 @@ function fechaReal(...rutas) {
   try {
     // `process.cwd()` es `frontend/` — así se invoca siempre este script (npm
     // postbuild), y las rutas de abajo son relativas a esa raíz.
-    const args = rutas.map((r) => `-- ${JSON.stringify(r)}`).join(' ');
-    const salida = execSync(`git log -1 --format=%cd --date=short ${args}`, {
+    // UN SOLO `--`: un segundo `--` no es "otro separador", es un pathspec
+    // literal que no casa nada, y git lo tolera en silencio — deja de filtrar
+    // por ruta y devuelve el último commit del repo entero. Con más de una
+    // ruta (tema = `<lang>.js` + `<lang>.edu.js`, estrategia = `mockData.js` +
+    // `<lang>.js`…) eso convertía CADA fecha "real" en la fecha de commit más
+    // reciente de todo el repositorio: el mismo lastmod-uniforme que este
+    // fichero existe para evitar, sólo que agazapado detrás de fechas que sí
+    // cambiaban de un build a otro y por eso no saltaba a la vista.
+    const args = rutas.map((r) => JSON.stringify(r)).join(' ');
+    const salida = execSync(`git log -1 --format=%cd --date=short -- ${args}`, {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
     if (salida) fecha = salida;
@@ -93,7 +101,7 @@ const PREF = new Map(LANGS.map(([l, p]) => [l, p ? `${p.slice(1)}/` : '']));
 // estrategias vive en `/strategies/` aunque sus fichas cuelguen de
 // `/options/strategies/<slug>/`: publicar un fichero ahí le robaría la pantalla
 // al cliente que paga cuando recargue la página.
-const SECCIONES = ['learn', 'tools', 'markets', 'strategies'];
+const SECCIONES = ['learn', 'tools', 'markets', 'strategies', 'patterns', 'candles'];
 const hub = (lang, seccion) => `${DOMAIN}/${PREF.get(lang) || ''}${seccion}/`;
 
 // Cargar traducciones de cada idioma (mismo truco que la auditoría i18n)
@@ -592,7 +600,13 @@ const ld = (o) => `<script type="application/ld+json">${JSON.stringify(o)}</scri
 // de ellas en dos saltos desde la portada.
 const navHubs = (lang, ui) => `<a href="${DOMAIN}/">${esc(ui.home)}</a>`
   + SECCIONES.map((s) => {
-    const etiqueta = { learn: ui.learn, tools: ui.calcs, markets: ui.markets, strategies: ui.strategies }[s];
+    // `chartPatterns`/`candlestickPatterns` son claves de la APLICACIÓN
+    // (`T[lang]`), las mismas que usa el detector en vivo — no se reinventan
+    // aquí porque no pueden divergir del rótulo que ya ve un suscriptor.
+    const etiqueta = {
+      learn: ui.learn, tools: ui.calcs, markets: ui.markets, strategies: ui.strategies,
+      patterns: T[lang].chartPatterns, candles: T[lang].candlestickPatterns,
+    }[s];
     return `<a href="${hub(lang, s)}">${esc(etiqueta)}</a>`;
   }).join('');
 
@@ -748,7 +762,7 @@ const SLUG_CALC = tablaDeSlugs(
 );
 const slugCalc = (c, lang) => SLUG_CALC.get(c.slug)[lang];
 // Índice de lo generado, para que los hubs sepan a qué enlazar.
-const indice = { learn: {}, tools: {}, markets: {}, strategies: {} };
+const indice = { learn: {}, tools: {}, markets: {}, strategies: {}, patterns: {}, candles: {} };
 for (const s of SECCIONES) for (const [l] of LANGS) indice[s][l] = [];
 
 let calcCount = 0;
@@ -1229,6 +1243,104 @@ STRATEGIES.forEach((s, i) => {
   });
 });
 
+// ── Patrones chartistas y de vela (/patterns/<id>/, /candles/<id>/) ───
+// 42 patrones chartistas (23 de vuelta + 19 de continuación) y 35 de vela
+// (15 alcistas + 16 bajistas + 4 neutrales) que ya vivían en el módulo de
+// educación, tras el muro, sin una sola URL propia. El `id` NO se traduce
+// —"head-shoulders", "hammer"— porque es la misma jerga técnica en los diez
+// idiomas (mismo criterio que las estrategias de opciones): no hay slug que
+// derivar ni página puente que generar, es contenido nuevo.
+//
+// `EDU.getChartPatterns(t)`/`getCandlestickPatterns(t)` devuelven el mismo
+// array estructural en cualquier idioma (mismos ids, mismo orden); sólo el
+// texto que pasa por `t()` cambia. Se llama una vez por idioma y se indexa
+// por `id`, igual que TOPICS con `conceptosDe`.
+function patronesPorIdioma(getter, categorias) {
+  const porLang = {};
+  for (const [lang] of LANGS) {
+    const t = (k) => T[lang][k] || k;
+    const grupos = getter(t);
+    const lista = [];
+    for (const cat of categorias) (grupos[cat] || []).forEach((p) => lista.push({ ...p, categoria: cat }));
+    porLang[lang] = lista;
+  }
+  return porLang;
+}
+
+const CHART_PATTERNS_LANG = patronesPorIdioma(EDU.getChartPatterns, ['reversal', 'continuation']);
+const CANDLE_PATTERNS_LANG = patronesPorIdioma(EDU.getCandlestickPatterns, ['bullish', 'bearish', 'neutral']);
+
+// El id y la categoría no cambian entre idiomas: español sirve de referencia
+// para recorrer cada patrón una sola vez.
+const CHART_IDS = CHART_PATTERNS_LANG.es.map((p) => p.id);
+const CANDLE_IDS = CANDLE_PATTERNS_LANG.es.map((p) => p.id);
+
+const CAT_LABEL = {
+  reversal: 'reversalPattern', continuation: 'continuationPattern',
+  bullish: 'bullish', bearish: 'bearish', neutral: 'neutral',
+};
+
+/**
+ * Genera las páginas de un catálogo de patrones (chartistas o de vela).
+ *
+ * @param seccion    'patterns' | 'candles' — decide el hub y la sección del sitemap
+ * @param porLang    salida de `patronesPorIdioma`
+ * @param ids        ids en orden estable (referencia española)
+ * @param sectionKey clave de T[lang] con el título de la sección (chartPatterns/candlestickPatterns)
+ * @param topic      valor de `?topic=` en la academia (chart-patterns/candlesticks)
+ * @param prio       prioridad del sitemap
+ */
+function generaPatrones(seccion, porLang, ids, sectionKey, topic, prio) {
+  let n = 0;
+  ids.forEach((id) => {
+    LANGS.forEach(([lang, pref, hl]) => {
+      const ui = UI[lang];
+      const lista = porLang[lang];
+      const p = lista.find((x) => x.id === id);
+      if (!p || !p.name || !p.description) return; // defensa: nunca debería faltar (i18n-check lo garantiza)
+      const rel = `${PREF.get(lang)}${seccion}/${id}`;
+      const url = `${DOMAIN}/${rel}/`;
+      const alts = LANGS.map(([l2, p2, h2]) => [h2, `${DOMAIN}/${PREF.get(l2)}${seccion}/${id}/`]);
+      const related = lista
+        .filter((r) => r.id !== id && r.categoria === p.categoria)
+        .slice(0, 6)
+        .map((r) => ({ url: `${DOMAIN}/${PREF.get(lang)}${seccion}/${r.id}/`, label: r.name }));
+      const catLabel = T[lang][CAT_LABEL[p.categoria]] || p.categoria;
+      const tipoLabel = T[lang][CAT_LABEL[p.type]] || p.type;
+      const points = [
+        `${T[lang].reliability}: ${p.reliability}`,
+        seccion === 'patterns'
+          ? `${T[lang].timeframes}: ${(p.timeframes || []).join(', ')}`
+          : `${T[lang].signal}: ${p.signal}`,
+        `${catLabel} · ${tipoLabel}`,
+      ];
+      const howto = (p.howToTrade && p.howToTrade.length) ? [T[lang].howToTrade, ...p.howToTrade] : null;
+      const description = recortar(p.description);
+      const sectionLabel = T[lang][sectionKey];
+      const html = render({
+        lang, url, alts, title: `${p.name} | ${sectionLabel}`, description, h1: p.name, kw: p.name, ui,
+        sectionLabel, sectionUrl: hub(lang, seccion),
+        lead: p.description, formula: null, points,
+        ctaUrl: `${DOMAIN}/education?topic=${topic}`, ctaLabel: ui.openModule,
+        related, sectionKind: 'learn', howto,
+        jsonld: {
+          '@context': 'https://schema.org', '@type': 'DefinedTerm', name: p.name, description, url, inLanguage: lang,
+          inDefinedTermSet: hub(lang, seccion),
+        },
+      });
+      write(rel, html);
+      const fecha = fechaReal('src/lib/tradingEducationContent.js', `src/lib/i18n/${lang}.js`, `src/lib/i18n/${lang}.edu.js`);
+      sitemapUrls.push([`/${rel}/`, prio, fecha]);
+      indice[seccion][lang].push({ url, label: p.name, lead: p.description, fecha });
+      n++;
+    });
+  });
+  return n;
+}
+
+const patternCount = generaPatrones('patterns', CHART_PATTERNS_LANG, CHART_IDS, 'chartPatterns', 'chart-patterns', '0.65');
+const candleCount = generaPatrones('candles', CANDLE_PATTERNS_LANG, CANDLE_IDS, 'candlestickPatterns', 'candlesticks', '0.65');
+
 // ── Hubs de sección (/<idioma>/learn/, /tools/, /markets/, /strategies/) ──
 //
 // El esqueleto que faltaba. Hasta aquí las 1.640 páginas eran alcanzables sólo
@@ -1236,25 +1348,29 @@ STRATEGIES.forEach((s, i) => {
 // desde una página con autoridad, así que todas competían desde cero. Estos 40
 // índices las cuelgan del árbol.
 const HUB_UI = {
-  es: { learn:'Toda la formación de trading', tools:'Todas las calculadoras', markets:'Todos los mercados', strategies:'Todas las estrategias con opciones', sub:'temas', subT:'calculadoras', subM:'mercados', subS:'estrategias' },
-  en: { learn:'All trading education', tools:'All calculators', markets:'All markets', strategies:'All options strategies', sub:'topics', subT:'calculators', subM:'markets', subS:'strategies' },
-  de: { learn:'Alle Trading-Lerninhalte', tools:'Alle Rechner', markets:'Alle Märkte', strategies:'Alle Optionsstrategien', sub:'Themen', subT:'Rechner', subM:'Märkte', subS:'Strategien' },
-  fr: { learn:'Toute la formation trading', tools:'Toutes les calculatrices', markets:'Tous les marchés', strategies:'Toutes les stratégies d’options', sub:'thèmes', subT:'calculatrices', subM:'marchés', subS:'stratégies' },
-  ru: { learn:'Всё обучение трейдингу', tools:'Все калькуляторы', markets:'Все рынки', strategies:'Все опционные стратегии', sub:'тем', subT:'калькуляторов', subM:'рынков', subS:'стратегий' },
-  zh: { learn:'全部交易课程', tools:'全部计算器', markets:'全部市场', strategies:'全部期权策略', sub:'个主题', subT:'个计算器', subM:'个市场', subS:'个策略' },
-  ja: { learn:'すべてのトレード教材', tools:'すべての計算ツール', markets:'すべてのマーケット', strategies:'すべてのオプション戦略', sub:'テーマ', subT:'計算ツール', subM:'マーケット', subS:'戦略' },
-  ar: { learn:'كل تعليم التداول', tools:'كل الحاسبات', markets:'كل الأسواق', strategies:'كل استراتيجيات الخيارات', sub:'موضوعًا', subT:'حاسبة', subM:'سوقًا', subS:'استراتيجية' },
-  pt: { learn:'Toda a formação de trading', tools:'Todas as calculadoras', markets:'Todos os mercados', strategies:'Todas as estratégias com opções', sub:'temas', subT:'calculadoras', subM:'mercados', subS:'estratégias' },
-  it: { learn:'Tutta la formazione di trading', tools:'Tutte le calcolatrici', markets:'Tutti i mercati', strategies:'Tutte le strategie in opzioni', sub:'temi', subT:'calcolatrici', subM:'mercati', subS:'strategie' },
+  es: { learn:'Toda la formación de trading', tools:'Todas las calculadoras', markets:'Todos los mercados', strategies:'Todas las estrategias con opciones', sub:'temas', subT:'calculadoras', subM:'mercados', subS:'estrategias', subP:'patrones', subC:'patrones de vela' },
+  en: { learn:'All trading education', tools:'All calculators', markets:'All markets', strategies:'All options strategies', sub:'topics', subT:'calculators', subM:'markets', subS:'strategies', subP:'patterns', subC:'candlestick patterns' },
+  de: { learn:'Alle Trading-Lerninhalte', tools:'Alle Rechner', markets:'Alle Märkte', strategies:'Alle Optionsstrategien', sub:'Themen', subT:'Rechner', subM:'Märkte', subS:'Strategien', subP:'Muster', subC:'Kerzenmuster' },
+  fr: { learn:'Toute la formation trading', tools:'Toutes les calculatrices', markets:'Tous les marchés', strategies:'Toutes les stratégies d’options', sub:'thèmes', subT:'calculatrices', subM:'marchés', subS:'stratégies', subP:'figures', subC:'figures de bougies' },
+  ru: { learn:'Всё обучение трейдингу', tools:'Все калькуляторы', markets:'Все рынки', strategies:'Все опционные стратегии', sub:'тем', subT:'калькуляторов', subM:'рынков', subS:'стратегий', subP:'паттернов', subC:'свечных паттернов' },
+  zh: { learn:'全部交易课程', tools:'全部计算器', markets:'全部市场', strategies:'全部期权策略', sub:'个主题', subT:'个计算器', subM:'个市场', subS:'个策略', subP:'个形态', subC:'个蜡烛形态' },
+  ja: { learn:'すべてのトレード教材', tools:'すべての計算ツール', markets:'すべてのマーケット', strategies:'すべてのオプション戦略', sub:'テーマ', subT:'計算ツール', subM:'マーケット', subS:'戦略', subP:'パターン', subC:'ローソク足パターン' },
+  ar: { learn:'كل تعليم التداول', tools:'كل الحاسبات', markets:'كل الأسواق', strategies:'كل استراتيجيات الخيارات', sub:'موضوعًا', subT:'حاسبة', subM:'سوقًا', subS:'استراتيجية', subP:'نمطًا', subC:'نمط شموع' },
+  pt: { learn:'Toda a formação de trading', tools:'Todas as calculadoras', markets:'Todos os mercados', strategies:'Todas as estratégias com opções', sub:'temas', subT:'calculadoras', subM:'mercados', subS:'estratégias', subP:'padrões', subC:'padrões de candles' },
+  it: { learn:'Tutta la formazione di trading', tools:'Tutte le calcolatrici', markets:'Tutti i mercati', strategies:'Tutte le strategie in opzioni', sub:'temi', subT:'calcolatrici', subM:'mercati', subS:'strategie', subP:'pattern', subC:'pattern di candele' },
 };
-const CONTADOR = { learn:'sub', tools:'subT', markets:'subM', strategies:'subS' };
+const CONTADOR = { learn:'sub', tools:'subT', markets:'subM', strategies:'subS', patterns:'subP', candles:'subC' };
 
 function renderHub({ lang, seccion, entradas }) {
   const ui = UI[lang];
   const h = HUB_UI[lang] || HUB_UI.en;
   const dir = RTL.has(lang) ? ' dir="rtl"' : '';
   const url = hub(lang, seccion);
-  const titulo = h[seccion];
+  // `patterns`/`candles` reutilizan la etiqueta de la aplicación —misma
+  // fuente que `navHubs`— en vez de una traducción propia que podría divergir.
+  const titulo = seccion === 'patterns' ? T[lang].chartPatterns
+    : seccion === 'candles' ? T[lang].candlestickPatterns
+    : h[seccion];
   const description = recortar(`${titulo} — ${entradas.length} ${h[CONTADOR[seccion]]}. ${ui.disc}`);
   const alts = LANGS
     .filter(([l]) => indice[seccion][l].length)
@@ -1544,12 +1660,24 @@ if (_fallosFecha > 0) {
   console.log(`⚠️  ${_fallosFecha} fecha(s) cayeron al build-date por falta de historial de git (¿clon superficial?).`);
 }
 fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
+// Informe para `check-seo.js`: cuántas de las consultas a git (no de las
+// PÁGINAS — muchas comparten una misma consulta) cayeron al build-date.
+// El sitemap por sí solo no distingue «cayó al build-date» de «el histórico
+// real dio la misma fecha a propósito» —un día con un cambio ancho de
+// verdad, como este mismo, produce lo segundo—, así que el verificador no
+// puede mirar sólo las fechas del sitemap: necesita saber si el MECANISMO
+// funcionó, y eso sólo lo sabe este script.
+fs.writeFileSync(path.join(BUILD, '.lastmod-meta.json'), JSON.stringify({
+  consultas: _fechasGit.size, fallos: _fallosFecha,
+}), 'utf8');
 
 console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × ${LANGS.length} idiomas)`);
 console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × ${LANGS.length} idiomas)`);
 console.log(`   · ${conceptosPublicados} conceptos publicados desde i18n (antes: 0)`);
 console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × ${LANGS.length} idiomas)`);
 console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × ${LANGS.length} idiomas)`);
+console.log(`✅ Patrones chartistas: ${patternCount} páginas (${CHART_IDS.length} patrones × ${LANGS.length} idiomas)`);
+console.log(`✅ Patrones de vela: ${candleCount} páginas (${CANDLE_IDS.length} patrones × ${LANGS.length} idiomas)`);
 console.log(`✅ Hubs de sección: ${hubCount} (${SECCIONES.length} secciones × idiomas con contenido)`);
 console.log(`✅ Rutas del SPA con fichero propio: ${shellCount} (antes devolvían 404)`);
 console.log(`✅ Páginas puente por slug traducido: ${puenteCount} (fuera del sitemap, a propósito)`);

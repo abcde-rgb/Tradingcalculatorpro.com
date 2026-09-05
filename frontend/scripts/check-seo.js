@@ -354,20 +354,32 @@ if (!fs.existsSync(SITEMAP)) {
 
   // El `lastmod` no puede ser la fecha del build repetida en todas las URLs.
   //
-  // Con 1.685 páginas, ver UNA sola fecha —o casi— es la firma exacta del
-  // fallo que esto sustituye: cada despliegue estampaba HOY en todo, así que
-  // ningún buscador podía distinguir «esto cambió» de «se ha vuelto a
-  // compilar el mismo texto», y acababa ignorando el campo entero.
-  // `gen-seo-pages.js` deriva cada fecha de `git log` sobre el fichero fuente
-  // del CONTENIDO —nunca del código que lo genera—, así que un histórico real
-  // produce varias fechas distintas salvo coincidencia genuina (varias
-  // secciones tocadas en el mismo commit). El umbral es generoso a propósito:
-  // no exige una fecha por página, sólo que no sea LA MISMA para todo el sitio.
-  const fechas = [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
-  const distintas = new Set(fechas);
-  if (fechas.length > 200 && distintas.size <= 1)
-    anota('lastmod uniforme en todo el sitemap', 'build/sitemap.xml',
-          `${fechas.length} URLs, ${distintas.size} fecha(s) distinta(s) — parece la fecha del build, no la del contenido`);
+  // La primera versión de esta guarda contaba fechas DISTINTAS en el sitemap:
+  // con >200 URLs y una sola fecha, sospechaba build-date. Pero un día de
+  // cambios anchos de verdad —un i18n-check que toca los diez `<lang>.js`, por
+  // ejemplo— produce ESA MISMA firma con fechas reales: `git log` sobre cada
+  // fuente devuelve legítimamente "hoy" para casi todo, y el sitemap por sí
+  // solo no distingue esto del bug que reemplaza. Se cazó en el propio build
+  // de esta guarda (BUG-085): un `--` de más en `fechaReal()` ignoraba en
+  // silencio el pathspec y devolvía el último commit del REPO ENTERO en vez
+  // del de la ruta pedida — con o sin ese bug, el sitemap final se ve IGUAL en
+  // un día de cambios amplios, así que sólo el propio generador puede saber
+  // si el mecanismo funcionó.
+  //
+  // Por eso mira `.lastmod-meta.json`, que `gen-seo-pages.js` escribe con
+  // cuántas CONSULTAS a git (no páginas — muchas comparten una) cayeron al
+  // build-date por falta de historial, no cuántas fechas distintas salieron.
+  const metaPath = path.join(BUILD, '.lastmod-meta.json');
+  if (!fs.existsSync(metaPath)) {
+    anota('falta el informe de fechas del generador', 'build/.lastmod-meta.json',
+          'gen-seo-pages.js no lo escribió — ¿una versión vieja del script?');
+  } else {
+    const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+    const ratio = meta.consultas ? meta.fallos / meta.consultas : 1;
+    if (ratio > 0.05)
+      anota('muchas fechas cayeron al build-date en vez de al historial de git', 'build/.lastmod-meta.json',
+            `${meta.fallos}/${meta.consultas} consultas (${(ratio * 100).toFixed(1)}%) — ¿clon superficial? Hace falta fetch-depth: 0`);
+  }
 
   const norm = new Set([...generadas].map(unaBarra));
   // Las mismas, como ruta relativa sin barras, para cruzarlas con los enlaces.
@@ -460,7 +472,7 @@ if (!fs.existsSync(SITEMAP)) {
   for (const f of ficheros) {
     const rel = path.relative(BUILD, path.dirname(f)).split(path.sep).join('/');
     const trozos = rel.split('/');
-    const esHub = trozos.length <= 2 && /^(learn|tools|markets|strategies)$/.test(trozos[trozos.length - 1]);
+    const esHub = trozos.length <= 2 && /^(learn|tools|markets|strategies|patterns|candles)$/.test(trozos[trozos.length - 1]);
     if (!esHub) continue;
     for (const m of fs.readFileSync(f, 'utf8').matchAll(/<li><a href="([^"]+)"/g))
       enlazadas.add(unaBarra(m[1]));
