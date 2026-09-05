@@ -6692,3 +6692,27 @@ errores), `gen-instruments-js --check`, `gen-mapa --check`, `check-doc-links`,
 `check-rutas-muertas`, y `csp.js --sin-sesion` con Chromium real contra el build local.
 Sabotajes de patrones y `lastmod` verificados uno a uno (extracción de `probar()`,
 no el arnés completo de 25 min — pendiente correrlo entero antes de cerrar la PR).
+
+---
+
+### 2026-09-05 (cont.) — IndexNow: implementado en la misma sesión
+
+Quedaba anotado arriba como "no implementado todavía"; se hizo en la misma sesión,
+después de cerrar la revisión de despliegue.
+
+`frontend/scripts/indexnow-ping.js` avisa a `https://api.indexnow.org/indexnow`
+(reparte a Bing y Yandex) con las URLs cuyo `lastmod` es HOY — reutiliza el
+`fechaReal()` de BUG-085 en vez de reenviar las 2.475 URLs en cada despliegue, que
+es justo el patrón que Bing pide evitar. La clave de verificación
+(`frontend/public/4a42f1ecee09e72c1ffcfb94f2c726a1.txt`) no es secreta —el protocolo
+prueba propiedad del dominio con un fichero público, el mismo principio que la
+verificación HTML de Search Console— así que va en el repo, no en Secrets. Corre como
+paso `continue-on-error: true` en `deploy-gh-pages.yml`, después de publicar: un
+fallo de red ahí no debe deshacer un despliegue que ya tuvo éxito.
+
+Probado contra el build real: filtró correctamente las 2.475 URLs (todas con
+`lastmod` de hoy, por ser un día de cambios anchos — ver la entrada anterior) y
+llegó a mandar la petición real a `api.indexnow.org`, que respondió 403 porque el
+fichero de clave todavía no está publicado en producción — la respuesta esperada
+antes del primer despliegue con este cambio. No se puede confirmar aquí un 200/202
+real: eso sólo se sabrá tras desplegar.

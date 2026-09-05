@@ -194,13 +194,17 @@ pasar). Un verificador que nunca se ha visto fallar no es un verificador.
   historial/las alertas"): mejoraría el SEO de las fichas de calculadora, pero es una
   decisión de modelo de negocio, no de SEO. No la tomes sin que el dueño la apruebe.
 
-## 8. Oportunidades sin implementar
+## 8. IndexNow
 
-- **IndexNow**: empujar URLs nuevas/cambiadas a Bing y Yandex sin esperar al rastreo
-  periódico. No implementado todavía — encajaría como un paso más del workflow de
-  despliegue, leyendo qué URLs cambiaron en el build actual.
-- Detalle operativo de envío a Search Console/Bing/Yandex y verificación de propiedad:
-  [`docs/setup/SEO_GUIDE.md`](../../../docs/setup/SEO_GUIDE.md).
+`frontend/scripts/indexnow-ping.js` avisa a Bing/Yandex tras cada despliegue, con las
+URLs cuyo `lastmod` es HOY (reutiliza `fechaReal()`, no reenvía las 2.475 cada vez). La
+clave (`frontend/public/<key>.txt`) no es secreta — el protocolo la usa para probar
+propiedad del dominio, igual que la verificación HTML de Search Console — así que vive
+en el repo. Corre como paso `continue-on-error` en `deploy-gh-pages.yml`, después de
+publicar: un fallo de red ahí no debe deshacer un despliegue que ya tuvo éxito.
+
+Detalle operativo de envío a Search Console/Bing/Yandex y verificación de propiedad:
+[`docs/setup/SEO_GUIDE.md`](../../../docs/setup/SEO_GUIDE.md).
 
 ## 9. Al terminar
 

@@ -68,9 +68,10 @@ jobs:
           # `github.io/Tradingcalculatorpro.com` esto valía `/Tradingcalculatorpro.com`;
           # dejarlo así con el CNAME puesto rompe TODOS los assets.
           PUBLIC_URL: /
-          # Origen único del que salen el sitemap y las ~1.630 páginas generadas
-          # (`gen-sitemap.js` y `gen-seo-pages.js` lo leen). Si no coincide con el
-          # canonical de cada página, Google descarta las URLs anunciadas.
+          # Origen único del que salen el sitemap y las ~2.410 páginas generadas
+          # (lo lee `gen-seo-pages.js` — `gen-sitemap.js` está muerto, nada lo
+          # ejecuta). Si no coincide con el canonical de cada página, Google
+          # descarta las URLs anunciadas.
           SITE_ORIGIN: https://tradingcalculator.pro
           CI: false
         run: npm run build
@@ -86,3 +87,11 @@ jobs:
           publish_dir: frontend/build
           keep_files: false
           force_orphan: false
+
+      # Best-effort, DESPUÉS de publicar: si Bing/Yandex no responden, el sitio
+      # ya se ha desplegado igual. Avisa sólo de las páginas con lastmod de
+      # HOY (ver el propio script) — no reenvía las 2.475 en cada despliegue.
+      - name: Avisar a Bing/Yandex de lo que cambió (IndexNow)
+        working-directory: frontend
+        continue-on-error: true
+        run: node scripts/indexnow-ping.js

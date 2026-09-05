@@ -140,8 +140,8 @@
   página. *No* OxaPay ni MaxelPay: ambas se probaron y se retiraron; no queda código de
   ninguna.
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
-- **Analítica/SEO**: GA4 + GTM + GSC/Bing/Yandex, `sitemap.xml` (2.475 URLs),
-  `robots.txt`, `llms.txt`, `og-image`, `manifest.json` (PWA), hook `useSEO`.
+- **Analítica/SEO**: GA4 + GTM + GSC/Bing/Yandex + IndexNow, `sitemap.xml` (2.475
+  URLs), `robots.txt`, `llms.txt`, `og-image`, `manifest.json` (PWA), hook `useSEO`.
   **2.410 páginas estáticas** que genera el `postbuild` (13 calculadoras, 75 temas
   de academia, 10 mercados, 66 estrategias, 42 patrones chartistas y 35 de vela ×
   10 idiomas) más **60 hubs** de sección que las enlazan (`learn`, `tools`,
