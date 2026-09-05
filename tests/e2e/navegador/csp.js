@@ -179,13 +179,30 @@ async function revisaWebSocket(navegador) {
   }
 
   console.log('\n\x1b[1mWebSocket de alertas (requiere sesión: sin token no se abre)\x1b[0m');
-  const wsProblemas = await revisaWebSocket(navegador);
-  if (wsProblemas.length) {
-    fallos += wsProblemas.length;
-    console.log('  ❌ /dashboard → wss://<backend>/api/ws/alerts');
-    wsProblemas.slice(0, 6).forEach((p) => console.log(`       ${p}`));
+  // Sin backend vivo no se puede iniciar sesión, y sin sesión el hook no abre
+  // nada: la comprobación no mediría nada. Se declara NO COMPROBADA en vez de
+  // contarla como fallo —que sería afirmar algo que no se ha medido— y en vez
+  // de darla por buena, que es el verde vacío que esta sonda existe para
+  // evitar. La versión que sí la mide es el skill `qa`, con el stack entero.
+  const SIN_SESION = process.argv.includes('--sin-sesion');
+  if (SIN_SESION) {
+    // Ni ❌ ni ✅: las dos mienten. Un ❌ aquí bloquearía CI por un fallo que no
+    // es tal, y un ✅ es el verde vacío exacto que este fichero lleva en su
+    // cabecera como pecado ya cometido dos veces — «no hubo violación» no es
+    // lo mismo que «se comprobó y no hubo violación» cuando lo que falta es
+    // el propio intento de conexión. Por eso este bloque NO entra en el if/else
+    // de abajo: ni suma a `fallos` ni imprime un resultado sobre algo que no
+    // se ha medido.
+    console.log('  ⏭️  no comprobado: sin backend no hay sesión. Lo cubre el skill `qa`.');
   } else {
-    console.log('  ✅ /dashboard → el WebSocket se abre y la política lo autoriza');
+    const wsProblemas = await revisaWebSocket(navegador);
+    if (wsProblemas.length) {
+      fallos += wsProblemas.length;
+      console.log('  ❌ /dashboard → wss://<backend>/api/ws/alerts');
+      wsProblemas.slice(0, 6).forEach((p) => console.log(`       ${p}`));
+    } else {
+      console.log('  ✅ /dashboard → el WebSocket se abre y la política lo autoriza');
+    }
   }
 
   await navegador.close();

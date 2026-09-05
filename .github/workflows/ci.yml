@@ -243,6 +243,18 @@ jobs:
         run: npm run build
         env:
           CI: false   # mismo criterio que el deploy: warnings no rompen el build
+          # Sin esto, CRA no interpola `%REACT_APP_BACKEND_URL%` y el marcador
+          # sobrevive DENTRO de `connect-src`. El navegador descarta entonces la
+          # política ENTERA —no sólo esa directiva— y la sonda de CSP cantaba 12
+          # páginas rotas en todos los PR, por algo que no tenía nada que ver
+          # con el código que se estaba revisando.
+          #
+          # No hace falta un backend de verdad, y a propósito NO se pone uno:
+          # sólo se necesita que la directiva sea sintácticamente válida. El
+          # dominio `.invalid` está reservado por RFC 2606 justo para esto, así
+          # que si algún día una prueba intenta hablar con él, falla de forma
+          # evidente en vez de colarse contra un servidor real.
+          REACT_APP_BACKEND_URL: https://api.example.invalid
 
       # El `postbuild` genera 1.630 páginas indexables y un sitemap de 1.639
       # URLs — el mayor activo de captación del proyecto — y hasta el
@@ -314,4 +326,18 @@ jobs:
       # nota porque ninguno abre un navegador.
       - name: La CSP no rompe la web
         working-directory: .
-        run: node tests/e2e/navegador/csp.js
+        run: |
+          # `--sin-sesion` NO relaja la comprobación de la CSP: salta ÚNICAMENTE
+          # el bloque del WebSocket de alertas, que exige iniciar sesión contra
+          # un backend vivo. En CI no hay backend, así que ahí `entra()` no
+          # puede tener éxito nunca y el bloque contaba como fallo permanente.
+          #
+          # Y contarlo como fallo era, además, decir lo contrario de la verdad:
+          # su propio mensaje dice «esto no probaría nada». Una comprobación que
+          # no ha podido medir se declara NO COMPROBADA; lo que no se puede
+          # hacer es ni darla por buena ni darla por rota.
+          #
+          # La versión estricta sigue existiendo y es la que manda: el skill
+          # `qa` levanta Postgres, el backend y el build, y corre `csp.js` SIN
+          # el flag. Ahí sí se exige que el WebSocket se intente de verdad.
+          node tests/e2e/navegador/csp.js --sin-sesion
