@@ -17,13 +17,59 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
 const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const BUILD = path.join(__dirname, '..', 'build');
 const I18N_DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
 const OG_IMAGE = `${DOMAIN}/og-image.png`;
+// Último recurso, cuando no hay git o el fichero es nuevo y sin historial
+// todavía: la fecha de HOY. Es exactamente lo que había antes en TODAS las
+// páginas — la diferencia es que ahora sólo se usa cuando de verdad no hay
+// nada mejor que mirar, no siempre.
 const LASTMOD = new Date().toISOString().slice(0, 10);
+
+// ─── lastmod real, no la fecha del build ───────────────────────────────────
+//
+// Las 1.685 URLs llevaban la MISMA fecha porque `LASTMOD` se calculaba una vez
+// y se estampaba en todo: cada despliegue afirmaba que las 1.685 páginas
+// habían cambiado, aunque la mayoría no lo hicieran. Un buscador que compara
+// esa afirmación con el contenido real deja de fiarse del campo — y entonces
+// tampoco avisa cuando una página SÍ cambia.
+//
+// La fecha real es la del último commit que tocó el fichero fuente del
+// contenido de esa página — no la del código que la genera, la del texto que
+// pinta. `git log -1` sobre varios ficheros a la vez da la fecha del MÁS
+// reciente de todos, que es justo la semántica que hace falta cuando el
+// contenido de una página sale de más de un sitio (el cuerpo en un fichero,
+// el nombre traducido en otro).
+//
+// Memoizado por la combinación exacta de rutas: con 10 idiomas × 4 tipos de
+// página esto son ~25 invocaciones de `git log` en todo el build, no 1.685.
+const _fechasGit = new Map();
+let _fallosFecha = 0;
+function fechaReal(...rutas) {
+  const clave = rutas.join('|');
+  if (_fechasGit.has(clave)) return _fechasGit.get(clave);
+  let fecha = null;
+  try {
+    // `process.cwd()` es `frontend/` — así se invoca siempre este script (npm
+    // postbuild), y las rutas de abajo son relativas a esa raíz.
+    const args = rutas.map((r) => `-- ${JSON.stringify(r)}`).join(' ');
+    const salida = execSync(`git log -1 --format=%cd --date=short ${args}`, {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (salida) fecha = salida;
+  } catch {
+    // Sin git, sin repositorio, o un clon superficial sin el commit que tocó
+    // este fichero. Cae al build-date — igual que antes de este cambio — en
+    // vez de romper el build por una fecha que no es crítica.
+  }
+  if (!fecha) { fecha = LASTMOD; _fallosFecha += 1; }
+  _fechasGit.set(clave, fecha);
+  return fecha;
+}
 
 // idioma → prefijo de ruta ('' para es) y código hreflang
 const LANGS = [
@@ -693,6 +739,7 @@ const puenteSi = (lang, seccion, base, nuevo, urlNueva, etiqueta) => {
 
 // ── Calculadoras (todos los idiomas de LANGS: es+en inline, resto desde CALC_I18N) ──
 const calcData = (c, lang) => c[lang] || (CALC_I18N[c.slug] || {})[lang];
+const FECHA_CALCS = fechaReal('scripts/gen-seo-pages.js');
 // El slug de cada calculadora en cada idioma, resuelto de una vez.
 const SLUG_CALC = tablaDeSlugs(
   CALCS,
@@ -737,8 +784,10 @@ CALCS.forEach((c, i) => {
       ] },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.8']);
-    indice.tools[lang].push({ url, label: cap(d.kw), lead: d.lead });
+    // El texto de las 130 fichas está inline en ESTE fichero (CALCS/CALC_I18N
+    // más arriba), así que su fecha real es la del propio generador.
+    sitemapUrls.push([`/${rel}/`, '0.8', FECHA_CALCS]);
+    indice.tools[lang].push({ url, label: cap(d.kw), lead: d.lead, fecha: FECHA_CALCS });
     puenteSi(lang, 'tools', c.slug, slugCalc(c, lang), url, cap(d.kw));
     calcCount++;
   });
@@ -890,8 +939,11 @@ TOPICS.forEach((tp, i) => {
         provider:{ '@type':'Organization', name:'TradingCalculator.Pro', url: DOMAIN + '/' } },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.7']);
-    indice.learn[lang].push({ url, label: title, lead: intro });
+    // El título y la entradilla salen de `<lang>.js`; los conceptos, de
+    // `<lang>.edu.js` (ver `conceptosDe`). La más reciente de las dos manda.
+    const fecha = fechaReal(`src/lib/i18n/${lang}.js`, `src/lib/i18n/${lang}.edu.js`);
+    sitemapUrls.push([`/${rel}/`, '0.7', fecha]);
+    indice.learn[lang].push({ url, label: title, lead: intro, fecha });
     puenteSi(lang, 'learn', tp.slug, slugTema(tp, lang), url, title);
     learnCount++;
   });
@@ -1074,8 +1126,11 @@ LANGS.forEach(([lang, prefix]) => {
       .map((o) => ({ url: `${DOMAIN}/${PREF.get(lang)}markets/${slugMercado(o, lang)}/`, label: nameOf(o) }));
 
     write(rel, renderMarket({ lang, url, alts, id, name: nameOf(id), body, mui, related }));
-    sitemapUrls.push([`/${rel}/`, '0.75']);
-    indice.markets[lang].push({ url, label: nameOf(id), lead: body.what });
+    // El cuerpo (qué es, cómo se mide, FAQ) sale de `marketTypesContent.js`; el
+    // nombre del mercado, de `<lang>.js`. La más reciente de las dos manda.
+    const fecha = fechaReal('src/lib/marketTypesContent.js', `src/lib/i18n/${lang}.js`);
+    sitemapUrls.push([`/${rel}/`, '0.75', fecha]);
+    indice.markets[lang].push({ url, label: nameOf(id), lead: body.what, fecha });
     puenteSi(lang, 'markets', id, slugMercado(id, lang), url, nameOf(id));
     marketCount++;
   });
@@ -1164,8 +1219,11 @@ STRATEGIES.forEach((s, i) => {
       },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.7']);
-    indice.strategies[lang].push({ url, label: name, lead });
+    // Nombre y descripción salen de `mockData.js` (literal o clave i18n vía
+    // `tr()`); cuando es clave, `<lang>.js` puede ser la más reciente.
+    const fecha = fechaReal('src/data/mockData.js', `src/lib/i18n/${lang}.js`);
+    sitemapUrls.push([`/${rel}/`, '0.7', fecha]);
+    indice.strategies[lang].push({ url, label: name, lead, fecha });
     puenteSi(lang, 'options/strategies', slug, slugEstrategia(s, lang), url, name);
     stratCount++;
   });
@@ -1285,7 +1343,10 @@ SECCIONES.forEach((seccion) => {
     if (!entradas.length) return;
     const rel = `${PREF.get(lang)}${seccion}`;
     write(rel, renderHub({ lang, seccion, entradas }));
-    sitemapHubs.push([`/${rel}/`, '0.85']);
+    // Un índice «cambia» cuando cambia cualquiera de sus fichas: la fecha del
+    // hub es la más reciente de las que enlaza, nunca una inventada aparte.
+    const fecha = entradas.reduce((max, e) => (e.fecha > max ? e.fecha : max), entradas[0].fecha);
+    sitemapHubs.push([`/${rel}/`, '0.85', fecha]);
     hubCount++;
   });
 });
@@ -1429,7 +1490,9 @@ if (fs.existsSync(SHELL)) {
       // misma para todos.
       .replace(/(<link rel="alternate" hreflang="x-default" href=")[^"]*(")/, `$1${esc(url)}$2`);
     write(r.ruta, html);
-    sitemapApp.push([`/${r.ruta}/`, r.prio]);
+    // El texto de estas 4 páginas está inline en `RUTAS_SPA`, en este mismo
+    // fichero: misma fuente que las calculadoras.
+    sitemapApp.push([`/${r.ruta}/`, r.prio, FECHA_CALCS]);
     shellCount++;
   }
 } else {
@@ -1458,7 +1521,7 @@ if (fs.existsSync(SHELL)) {
 // Las que quedan aquí son las que ahora tienen fichero propio (RUTAS_SPA las
 // escribe justo arriba); se añaden desde allí con su prioridad, para que no
 // pueda anunciarse una URL que nadie ha generado.
-const MAIN = [['/', '1.0']];
+const MAIN = [['/', '1.0', fechaReal('public/index.html')]];
 
 // El ORDEN del sitemap no es cosmético: portada, rutas de aplicación y hubs
 // primero, y detrás la cola larga. Es la jerarquía real del sitio, y además es
@@ -1467,9 +1530,19 @@ const MAIN = [['/', '1.0']];
 // enterradas en el puesto 1.650 no las habría mirado nunca, que es justo cómo
 // pasaron desapercibidos sus 404.
 const all = [...MAIN, ...sitemapApp, ...sitemapHubs, ...sitemapUrls];
+// `lastmod` sale de `git log` sobre el fichero fuente de CADA página — nunca
+// la fecha del build. Antes las 1.685 URLs llevaban la MISMA fecha en cada
+// despliegue, que es justo lo que hace que un buscador deje de fiarse del
+// campo: no hay forma de distinguir «esto cambió» de «se ha vuelto a compilar
+// el mismo texto». `fechaReal()` cae al build-date sólo si git no tiene
+// historial que mirar (ver su cabecera), así que un `[2]` que falte aquí es un
+// punto que se me olvidó cablear, no el caso normal.
 const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-  all.map(([p, pr]) => `  <url><loc>${DOMAIN}${p}</loc><lastmod>${LASTMOD}</lastmod><priority>${pr}</priority></url>`).join('\n') +
+  all.map(([p, pr, fecha]) => `  <url><loc>${DOMAIN}${p}</loc><lastmod>${fecha || LASTMOD}</lastmod><priority>${pr}</priority></url>`).join('\n') +
   '\n</urlset>\n';
+if (_fallosFecha > 0) {
+  console.log(`⚠️  ${_fallosFecha} fecha(s) cayeron al build-date por falta de historial de git (¿clon superficial?).`);
+}
 fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
 
 console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × ${LANGS.length} idiomas)`);

@@ -351,6 +351,24 @@ if (!fs.existsSync(SITEMAP)) {
   const xml = fs.readFileSync(SITEMAP, 'utf8');
   enSitemap = new Set([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
     .map((m) => unaBarra(m[1])));
+
+  // El `lastmod` no puede ser la fecha del build repetida en todas las URLs.
+  //
+  // Con 1.685 páginas, ver UNA sola fecha —o casi— es la firma exacta del
+  // fallo que esto sustituye: cada despliegue estampaba HOY en todo, así que
+  // ningún buscador podía distinguir «esto cambió» de «se ha vuelto a
+  // compilar el mismo texto», y acababa ignorando el campo entero.
+  // `gen-seo-pages.js` deriva cada fecha de `git log` sobre el fichero fuente
+  // del CONTENIDO —nunca del código que lo genera—, así que un histórico real
+  // produce varias fechas distintas salvo coincidencia genuina (varias
+  // secciones tocadas en el mismo commit). El umbral es generoso a propósito:
+  // no exige una fecha por página, sólo que no sea LA MISMA para todo el sitio.
+  const fechas = [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
+  const distintas = new Set(fechas);
+  if (fechas.length > 200 && distintas.size <= 1)
+    anota('lastmod uniforme en todo el sitemap', 'build/sitemap.xml',
+          `${fechas.length} URLs, ${distintas.size} fecha(s) distinta(s) — parece la fecha del build, no la del contenido`);
+
   const norm = new Set([...generadas].map(unaBarra));
   // Las mismas, como ruta relativa sin barras, para cruzarlas con los enlaces.
   const generadasRel = new Set([...norm].map((u) => rutaDe(u).replace(/^\/|\/$/g, '')));

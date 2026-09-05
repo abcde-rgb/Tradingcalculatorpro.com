@@ -19,6 +19,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Historial completo, no el commit suelto por defecto. `gen-seo-pages.js`
+          # deriva el `lastmod` de cada página de `git log -1 -- <fichero fuente>`
+          # — es lo que sustituye a la fecha del build, igual en las 1.685 URLs
+          # cada vez, que es la razón por la que un buscador deja de fiarse del
+          # campo entero. Con `fetch-depth: 1` (el valor por defecto) el clon
+          # sólo trae el commit que disparó ESTE despliegue: si no tocó ese
+          # fichero, `git log` no encuentra nada que mirar y el generador cae al
+          # mismo build-date de siempre, en silencio. El fallo no se ve en
+          # ningún test offline — hace falta el repositorio real para notarlo.
+          fetch-depth: 0
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4

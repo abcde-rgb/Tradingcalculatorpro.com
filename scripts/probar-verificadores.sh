@@ -1725,14 +1725,20 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   # pidiendo que se indexaran, el HTML estático diciendo `index, follow` y
   # `useSEO` poniendo `noindex` al montar React—. Lo comprueba el propio
   # generador leyendo App.js, así que se sabotea ahí.
+  # ⚠️ Esto estaba escrito como un `python3 -c "..."` con backticks dentro de
+  # una cadena de bash entrecomillada, y el par `\\\`` no significa lo que
+  # parece: dentro de comillas dobles bash sólo reconoce el escape de
+  # backslash delante de $, `, ", \ o salto de línea — `\\` se colapsa a una
+  # barra suelta y la comilla invertida que le sigue queda SIN escapar, así que
+  # abre una sustitución de comandos a medias. El sabotaje nunca tocaba el
+  # fichero y moría con `SyntaxError`. Es la misma familia de fallo que
+  # BUG-078: no se ve mirando el resultado —«SOBREVIVE» y «no se aplicó» se
+  # leen distinto, y aquí sí se distinguió—, pero el sabotaje seguía sin
+  # probar nada. `sed -i … /i\` con un ancla sin backticks no tiene ese punto
+  # de fallo.
   probar "una ruta con noindex metida en RUTAS_SPA" \
     "(cd frontend && node scripts/gen-seo-pages.js >/dev/null)" \
-    "python3 -c \"
-import io
-p='frontend/scripts/gen-seo-pages.js'; s=io.open(p,encoding='utf8').read()
-a='  // ⚠️ \\\`/brokers\\\` y \\\`/backtesting\\\` NO están aquí'
-assert a in s, 'ancla de RUTAS_SPA no encontrada'
-io.open(p,'w',encoding='utf8').write(s.replace(a, \"  { ruta: 'brokers', prio: '0.6', t: {es:'x',en:'x'}, d: {es:'x',en:'x'} },\\n\" + a, 1))\"" \
+    "sed -i \"/ruta: 'pricing'/i\\\\  { ruta: 'brokers', prio: '0.6', t: { es:'x', en:'x' }, d: { es:'x', en:'x' } },\" frontend/scripts/gen-seo-pages.js" \
     "git checkout -- frontend/scripts/gen-seo-pages.js; $SEO_REST; $SEO_REGEN"
 
   probar "una ruta pública del SPA sin fichero propio (vuelve a ser un 404)" \
@@ -1831,6 +1837,15 @@ io.open(p,'w',encoding='utf8').write(s.replace(a, \"  { ruta: 'brokers', prio: '
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|g' $SEO_HUB" \
     "$SEO_REST; $SEO_REGEN"
+
+  # El fallo que `lastmod` real sustituye: la fecha del build repetida en las
+  # 1.685 URLs. `gen-seo-pages.js` sólo cae ahí cuando `git log` no tiene
+  # historial que mirar; el sabotaje reproduce esa misma foto sin tocar el
+  # generador, aplastando el sitemap ya escrito a una fecha única.
+  probar "el sitemap vuelve a llevar una sola fecha en todo" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<lastmod>[^<]*</lastmod>|<lastmod>2026-01-01</lastmod>|g' frontend/build/sitemap.xml" \
+    "$SEO_REST"
 
   # robots.txt resuelve por coincidencia MÁS LARGA. `Disallow: /options` +
   # `Allow: /options/strategies/` deja fuera la pantalla premium y dentro las
