@@ -2864,7 +2864,7 @@ export default {
   "seoPerformanceDesc": "Почему 90% трейдеров теряют и как стать прибыльными 10%. Дневник с CSV, 25+ метрик (Sharpe, Expectancy, Drawdown).",
   "seoEducationTitle": "Центр обучения — Паттерны, свечи и стратегии",
   "seoEducationDesc": "Полное руководство: 42 графических паттерна, 30 свечных с детектором в реальном времени, правила, теория Доу, психология и управление капиталом.",
-  "seoPricingTitle": "Тарифы — Бесплатный план и Premium от $9,99/мес",
+  "seoPricingTitle": "Тарифы — Premium от 17 €/мес с 7 днями бесплатно",
   "seoPricingDesc": "Начните с 7 дней бесплатно. Premium от 17 €/мес: AI Trade Coach, Strategy Optimizer, Simulator Pro, бэктестинг и все продвинутые инструменты.",
   "seoLoginTitle": "Войти — Доступ к аккаунту",
   "seoLoginDesc": "Войдите в аккаунт Trading Calculator PRO. Рассчитывайте плечо и размер позиции как профессионал.",

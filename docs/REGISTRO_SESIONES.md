@@ -6427,6 +6427,106 @@ cambios que nadie revisa.
 PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
 ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.
 
+## 2026-09-05 — Auditoría contra Google Search Central: siete URLs devolvían 404
+
+Revisión del SEO técnico contra lo que exige Google Search Central. El sandbox no
+tiene salida a internet —`developers.google.com` está bloqueado por el proxy—, así
+que la auditoría se hizo contra el criterio conocido y **verificada entera sobre el
+build compilado**, no sobre lo publicado.
+
+**El hallazgo caro: la web funcionaba y Google veía 404** (BUG-081)
+
+GitHub Pages no reescribe rutas. Sin `pricing.html` ni `pricing/index.html` sirve
+`404.html` **con estado 404**, y como el workflow copia el shell ahí, la SPA arranca
+y la persona ve su página. El estado sólo lo ve el rastreador. Estaban así las
+**siete** rutas de aplicación del sitemap salvo la portada, anunciadas con prioridad
+0.85–0.9. Y los dos botones verdes de las 1.640 páginas estáticas apuntan a
+`/pricing`: 3.280 CTA a un 404.
+
+Lo que hace que esto sea una lección y no un descuido: **los dos verificadores de SEO
+pasaban en verde**, y no por casualidad. `check-seo.js` saltaba las rutas de app *por
+ser* rutas de app; `check-seo-en-vivo.js` muestrea a paso fijo (1.648 ÷ 25 = 65) sobre
+una lista que empieza justo por esas ocho, así que comprobaba la 0 y ninguna más. Un
+muestreo regular sobre una lista ordenada tiene exactamente esa forma de punto ciego.
+
+**El otro hallazgo: el precio del escaparate** (BUG-082)
+
+`seoPricingTitle` —el `<title>` de `/pricing`, lo que Google enseña— anunciaba
+«9,99 $/mes» en seis idiomas y un «Plan Gratis» en los diez. Se cobran 17/45/200/500 €
+y no hay plan gratuito. `check-precios.py` pasaba en verde porque sólo recorría las
+claves `<plan>Price`. Su propio `seoPricingDesc` decía lo correcto en los diez: el
+título y la descripción de la misma página se contradecían.
+
+**Lo demás**: el hreflang `?lang=xx` que `useSEO` reintroducía en cada ruta contra su
+propio canonical (BUG-083); `og:locale` inválido, 643 descripciones cortadas a mitad
+de palabra y un `lastmod` que era la fecha del build en las 1.648 URLs (BUG-084).
+
+**Los tres verificadores quedan con su sabotaje** en `probar-verificadores.sh`: una
+ruta del sitemap sin fichero que servir, un shell de ruta de app con el canonical de
+la portada, y un precio falso en el `<title>`. Los tres se comprobaron: detectan el
+sabotaje y vuelven a verde al restaurar.
+
+**Lo que NO se ha tocado, y hay que decidir**
+
+- **80 de las 100 fichas de mercado publican texto en inglés bajo `<html lang>` de
+  otro idioma**, con hreflang declarándolas versiones distintas y `inLanguage:"ja"`
+  en su FAQPage. El fallback a inglés es una decisión escrita en el generador, pero
+  se tomó sin ver su consecuencia en hreflang. Arreglarlo es traducirlas o dejar de
+  generarlas (como ya hacen calculadoras y academia), y son 80 URLs publicadas: es
+  una decisión de tráfico, no de código.
+- **Las 1.640 páginas estáticas son una isla**: `grep` no encuentra un solo enlace a
+  `/tools/`, `/learn/` o `/markets/` en `src/`. Google llega por el sitemap y por el
+  `<noscript>` del shell, y nada más.
+- **No hay `pytest`** instalado en este entorno; el backend no se ha tocado.
+
+## 2026-09-05 (2) — Cuatro auditorías externas, verificadas una por una
+
+Se recibieron cuatro informes (tres de visibilidad/SEO, uno integral de Manus AI).
+**Los cuatro auditaron `578d246`**, el commit anterior al arreglo de esta misma
+mañana, así que su P0 compartido —las siete rutas del sitemap con 404— ya estaba
+cerrado antes de leerlos. Que tres auditorías independientes y esta sesión
+encontraran el mismo fallo es confirmación, no trabajo pendiente. Lo mismo con el
+hreflang `?lang=` (su P1-08 = BUG-083) y el muestreo de 25 URLs del verificador en
+vivo.
+
+**Lo que los informes decían mal**, comprobado en el build:
+
+- Tres afirman que `public/index.html` sirve `%PUBLIC_URL%` literal y una llegó a
+  «arreglarlo». **Es falso**: el build lo sustituye y emite `/favicon.svg`. Pero
+  vieron un síntoma real, y el fichero era otro — `public/manifest.json`, con doce
+  marcadores (BUG-085). Ninguna de las tres miró ahí.
+- Uno concluye que el `google-site-verification` vacío «dificulta enviar el
+  sitemap». No aplica: el dominio está verificado por DNS (`TXT` en la zona de
+  GoDaddy), que es la propiedad de dominio. La meta vacía es ruido, no un bloqueo.
+- Uno presenta los 179 rótulos sin traducir como hallazgo; el verificador sale ✅
+  con techo 179 y decisión escrita en `docs/PENDIENTES.md`. Es deuda acotada.
+
+**Lo que sí era cierto y se ha cerrado**: BUG-085 (manifiesto), BUG-086 (auth 404 e
+indexable a la vez) y BUG-087 (el despliegue publicaba sin verificadores — pasó ese
+mismo día con BUG-081).
+
+**Triaje de `npm audit`**, que un informe daba como 46 vulnerabilidades a resolver:
+las cifras son exactas (13 low, 10 moderate, 21 high, 2 critical) pero las dos
+críticas son `shell-quote` y `websocket-driver`, transitivas de `react-dev-utils` y
+`webpack-dev-server`. **Cero apariciones en el bundle publicado**: no llegan al
+navegador de nadie. Y la mayoría de las «high» ofrecen como único arreglo bajar
+`react-scripts` a 0.x, que es justo por lo que no se corre `npm audit fix --force`.
+No se tocó ninguna dependencia: el arreglo de fondo es salir de CRA (skill
+`reorganizar-frontend`), no un parche.
+
+**Lo que queda abierto y necesita una decisión que no es de código**
+
+- **El formulario de contacto es un decorado.** `ContactPage.jsx:59` hace
+  `setTimeout(800)` y enseña un toast de éxito; el mensaje no va a ninguna parte.
+  Con la zona DNS sin `MX`, `contact@tradingcalculator.pro` además rebota: hoy no
+  existe **ninguna** vía para que un cliente contacte, mientras la página promete
+  respuesta en 48 h. El endpoint no existe (`grep` en `server.py`, `missing_apis.py`
+  y `admin_routes.py`: nada), el destino natural sería `ADMIN_EMAILS` vía SendGrid,
+  y **el backend se despliega a mano** —no hay workflow—, así que montarlo aquí
+  dejaría el frontend llamando a algo no desplegado. Es lo primero de la lista.
+- **Proteger `main` en GitHub.** BUG-087 cierra el camino del despliegue, pero un
+  push que no toque `frontend/**` sigue sin pasar por nada.
+
 ---
 
 ### 2026-09-03 — El SEO no fallaba: devolvía 404. Cinco bugs y 1.680 páginas indexables
@@ -6451,19 +6551,19 @@ aparecían páginas estáticas profundas. Ningún verificador podía verlo:
 sobre 1.648 URLs y saltaba justo las ocho primeras. Su comentario decía que ésas
 «son las que nunca fallan».
 
-**BUG-082 — las 1.640 páginas eran huérfanas.** No salía ni un enlace de la
+**BUG-088 — las 1.640 páginas eran huérfanas.** No salía ni un enlace de la
 aplicación hacia ninguna. El sitemap descubre, pero no reparte autoridad.
 
-**BUG-083 — descripción cortada a media palabra y contenido delgado.** El
+**BUG-084 — descripción cortada a media palabra y contenido delgado.** El
 `.slice(0, 158)` partía la última palabra; el buscador descartaba la descripción y
 se inventaba el resumen con el texto de la página, que eran **94 palabras** de las
 que unas 40 eran del tema. Lo más sustancioso que encontraba era el descargo.
 
-**BUG-084 — `useSEO` deshacía en runtime el arreglo de `hreflang` que
+**BUG-083 — `useSEO` deshacía en runtime el arreglo de `hreflang` que
 `public/index.html` documenta** en quince líneas de comentario. Duraba lo que
 tardaba React en montar.
 
-**BUG-085 — `check-seo.js` leía `robots.txt` ignorando los `Allow`**, y por eso
+**BUG-089 — `check-seo.js` leía `robots.txt` ignorando los `Allow`**, y por eso
 denunciaba 660 páginas buenas en cuanto se usó la pareja `Disallow: /options` +
 `Allow: /options/strategies/`.
 
@@ -6560,7 +6660,7 @@ ja para los temas nuevos: 0 pares vacíos.
 
 ---
 
-### 2026-09-05 — 77 patrones con página propia, un dato falso en 10 idiomas y BUG-085
+### 2026-09-05 — 77 patrones con página propia, un dato falso en 10 idiomas y BUG-089
 
 El dueño pidió usar dos auditorías SEO externas (una propia, una de un tercero) para
 hacer crecer el proyecto "sin dejarse nada": dato por dato, en los diez idiomas, y
@@ -6577,7 +6677,7 @@ mal ratio riesgo/beneficio), pero la cifra que la sostenía era inventada. Corre
 `es, en, de, fr, ru, zh, ja, ar, pt, it`; verificado con `i18n-check.js` (7.431 claves ×
 10, 0 huérfanas) y parseo de cada fichero.
 
-#### `lastmod` real, y el bug que sólo salió al usarlo a fondo (BUG-085)
+#### `lastmod` real, y el bug que sólo salió al usarlo a fondo (BUG-089)
 
 Las URLs del sitemap llevaban SIEMPRE la fecha del build, repetida: ningún buscador
 podía distinguir "esto cambió" de "se ha vuelto a compilar el mismo texto". Ahora
@@ -6702,7 +6802,7 @@ después de cerrar la revisión de despliegue.
 
 `frontend/scripts/indexnow-ping.js` avisa a `https://api.indexnow.org/indexnow`
 (reparte a Bing y Yandex) con las URLs cuyo `lastmod` es HOY — reutiliza el
-`fechaReal()` de BUG-085 en vez de reenviar las 2.475 URLs en cada despliegue, que
+`fechaReal()` de BUG-089 en vez de reenviar las 2.475 URLs en cada despliegue, que
 es justo el patrón que Bing pide evitar. La clave de verificación
 (`frontend/public/4a42f1ecee09e72c1ffcfb94f2c726a1.txt`) no es secreta —el protocolo
 prueba propiedad del dominio con un fichero público, el mismo principio que la

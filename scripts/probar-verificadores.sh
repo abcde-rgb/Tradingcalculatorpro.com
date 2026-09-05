@@ -770,6 +770,18 @@ import pathlib
 p = pathlib.Path('backend/server.py')
 p.write_text(p.read_text().replace('\\\"price\\\": 17.00', '\\\"price\\\": 21.00', 1))\""
 
+# El precio que vive FUERA de las claves `<plan>Price`. Es el que estuvo mal:
+# `seoPricingTitle` —el <title> de /pricing, lo que Google enseña— anunciaba
+# «9,99 $/Monat» en seis idiomas mientras Stripe cobraba 17 €, y este verificador
+# pasaba en verde porque sólo miraba las claves `monthlyPrice`, `annualPrice`…
+# Un verificador que recorre una lista de claves protege esa lista y nada más.
+probar "un precio falso en el <title> de la página de precios" \
+  "python scripts/check-precios.py" \
+  "python -c \"
+import pathlib
+p = pathlib.Path('frontend/src/lib/i18n/de.js')
+p.write_text(p.read_text().replace('Premium ab 17 €/Mo', 'Premium ab 9,99 \$/Mo', 1))\""
+
 # ── La identidad de `t` acompaña al idioma ──────────────────────────────────
 # Corre en Node contra el store, sin navegador ni build: la invariante vive en
 # `lib/i18n.js` y se comprueba ahí. El cebo es la forma EXACTA de BUG-066 —una
@@ -1620,7 +1632,7 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   # .gitignore: sin esta copia el sabotaje se quedaría puesto y los casos
   # siguientes medirían una portada ya rota.
   cp frontend/build/index.html "$SEO_SHELL"
-  # El informe de fechas de `gen-seo-pages.js` (BUG-085): el sabotaje del
+  # El informe de fechas de `gen-seo-pages.js` (BUG-089): el sabotaje del
   # lastmod uniforme lo corrompe directamente, así que también hace falta
   # copia y restauración propias.
   cp frontend/build/.lastmod-meta.json "$SEO_LMMETA"
@@ -1678,6 +1690,48 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \
     "$SEO_REST"
+
+  # Una URL del sitemap que GitHub Pages serviría con 404.
+  #
+  # Es el fallo que estuvo puesto y que ningún verificador veía: `/pricing`,
+  # `/about`, `/legal`, `/education`, `/options`, `/options/strategies` y
+  # `/contact` iban en el sitemap con prioridad 0.85-0.9 y NINGUNA tenía fichero
+  # en el build. Pages no reescribe rutas: sin `pricing/index.html` ni
+  # `pricing.html` sirve `404.html` con estado 404. Y como el workflow copia el
+  # shell a `404.html`, la SPA arranca y la página se ve perfecta — sólo Google
+  # veía el 404. La comprobación anterior no podía cazarlo: saltaba las rutas de
+  # app por ser rutas de app, y sólo miraba las de dos segmentos o más.
+  SEO_APP_DIR=$(mktemp -d); TEMPORALES+=("$SEO_APP_DIR")
+  cp frontend/build/pricing/index.html "$SEO_APP_DIR/dir.html"
+  cp frontend/build/pricing.html "$SEO_APP_DIR/plano.html"
+  probar "una ruta del sitemap sin fichero que servir (404 de Pages)" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "rm -f frontend/build/pricing/index.html frontend/build/pricing.html" \
+    "cp $SEO_APP_DIR/dir.html frontend/build/pricing/index.html; cp $SEO_APP_DIR/plano.html frontend/build/pricing.html"
+
+  # Un `%PUBLIC_URL%` que sobrevive al build.
+  #
+  # Estuvo puesto en `public/manifest.json`, con los DOCE marcadores literales:
+  # `id`, `start_url`, `scope`, seis iconos y tres accesos directos. CRA sólo
+  # interpola `index.html`; el resto de `public/` lo copia tal cual. El resultado
+  # es un manifiesto inválido —la PWA no se instala ni tiene iconos— que no
+  # rompe ninguna pantalla y por eso llevaba tiempo publicado. Tres auditorías
+  # externas vieron el síntoma y las tres culparon a `index.html`, que estaba
+  # bien.
+  SEO_MANIF=$(mktemp); TEMPORALES+=("$SEO_MANIF")
+  cp frontend/build/manifest.json "$SEO_MANIF"
+  probar "un %PUBLIC_URL% sin sustituir en el build" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|\"/icon-192.png\"|\"%PUBLIC_URL%/icon-192.png\"|' frontend/build/manifest.json" \
+    "cp $SEO_MANIF frontend/build/manifest.json"
+
+  # Y el shell de una ruta de app con el canonical de la portada: las siete
+  # copias salen del MISMO `build/index.html`, así que olvidar reescribir el
+  # canonical deja seis páginas diciendo que la buena es `/`.
+  probar "un shell de ruta de app con el canonical de la portada" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|rel=\"canonical\" href=\"https://tradingcalculator.pro/about\"|rel=\"canonical\" href=\"https://tradingcalculator.pro/\"|' frontend/build/about/index.html" \
+    "sed -i 's|rel=\"canonical\" href=\"https://tradingcalculator.pro/\"|rel=\"canonical\" href=\"https://tradingcalculator.pro/about\"|' frontend/build/about/index.html"
 
   # El sitemap anunciando una ruta que robots.txt prohíbe. Pasó de verdad:
   # `/performance` es premium y robots la bloqueaba, pero el sitemap la anunciaba
@@ -1857,7 +1911,7 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
   # todas las URLs. La guarda ya NO cuenta fechas distintas en el sitemap —un
   # día con cambios anchos de verdad (los diez `<lang>.js` tocados a la vez)
   # produce esa misma foto con fechas reales, y sería un falso positivo (visto
-  # en el propio build de este cambio, BUG-085) — sino que lee cuántas
+  # en el propio build de este cambio, BUG-089) — sino que lee cuántas
   # CONSULTAS a git cayeron al build-date en `.lastmod-meta.json`, que sólo
   # escribe el generador. El sabotaje tiene que corromper ESE fichero.
   probar "las consultas de fecha caen todas al build-date" \

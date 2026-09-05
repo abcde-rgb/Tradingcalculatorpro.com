@@ -2789,7 +2789,7 @@ export default {
   "seoPerformanceDesc": "Porque é que 90% dos traders perde e como entrar nos 10% rentáveis. Diário de trading com importação/exportação CSV, 25+ métricas (Sharpe, Expectancy, Drawdown).",
   "seoEducationTitle": "Centro de Aprendizagem — Padrões, Velas e Estratégias de Trading",
   "seoEducationDesc": "Guia completo: 42 padrões gráficos, 30 padrões de velas com detetor ao vivo, regras, Teoria de Dow, psicologia e gestão de capital.",
-  "seoPricingTitle": "Preços — Plano Grátis e Premium desde 17€/mês",
+  "seoPricingTitle": "Preços — Premium desde 17€/mês com 7 dias grátis",
   "seoPricingDesc": "Comece com 7 dias grátis. O Premium desde 17€/mês desbloqueia o AI Trade Coach, o Strategy Optimizer, o Simulador Pro, o Backtesting e todas as ferramentas avançadas.",
   "seoLoginTitle": "Iniciar Sessão — Aceda à sua conta",
   "seoLoginDesc": "Aceda à sua conta do Trading Calculator PRO. Calcule alavancagem, posição e faça a gestão do seu risco como um profissional.",

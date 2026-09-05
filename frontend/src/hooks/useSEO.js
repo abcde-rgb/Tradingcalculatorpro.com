@@ -40,7 +40,7 @@ const LOCALE_META = {
  *  - meta description / og:* / twitter:*
  *  - canonical link
  *  - <html lang="…" dir="…">
- *  - hreflang alternates for the current path across every locale
+ *  - the x-default hreflang for the current path
  *
  * Both literal strings and translation keys are accepted via `titleKey` /
  * `descriptionKey`. Plain `title` / `description` props still work.
@@ -64,16 +64,14 @@ export function useSEO({
 
     const fullTitle = localizedTitle ? `${localizedTitle} | ${BRAND}` : BRAND;
     const path = canonicalPath || (typeof window !== 'undefined' ? window.location.pathname : '/');
-    // Canonical always points to the bare path (no ?lang param).
+    // Canonical siempre a la ruta desnuda, SIN barra final y sin `?lang`.
     //
-    // Con barra final, y no es un detalle de estilo. Desde que cada ruta
-    // pública tiene su propio `build/<ruta>/index.html` —sin eso GitHub Pages
-    // devolvía 404 a los rastreadores—, quien sirve `/pricing` es un
-    // directorio: Pages redirige `/pricing` a `/pricing/` con un 301. Si el
-    // canonical dijera `/pricing`, estaría apuntando a una URL que redirige a
-    // la que lo declara, y el sitemap (que anuncia `/pricing/`) diría una
-    // tercera cosa. Las tres señales tienen que decir lo mismo.
-    const canonical = `${ORIGIN}${conBarra(path)}`;
+    // Las tres señales tienen que decir lo mismo, y la que manda es la que
+    // sirve GitHub Pages: `gen-seo-pages.js` escribe cada ruta de app en las
+    // DOS formas (`pricing.html` y `pricing/index.html`), así que `/pricing`
+    // responde 200 sin redirección. El HTML crudo de esa ruta declara este
+    // mismo canonical y el sitemap anuncia esta misma URL.
+    const canonical = `${ORIGIN}${path}`;
 
     document.title = fullTitle;
     document.documentElement.setAttribute('lang', meta.html);
@@ -129,18 +127,8 @@ function syncHreflangAlternates(path) {
   xDefault.setAttribute('rel', 'alternate');
   xDefault.setAttribute('hreflang', 'x-default');
   xDefault.setAttribute('data-i18n-managed', 'true');
-  xDefault.setAttribute('href', `${ORIGIN}${conBarra(path)}`);
+  xDefault.setAttribute('href', `${ORIGIN}${path}`);
   head.appendChild(xDefault);
-}
-
-// Barra final en toda ruta que no sea un fichero. Ver el comentario del
-// `canonical`: es lo que mantiene de acuerdo al canonical, al sitemap y a la
-// URL que GitHub Pages sirve de verdad.
-function conBarra(path) {
-  if (!path || path === '/') return '/';
-  if (path.endsWith('/')) return path;
-  if (/\.[a-z0-9]{2,5}$/i.test(path)) return path;   // /og-image.png y similares
-  return `${path}/`;
 }
 
 function setMeta(selector, attr, value) {

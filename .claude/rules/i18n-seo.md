@@ -73,7 +73,7 @@ sitemap; su contenido público vive en las páginas estáticas, que no tienen mu
 
 Un `.slice(0, 158)` parte la última palabra, y entonces el buscador **descarta la
 descripción** y se inventa el resumen con el texto de la página. Pasó: Yandex publicaba el
-descargo legal del pie como si fuera la descripción del tema (BUG-083).
+descargo legal del pie como si fuera la descripción del tema (BUG-084).
 
 ## Nada de dominios a mano
 

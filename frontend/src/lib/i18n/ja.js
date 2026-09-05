@@ -2864,7 +2864,7 @@ export default {
   "seoPerformanceDesc": "90%のトレーダーが負ける理由と、利益を出す10%に入る方法。CSVインポート/エクスポート、25+指標(Sharpe、Expectancy、Drawdown)。",
   "seoEducationTitle": "学習センター — パターン・ローソク足・トレード戦略",
   "seoEducationDesc": "完全ガイド：チャートパターン42種、ライブ検出付きローソク足パターン30種、ルール、ダウ理論、心理と資金管理。",
-  "seoPricingTitle": "料金 — 無料プランと月額$9.99からのPremium",
+  "seoPricingTitle": "料金 — 月額17ユーロからのPremium、7日間の無料体験つき",
   "seoPricingDesc": "7日間の無料体験から開始。月額17ユーロからのPremiumでAIトレードコーチ、戦略最適化、Simulator Pro、バックテスト、全高度ツールが解放。",
   "seoLoginTitle": "ログイン — アカウントにアクセス",
   "seoLoginDesc": "Trading Calculator PROアカウントにログインしてください。プロのようにレバレッジとポジションサイズを計算しましょう。",

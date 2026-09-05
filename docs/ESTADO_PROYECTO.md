@@ -148,7 +148,7 @@
   `markets`, `strategies`, `patterns`, `candles`), y **4 rutas del SPA con
   fichero propio** (`pricing`, `about`, `contact`, `legal`) — sin ese fichero
   GitHub Pages les devolvía 404 a los buscadores (BUG-081). `lastmod` sale de
-  `git log` por página, no de la fecha del build (BUG-085 corregido: un `--` de
+  `git log` por página, no de la fecha del build (BUG-089 corregido: un `--` de
   más en la consulta hacía que cayera siempre en el commit más reciente del
   repo entero).
 - **Todo el contenido es de pago.** No hay secciones abiertas dentro de la app:
@@ -256,6 +256,8 @@ asistente del plan de trading estrenó pantalla y consumió sus cinco rutas. Las
 | G-34 | **La mesa dimensiona UNA pata, no la estructura de opciones.** Con producto `option` calcula sobre la prima y el número de contratos, que es correcto para los cuatro sueltos y para cualquier compra; pero la pérdida máxima real de un spread es *anchura − crédito* y la de un iron condor depende de las cuatro patas, y eso la mesa no lo sabe: el selector de estructura elige la etiqueta y el enlace a `/options/calculator`, no el cálculo | 🟠 | Es el mismo modelo `Position → Leg` que piden G-21 y G-23 para el diario. Mientras tanto, la mesa no miente —no publica una pérdida máxima de estructura— pero tampoco la calcula, y el usuario tiene que ir a `/options/calculator` para eso |
 | G-35 | ~~**El banco de pruebas E2E no arrancaba en un contenedor nuevo.**~~ `stack/sembrar.py` hacía `POST /auth/login` a secas con `qa@example.com`, una cuenta que **nadie creaba**: en una base recién creada devolvía 401, `arriba.sh` seguía adelante con un aviso en amarillo, y las ocho sondas de navegador fallaban porque afirman sobre 13 filas y +$3.471,86. O sea: en TODA sesión remota, que empieza con un clon fresco | 🟢 | ✅ **Cerrado (2026-08-14)**: usa `cuenta()` y `da_premium()` de `entorno.py`, los mismos helpers que ya usaban las sondas de API — registraban si el login no valía y saltaban el muro de pago. Sólo que este script no los usaba. Verificado en frío: 10 operaciones sembradas |
 | G-36 | ~~**`/verify` decía «todo verde» sobre PRs que CI iba a tumbar.**~~ Comprobaba 4 de las 10 verificaciones de `ci.yml` —faltaban `engine-check`, `check-edu-index`, `check-fetch-credentials`, `gen-mapa --check`, `check-doc-links` y la paridad del catálogo—, hablaba de **8 idiomas** cuando hay 10, compilaba **3 módulos** de Python de 26, y corría `pytest -k unit` en vez del suite | 🟢 | ✅ **Cerrado (2026-08-14)**: reescrito para ejecutar exactamente lo de CI, con los tiempos reales de cada paso, qué hacer cuando el contenedor está crudo, y una regla escrita: si se añade una comprobación a CI, se añade ahí |
+| G-37 | **80 de las 100 fichas de mercado publican texto en inglés bajo `<html lang>` de otro idioma.** `gen-seo-pages.js` cae a inglés cuando `marketTypesContent.js` no trae la ficha en ese idioma —decisión escrita, con el criterio «el schema y lo visible coinciden»—, pero eso deja `/ja/markets/forex/` con `<html lang="ja">`, `hreflang="ja"` e `inLanguage:"ja"` sobre texto inglés. Google colapsa el grupo de diez, gasta rastreo y el dato estructurado no describe el contenido. Dos salidas: traducir las nueve fichas, o dejar de generar el idioma sin traducción (que es lo que ya hacen calculadoras y academia: `if (!d \|\| !d.title) return;`). La segunda retira 80 URLs publicadas | 🟠 | ⬜ Abierto — decisión de tráfico, no de código |
+| G-38 | **Las 1.640 páginas estáticas son una isla sin enlaces entrantes.** No hay una sola referencia a `/tools/`, `/learn/` o `/markets/` en `frontend/src`: la SPA nunca enlaza al mayor activo de captación del proyecto. Google llega por el sitemap y por los cinco enlaces del `<noscript>` del shell, y nada más; dentro de la isla las páginas se enlazan entre sí, así que no hay flujo de autoridad desde la portada ni contexto temático. Falta además un índice por sección (`/tools/`, `/learn/`, `/markets/`) que las agrupe: hoy sólo existen las hojas | 🟠 | ⬜ Abierto |
 
 ---
 
@@ -409,8 +411,8 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
-| 2026-09-05 | SEO: 77 patrones con página propia, un dato falso en 10 idiomas y BUG-085 |
-| 2026-09-03 | SEO: siete rutas devolvían 404, 1.680 páginas huérfanas y slugs traducidos (BUG-081…085) |
+| 2026-09-05 | SEO: 77 patrones con página propia, un dato falso en 10 idiomas y BUG-089 |
+| 2026-09-03 | SEO: siete rutas devolvían 404, 1.680 páginas huérfanas y slugs traducidos (BUG-081, 083, 084, 088 y 089) |
 | 2026-08-31 (cont. 7) | BUG-075: "el correo no funciona ni magic link" — causa doble |
 | 2026-08-31 (cont. 6) | Cinco patrones de vela más, investigados contra TrendSpider |
 | 2026-08-31 (cont. 5) | Panel admin: navegación por secciones + limpieza de colores |

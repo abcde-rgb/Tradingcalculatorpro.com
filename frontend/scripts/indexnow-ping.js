@@ -7,7 +7,7 @@
  * IndexNow no penaliza reenviar una URL sin cambios, pero tampoco sirve de nada:
  * el protocolo existe para adelantar el rastreo de lo que CAMBIÓ, no para
  * sustituir el sitemap. `gen-seo-pages.js` ya calcula un `lastmod` real por
- * página (`fechaReal()`, ver BUG-085) — filtrar por "lastmod = hoy" reutiliza
+ * página (`fechaReal()`, ver BUG-089) — filtrar por "lastmod = hoy" reutiliza
  * exactamente esa señal en vez de inventar una propia, y de paso evita mandar
  * 2.475 URLs cada vez que se despliega un cambio de una sola página.
  *

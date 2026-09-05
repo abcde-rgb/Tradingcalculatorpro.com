@@ -208,7 +208,7 @@ function SecureFooter() {
 }
 
 export const LoginPage = () => {
-  useSEO({ titleKey: 'seoLoginTitle', descriptionKey: 'seoLoginDesc', canonicalPath: '/login' });
+  useSEO({ titleKey: 'seoLoginTitle', descriptionKey: 'seoLoginDesc', canonicalPath: '/login', noindex: true });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, verify2fa, isLoading } = useAuthStore();
@@ -411,7 +411,7 @@ export const LoginPage = () => {
 };
 
 export const RegisterPage = () => {
-  useSEO({ titleKey: 'seoRegisterTitle', descriptionKey: 'seoRegisterDesc', canonicalPath: '/register' });
+  useSEO({ titleKey: 'seoRegisterTitle', descriptionKey: 'seoRegisterDesc', canonicalPath: '/register', noindex: true });
   const { t, locale, setLocale } = useTranslation();
   const navigate = useNavigate();
   const { register, isLoading } = useAuthStore();
@@ -680,7 +680,7 @@ export const ResetPasswordPage = () => {
 };
 
 export const ForgotPasswordPage = () => {
-  useSEO({ titleKey: 'seoForgotTitle', descriptionKey: 'seoForgotDesc', canonicalPath: '/forgot-password' });
+  useSEO({ titleKey: 'seoForgotTitle', descriptionKey: 'seoForgotDesc', canonicalPath: '/forgot-password', noindex: true });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');

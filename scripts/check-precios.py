@@ -102,6 +102,42 @@ def main() -> int:
                     f"y el backend cobra {precio:g}"
                 )
 
+    # ── Los precios que viven FUERA de las claves `<plan>Price` ────────────
+    #
+    # `check-precios` sólo miraba `monthlyPrice`, `annualPrice`… y por eso pasó
+    # en verde durante meses sobre esto: `seoPricingTitle` —el <title> de
+    # /pricing, o sea LO QUE GOOGLE ENSEÑA— anunciaba «9,99 $/Monat» en alemán,
+    # francés, ruso, chino, japonés y árabe, cuando el plan más barato son
+    # 17 €/mes. Seis idiomas publicando un precio un 70 % más bajo que el que
+    # cobra Stripe. Y los diez anunciaban además un «Plan Gratis» que no existe:
+    # SUBSCRIPTION_PLANS tiene cuatro planes y los cuatro se pagan.
+    #
+    # La lección es la de siempre en este repo: un verificador que mira una
+    # lista de claves sólo protege esa lista. Aquí se comprueba cualquier
+    # importe que aparezca PEGADO A UNA MONEDA en los textos de la página de
+    # precios, venga de la clave que venga.
+    MONEDA = re.compile(
+        r"(?:(?P<antes>[€$]|EUR|USD)\s?(?P<n1>\d[\d.,]*)"
+        r"|(?P<n2>\d[\d.,]*)\s?(?P<despues>[€$]|EUR|USD|euros?|欧元|ユーロ|يورو|евро))",
+        re.IGNORECASE)
+    CLAVES_CON_PRECIO = ("seoPricingTitle", "seoPricingDesc")
+    validos = set(planes.values())
+
+    for ruta in locales:
+        texto = ruta.read_text(encoding="utf-8")
+        for clave in CLAVES_CON_PRECIO:
+            frase = precio_anunciado(texto, clave)
+            if frase is None:
+                continue
+            for m in MONEDA.finditer(frase):
+                comprobados += 1
+                visto = numero(m.group("n1") or m.group("n2"))
+                if visto is None or not any(abs(visto - p) <= 0.005 for p in validos):
+                    fallos.append(
+                        f"{ruta.name}: {clave} anuncia {m.group(0)!r} y no es ninguno "
+                        f"de los planes que cobra el backend "
+                        f"({', '.join(f'{p:g}' for p in sorted(validos))} EUR)")
+
     if fallos:
         print(f"❌ {len(fallos)} precio(s) anunciados no coinciden con lo que se cobra:")
         for f in fallos:

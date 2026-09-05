@@ -154,6 +154,9 @@ const OG_LOCALE = {
   es: 'es_ES', en: 'en_US', de: 'de_DE', fr: 'fr_FR', ru: 'ru_RU',
   zh: 'zh_CN', ja: 'ja_JP', ar: 'ar_SA', pt: 'pt_PT', it: 'it_IT',
 };
+// Caída a `es_ES`, NO al código corto: el código corto es exactamente el valor
+// inválido que esto viene a quitar.
+const ogLocale = (lang) => OG_LOCALE[lang] || OG_LOCALE.es;
 
 // ─── Iconos ───────────────────────────────────────────────────────
 // Ninguna de las 1.640 páginas declaraba un `rel="icon"`. Un buscador que
@@ -336,8 +339,8 @@ const HOWTO = {
 
 const CALCS = [
   { slug: 'calculadora-tamano-posicion', tab: 'position', formula: 'Size = (Capital × Risk%) ÷ Stop distance',
-    es: { title:'Calculadora de Tamaño de Posición — Gratis y Profesional', kw:'calculadora de tamaño de posición', lead:'Calcula exactamente cuántas unidades, lotes o contratos operar para arriesgar solo el porcentaje de tu cuenta que decidas por operación.', pts:['Arriesga siempre un % fijo y controlado (1-2 %)','Acciones, forex, cripto, índices y futuros','Evita el error nº1: el sobreapalancamiento'] },
-    en: { title:'Position Size Calculator — Free & Professional', kw:'position size calculator', lead:'Work out exactly how many units, lots or contracts to trade so you risk only the percentage of your account you choose per trade.', pts:['Always risk a fixed, controlled % (1-2%)','Stocks, forex, crypto, indices and futures','Avoids the #1 account killer: overleverage'] } },
+    es: { title:'Calculadora de Tamaño de Posición — Riesgo por Operación', kw:'calculadora de tamaño de posición', lead:'Calcula exactamente cuántas unidades, lotes o contratos operar para arriesgar solo el porcentaje de tu cuenta que decidas por operación.', pts:['Arriesga siempre un % fijo y controlado (1-2 %)','Acciones, forex, cripto, índices y futuros','Evita el error nº1: el sobreapalancamiento'] },
+    en: { title:'Position Size Calculator — Risk per Trade', kw:'position size calculator', lead:'Work out exactly how many units, lots or contracts to trade so you risk only the percentage of your account you choose per trade.', pts:['Always risk a fixed, controlled % (1-2%)','Stocks, forex, crypto, indices and futures','Avoids the #1 account killer: overleverage'] } },
   { slug: 'calculadora-de-lotes-forex', tab: 'lotsize', formula: 'Lots = Risk($) ÷ (Stop in pips × Pip value)',
     es: { title:'Calculadora de Lotes de Forex — Tamaño de Lote y Pip', kw:'calculadora de lotes forex', lead:'Convierte tu riesgo en euros/dólares al tamaño de lote correcto (estándar, mini o micro) según tu par, tu stop en pips y tu capital.', pts:['Lotes estándar, mini y micro','Valor del pip por par','Ajustado a tu % de riesgo'] },
     en: { title:'Forex Lot Size Calculator — Lot Size & Pip Value', kw:'forex lot size calculator', lead:'Turn your risk in dollars into the correct lot size (standard, mini or micro) based on your pair, your stop in pips and your capital.', pts:['Standard, mini and micro lots','Pip value per currency pair','Matched to your risk % per trade'] } },
@@ -391,13 +394,13 @@ const CALC_I18N = {
   },
   'calculadora-tamano-posicion': {
     de:{ title:`Positionsgrößen-Rechner — Kostenlos & Professionell`, kw:`Positionsgrößen-Rechner`, lead:`Berechne genau, wie viele Einheiten, Lots oder Kontrakte du handeln musst, um pro Trade nur den von dir gewählten Prozentsatz deines Kontos zu riskieren.`, pts:[`Riskiere immer einen festen, kontrollierten Prozentsatz (1–2 %)`,`Aktien, Forex, Krypto, Indizes und Futures`,`Vermeidet den häufigsten Fehler: Überhebelung`] },
-    fr:{ title:`Calculateur de Taille de Position — Gratuit et Professionnel`, kw:`Calculateur de taille de position`, lead:`Calculez exactement combien d'unités, de lots ou de contrats trader pour ne risquer que le pourcentage de votre compte choisi par trade.`, pts:[`Risquez toujours un % fixe et maîtrisé (1–2 %)`,`Actions, forex, crypto, indices et futures`,`Évite l'erreur n°1 : le surlevier`] },
+    fr:{ title:`Calculateur de Taille de Position — Risque par Trade`, kw:`Calculateur de taille de position`, lead:`Calculez exactement combien d'unités, de lots ou de contrats trader pour ne risquer que le pourcentage de votre compte choisi par trade.`, pts:[`Risquez toujours un % fixe et maîtrisé (1–2 %)`,`Actions, forex, crypto, indices et futures`,`Évite l'erreur n°1 : le surlevier`] },
     ru:{ title:`Калькулятор размера позиции — бесплатно и профессионально`, kw:`Калькулятор размера позиции`, lead:`Точно рассчитайте, сколько единиц, лотов или контрактов торговать, чтобы рисковать только выбранным процентом счёта на сделку.`, pts:[`Всегда рискуйте фиксированным контролируемым % (1–2 %)`,`Акции, форекс, крипто, индексы и фьючерсы`,`Избегает ошибки №1 — избыточного плеча`] },
     zh:{ title:`仓位大小计算器 — 免费且专业`, kw:`仓位大小计算器`, lead:`精确计算应交易多少单位、手数或合约，使每笔交易只承担你所选择的账户百分比风险。`, pts:[`始终以固定、可控的百分比（1–2%）承担风险`,`股票、外汇、加密货币、指数和期货`,`避免头号错误：过度杠杆`] },
     ja:{ title:`ポジションサイズ計算ツール — 無料でプロ仕様`, kw:`ポジションサイズ計算`, lead:`1回の取引で口座の決めた割合だけをリスクにするために、何単位・何ロット・何枚を取引すべきかを正確に計算します。`, pts:[`常に一定で管理された割合（1〜2%）でリスクを取る`,`株式・FX・仮想通貨・指数・先物`,`最大の失敗「過剰レバレッジ」を回避`] },
     ar:{ title:`حاسبة حجم المركز — مجانية واحترافية`, kw:`حاسبة حجم المركز`, lead:`احسب بدقة عدد الوحدات أو اللوتات أو العقود التي يجب تداولها لتخاطر فقط بالنسبة المئوية التي تختارها من حسابك في كل صفقة.`, pts:[`خاطر دائمًا بنسبة ثابتة ومنضبطة (1–2%)`,`الأسهم والفوركس والعملات الرقمية والمؤشرات والعقود الآجلة`,`يتجنب الخطأ الأول: الرافعة المفرطة`] },
-    pt:{ title:`Calculadora de Tamanho de Posição — Grátis e Profissional`, kw:`calculadora de tamanho de posição`, lead:`Calcule exatamente quantas unidades, lotes ou contratos operar para arriscar apenas a percentagem da sua conta que decidir por operação.`, pts:[`Arrisque sempre uma % fixa e controlada (1-2 %)`,`Ações, forex, cripto, índices e futuros`,`Evita o erro n.º 1: a sobrealavancagem`] },
-    it:{ title:`Calcolatrice della Size di Posizione — Gratuita e Professionale`, kw:`calcolatrice size posizione`, lead:`Calcola esattamente quante unità, lotti o contratti operare per rischiare solo la percentuale del tuo conto che decidi per ogni operazione.`, pts:[`Rischia sempre una % fissa e controllata (1-2 %)`,`Azioni, forex, cripto, indici e futures`,`Evita l'errore n.1: la leva eccessiva`] },
+    pt:{ title:`Calculadora de Tamanho de Posição — Risco por Operação`, kw:`calculadora de tamanho de posição`, lead:`Calcule exatamente quantas unidades, lotes ou contratos operar para arriscar apenas a percentagem da sua conta que decidir por operação.`, pts:[`Arrisque sempre uma % fixa e controlada (1-2 %)`,`Ações, forex, cripto, índices e futuros`,`Evita o erro n.º 1: a sobrealavancagem`] },
+    it:{ title:`Calcolatrice della Size di Posizione — Rischio per Operazione`, kw:`calcolatrice size posizione`, lead:`Calcola esattamente quante unità, lotti o contratti operare per rischiare solo la percentuale del tuo conto che decidi per ogni operazione.`, pts:[`Rischia sempre una % fissa e controllata (1-2 %)`,`Azioni, forex, cripto, indici e futures`,`Evita l'errore n.1: la leva eccessiva`] },
   },
   'calculadora-de-lotes-forex': {
     de:{ title:`Forex-Lot-Rechner — Lotgröße & Pip-Wert`, kw:`Forex-Lot-Rechner`, lead:`Rechne dein Risiko in Euro/Dollar in die richtige Lotgröße (Standard, Mini oder Micro) um – anhand deines Paars, deines Stops in Pips und deines Kapitals.`, pts:[`Standard-, Mini- und Micro-Lots`,`Pip-Wert je Währungspaar`,`An dein Risiko-% pro Trade angepasst`] },
@@ -645,7 +648,7 @@ ${hreflang}
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${esc(OG_IMAGE)}">
-<meta property="og:locale" content="${OG_LOCALE[lang] || lang}">
+<meta property="og:locale" content="${ogLocale(lang)}">
 <meta name="twitter:card" content="summary_large_image">
 ${ld(jsonld)}
 ${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement:[
@@ -1052,7 +1055,7 @@ ${hreflang}
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${esc(OG_IMAGE)}">
-<meta property="og:locale" content="${OG_LOCALE[lang] || lang}">
+<meta property="og:locale" content="${ogLocale(lang)}">
 <meta name="twitter:card" content="summary_large_image">
 ${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement:[
   { '@type':'ListItem', position:1, name: UI[lang].home, item: DOMAIN + '/' },
@@ -1399,7 +1402,7 @@ ${hreflang}
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${esc(OG_IMAGE)}">
-<meta property="og:locale" content="${OG_LOCALE[lang] || lang}">
+<meta property="og:locale" content="${ogLocale(lang)}">
 <meta name="twitter:card" content="summary_large_image">
 ${ld({ '@context':'https://schema.org', '@type':'CollectionPage', name: titulo, url, inLanguage: lang, description,
   isPartOf: { '@type':'WebSite', name:'TradingCalculator.Pro', url: DOMAIN + '/' },
@@ -1512,108 +1515,160 @@ if (pisados.length) {
   process.exitCode = 1;
 }
 
-// ── Rutas públicas del SPA: que devuelvan 200 y no 404 ──
+// ── Rutas de aplicación: el shell, servido con estado 200 ──
 //
 // EL FALLO QUE MÁS CARO SALÍA, y era invisible desde dentro.
 //
-// GitHub Pages sólo sirve `index.html` en la raíz. Para cualquier otra ruta sin
-// fichero físico devuelve `404.html` **con estado 404**. El workflow copia ahí
-// el shell del SPA, así que la persona ve la web perfecta y no sospecha nada —
-// pero el rastreador recibe un 404 y NO INDEXA. `/pricing`, `/about`,
-// `/contact` y `/legal` llevaban así desde siempre, anunciadas en el sitemap.
+// GitHub Pages no reescribe rutas: para `/pricing` busca `pricing.html` y
+// `pricing/index.html`, y si no encuentra ninguno sirve `404.html` **con estado
+// HTTP 404**. El workflow copia ahí el shell del SPA, así que la persona ve la
+// web perfecta y no sospecha nada — pero el rastreador recibe un 404 y NO
+// INDEXA. `/pricing`, `/about`, `/contact`, `/legal`, `/education`, `/options` y
+// `/options/strategies` llevaban así desde siempre, las siete anunciadas en el
+// sitemap con prioridad 0.85-0.9, y encima los dos botones verdes de cada una de
+// las páginas estáticas apuntan a `/pricing`.
 //
-// La cura es un fichero de verdad en cada ruta. Se parte del shell compilado
-// —el mismo JavaScript, la misma aplicación— y sólo se le cambian título,
-// descripción y canonical, para que un rastreador que no ejecuta JavaScript no
-// vea cuatro veces la misma portada. `useSEO` reescribe esas tres etiquetas al
-// arrancar, con los mismos valores.
+// La cura es un fichero de verdad en cada ruta: el shell compilado —el mismo
+// JavaScript, la misma aplicación— con SU título, SU descripción y SU canonical
+// en el HTML crudo, para que un rastreador que no ejecuta JavaScript no vea
+// ocho veces la misma portada. `useSEO` reescribe esas etiquetas al arrancar,
+// con los mismos valores y desde las MISMAS claves i18n: el HTML crudo y el
+// renderizado no pueden divergir.
 //
-// NO se genera para /education, /options ni /options/strategies: son
-// `ProtectedRoute premiumOnly` y mandan a /login a quien no ha entrado.
-// Publicar un 200 ahí sólo serviría para que Google indexara una pantalla de
-// acceso. Por eso salen del sitemap y entran en robots.txt.
-const RUTAS_SPA = [
-  { ruta: 'pricing',     prio: '0.85', t: { es:'Precios y planes', en:'Pricing and plans' },
-    d: { es:'Planes de TradingCalculator.Pro con 7 días de prueba: calculadoras, opciones, diario de operaciones y academia en diez idiomas.',
-         en:'TradingCalculator.Pro plans with a 7-day trial: calculators, options, trading journal and academy in ten languages.' } },
-  { ruta: 'about',       prio: '0.7',  t: { es:'Qué es TradingCalculator.Pro', en:'About TradingCalculator.Pro' },
-    d: { es:'Quiénes somos y cómo se calculan las cifras que enseña la herramienta: qué se mide, qué se modela y qué se deja indefinido.',
-         en:'Who we are and how the figures are computed: what is measured, what is modelled and what is deliberately left undefined.' } },
-  { ruta: 'contact',     prio: '0.6',  t: { es:'Contacto', en:'Contact' },
-    d: { es:'Escríbenos: soporte, facturación, prensa y aviso de errores de cálculo.',
-         en:'Get in touch: support, billing, press and calculation-error reports.' } },
-  { ruta: 'legal',       prio: '0.4',  t: { es:'Aviso legal, privacidad y cookies', en:'Legal, privacy and cookies' },
-    d: { es:'Condiciones de uso, política de privacidad y cookies. Contenido informativo: no es asesoramiento financiero.',
-         en:'Terms of use, privacy policy and cookies. Informational content: not financial advice.' } },
+// Se escriben las DOS formas (`pricing.html` y `pricing/index.html`) a
+// propósito: Pages resuelve `/pricing` con la primera y `/pricing/` con la
+// segunda, así que ninguna de las dos depende de que el servidor pruebe la
+// extensión ni de una redirección. Las dos declaran el mismo canonical SIN
+// barra final — el que anuncia el sitemap y el que emite `useSEO`.
+const APP = [
+  // ruta,                prioridad, clave de título,        clave de descripción,  indexable
+  ['/',                   '1.0',  null,                    null,                     true ],
+  ['/pricing',            '0.85', 'seoPricingTitle',       'seoPricingDesc',         true ],
+  ['/about',              '0.7',  'seoAboutTitle',         'seoAboutDesc',           true ],
+  ['/contact',            '0.6',  'seoContactTitle',       'seoContactDesc',         true ],
+  ['/legal',              '0.4',  'seoLegalTitle',         'seoLegalDesc',           true ],
   // ⚠️ `/brokers` y `/backtesting` NO están aquí, y no es un olvido. Sus
   // componentes declaran `noindex: true` con el motivo escrito al lado —una
   // lista de afiliados vacía, y una página cuyo contenido principal es de otro
-  // dominio: contenido delgado que «indexarlo sólo resta»—. Estuvieron en esta
-  // lista y era una contradicción de tres bandas: el sitemap pidiendo que se
-  // indexaran, el HTML estático diciendo `index, follow`, y `useSEO` poniendo
-  // `noindex` en cuanto React montaba. La guarda de abajo impide repetirlo.
+  // dominio—. Estuvieron en esta lista y era una contradicción de tres bandas:
+  // el sitemap pidiendo que se indexaran, el HTML estático diciendo
+  // `index, follow`, y `useSEO` poniendo `noindex` en cuanto React montaba. La
+  // guarda de abajo impide repetirlo.
+  //
+  // Estas tres son `ProtectedRoute premiumOnly`: su contenido está tras el muro.
+  // Se les da estado 200 porque las páginas de academia y de estrategia enlazan
+  // a ellas («Abrir el módulo completo»), y mandar miles de enlaces internos a
+  // un 404 es peor que cualquier cosa que hagan aquí. Pero NO van al sitemap y
+  // llevan `noindex`: es la decisión que ya estaba escrita para `/performance`.
+  //
+  // Y NO se bloquean en `robots.txt`, que sería la reacción natural: una ruta
+  // prohibida ahí nunca llega a leer su propio `noindex`, así que Google puede
+  // indexar la URL a secas —sin contenido— por los enlaces que la citan. Con
+  // `noindex, follow` la lee, no la indexa, y sigue repartiendo autoridad.
+  ['/education',          null,   'seoEducationTitle',     'seoEducationDesc',       false],
+  ['/options',            null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
+  ['/options/strategies', null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
+  // Las tres de autenticación estaban en el peor de los dos mundos: devolvían
+  // 404 de Pages (un enlace de login compartido no abría) y a la vez eran
+  // indexables, porque `useSEO` no les ponía `noindex` y robots no las bloquea.
+  // Ahora responden 200 —el enlace funciona— y declaran `noindex` en el HTML
+  // crudo, por el mismo motivo que las tres de arriba.
+  ['/login',              null,   'seoLoginTitle',         'seoLoginDesc',           false],
+  ['/register',           null,   'seoRegisterTitle',      'seoRegisterDesc',        false],
+  ['/forgot-password',    null,   'seoForgotTitle',        'seoForgotDesc',          false],
 ];
 
-// Ninguna ruta de aquí puede llevar `noindex` en su componente.
+// Ninguna ruta INDEXABLE de aquí puede llevar `noindex` en su componente.
 //
 // Se comprueba leyendo `App.js` para saber qué componente sirve cada ruta y
 // mirando su fichero, en vez de mantener una segunda lista a mano: una lista
 // paralela se desincroniza en la primera revisión, y este verificador dejaría
 // de decir la verdad justo cuando más falta hace.
 (() => {
-  const APP = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.js'), 'utf8');
+  const rutasApp = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.js'), 'utf8');
   const malas = [];
-  for (const r of RUTAS_SPA) {
-    const m = APP.match(new RegExp(`path="/${r.ruta}"\\s+element=\\{<(?:ProtectedRoute[^>]*>)?\\s*<?(\\w+)`));
-    if (!m) { malas.push(`${r.ruta}: no encuentro su <Route> en App.js`); continue; }
+  for (const [ruta, prio] of APP) {
+    if (ruta === '/' || !prio) continue;              // sólo las que van al sitemap
+    const nombre = ruta.replace(/^\//, '');
+    const m = rutasApp.match(new RegExp(`path="/${nombre}"\\s+element=\\{<(?:ProtectedRoute[^>]*>)?\\s*<?(\\w+)`));
+    if (!m) { malas.push(`${nombre}: no encuentro su <Route> en App.js`); continue; }
     const fichero = path.join(__dirname, '..', 'src', 'pages', `${m[1]}.jsx`);
-    if (!fs.existsSync(fichero)) { malas.push(`${r.ruta}: no encuentro ${m[1]}.jsx`); continue; }
+    if (!fs.existsSync(fichero)) { malas.push(`${nombre}: no encuentro ${m[1]}.jsx`); continue; }
     if (/noindex:\s*true/.test(fs.readFileSync(fichero, 'utf8')))
-      malas.push(`${r.ruta}: ${m[1]}.jsx declara noindex: true`);
+      malas.push(`${nombre}: ${m[1]}.jsx declara noindex: true`);
   }
   if (malas.length) {
-    console.error('\n✗ RUTAS_SPA contiene rutas que no deben indexarse:');
+    console.error('\n✗ APP anuncia en el sitemap rutas que no deben indexarse:');
     for (const x of malas) console.error(`    · ${x}`);
-    console.error('  Anunciarlas en el sitemap contradice al propio componente.');
+    console.error('  Anunciarlas contradice al propio componente.');
     process.exitCode = 1;
   }
 })();
 
+// Sustituye el CONTENIDO de una etiqueta ya presente en el shell. Si la etiqueta
+// no está, no se inventa: el shell es la fuente y un cambio ahí tiene que verse
+// aquí, no quedar silenciosamente sin efecto.
+const faltantes = new Set();
+const sust = (html, re, reemplazo, que) => {
+  if (!re.test(html)) { faltantes.add(que); return html; }
+  return html.replace(re, reemplazo);
+};
+
 let shellCount = 0;
 const SHELL = path.join(BUILD, 'index.html');
-if (fs.existsSync(SHELL)) {
-  const shell = fs.readFileSync(SHELL, 'utf8');
-  for (const r of RUTAS_SPA) {
-    const url = `${DOMAIN}/${r.ruta}/`;
-    const titulo = `${r.t.es} | Trading Calculator PRO`;
-    const html = shell
-      .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(titulo)}</title>`)
-      .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${esc(r.d.es)}$2`)
-      .replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${esc(url)}$2`)
-      .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${esc(url)}$2`)
-      .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(titulo)}$2`)
-      .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(r.d.es)}$2`)
-      // El `x-default` del shell apunta a la portada. Copiado tal cual, las
-      // seis rutas declararían que su versión por defecto es `/`, que es
-      // justo la señal que hace que Google se quede con una sola y descarte
-      // las demás.
-      //
-      // Y sólo `x-default`, sin las diez alternativas por idioma: estas rutas
-      // NO tienen una URL por idioma —la SPA traduce en cliente, así que
-      // `/pricing?lang=de` devuelve el mismo HTML—, y declarar diez URLs que
-      // sirven lo mismo es el error que `public/index.html` ya documenta.
-      // `x-default` solo y auto-referente dice lo correcto: una versión, la
-      // misma para todos.
-      .replace(/(<link rel="alternate" hreflang="x-default" href=")[^"]*(")/, `$1${esc(url)}$2`);
-    write(r.ruta, html);
-    // El texto de estas 4 páginas está inline en `RUTAS_SPA`, en este mismo
-    // fichero: misma fuente que las calculadoras.
-    sitemapApp.push([`/${r.ruta}/`, r.prio, FECHA_CALCS]);
-    shellCount++;
-  }
-} else {
+if (!fs.existsSync(SHELL)) {
   console.log('⚠️  build/index.html no existe: no se generan las rutas del SPA.');
   console.log('    (normal si has ejecutado este script suelto, sin `craco build` antes)');
+} else {
+  const shellSrc = fs.readFileSync(SHELL, 'utf8');
+  // El texto de estas páginas sale de las claves i18n de `useSEO`, en
+  // `src/lib/i18n/es.js`: ésa es la fuente cuya fecha vale como `lastmod`.
+  const FECHA_APP = fechaReal('src/lib/i18n/es.js', 'public/index.html');
+  for (const [ruta, prio, tk, dk, indexable] of APP) {
+    if (ruta === '/') continue;                       // ya lo sirve build/index.html
+    const titulo = tk ? `${T.es[tk]} | Trading Calculator PRO` : null;
+    const desc = dk ? recortar(T.es[dk]) : null;
+    const url = `${DOMAIN}${ruta}`;
+    let html = shellSrc;
+    if (titulo) {
+      html = sust(html, /<title>[\s\S]*?<\/title>/, `<title>${esc(titulo)}</title>`, '<title>');
+      html = sust(html, /(<meta property="og:title" content=")[^"]*"/, `$1${esc(titulo)}"`, 'og:title');
+      html = sust(html, /(<meta name="twitter:title" content=")[^"]*"/, `$1${esc(titulo)}"`, 'twitter:title');
+    }
+    if (desc) {
+      html = sust(html, /(<meta name="description" content=")[^"]*"/, `$1${esc(desc)}"`, 'description');
+      html = sust(html, /(<meta property="og:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'og:description');
+      html = sust(html, /(<meta name="twitter:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'twitter:description');
+    }
+    html = sust(html, /(<link rel="canonical" href=")[^"]*"/, `$1${esc(url)}"`, 'canonical');
+    html = sust(html, /(<meta property="og:url" content=")[^"]*"/, `$1${esc(url)}"`, 'og:url');
+    html = sust(html, /(<meta name="twitter:url" content=")[^"]*"/, `$1${esc(url)}"`, 'twitter:url');
+    // El `x-default` del shell apunta a la portada. Copiado tal cual, las diez
+    // rutas declararían que su versión por defecto es `/`, que es justo la señal
+    // que hace que Google se quede con una sola y descarte las demás.
+    //
+    // Y sólo `x-default`, sin las diez alternativas por idioma: estas rutas NO
+    // tienen una URL por idioma —la SPA traduce en cliente, así que
+    // `/pricing?lang=de` devuelve el mismo HTML—, y declarar diez URLs que
+    // sirven lo mismo es el error que `public/index.html` ya documenta.
+    html = sust(html, /(<link rel="alternate" hreflang="x-default" href=")[^"]*"/, `$1${esc(url)}"`, 'x-default');
+    if (!indexable) {
+      html = sust(html, /(<meta name="robots" content=")[^"]*"/, '$1noindex, follow"', 'robots');
+      html = sust(html, /(<meta name="googlebot" content=")[^"]*"/, '$1noindex, follow"', 'googlebot');
+    }
+    const dir = ruta.replace(/^\//, '');
+    fs.mkdirSync(path.join(BUILD, dir), { recursive: true });
+    fs.writeFileSync(path.join(BUILD, dir, 'index.html'), html, 'utf8');   // sirve /ruta/
+    fs.writeFileSync(path.join(BUILD, `${dir}.html`), html, 'utf8');       // sirve /ruta
+    escritas.add(dir);                                 // ningún puente puede pisarla
+    if (prio) sitemapApp.push([ruta, prio, FECHA_APP]);
+    shellCount++;
+  }
+  if (faltantes.size) {
+    console.error(`✗ El shell no trae ${[...faltantes].join(', ')}: las rutas de app saldrían`);
+    console.error('  con los metadatos de la portada. Revisa public/index.html.');
+    process.exit(1);
+  }
 }
 
 // ── Sitemap ──
@@ -1634,9 +1689,9 @@ if (fs.existsSync(SHELL)) {
 // de acceso. Su contenido público sí se indexa: son las 750 páginas de
 // `/learn/`, las 660 de estrategias y sus cuatro hubs, que no tienen muro.
 //
-// Las que quedan aquí son las que ahora tienen fichero propio (RUTAS_SPA las
-// escribe justo arriba); se añaden desde allí con su prioridad, para que no
-// pueda anunciarse una URL que nadie ha generado.
+// Las que quedan aquí son las de `APP` con prioridad, y se añaden desde el
+// bucle que las ESCRIBE (arriba), no desde una lista aparte: así no puede
+// anunciarse una URL que nadie ha generado.
 const MAIN = [['/', '1.0', fechaReal('public/index.html')]];
 
 // El ORDEN del sitemap no es cosmético: portada, rutas de aplicación y hubs
@@ -1679,6 +1734,6 @@ console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estra
 console.log(`✅ Patrones chartistas: ${patternCount} páginas (${CHART_IDS.length} patrones × ${LANGS.length} idiomas)`);
 console.log(`✅ Patrones de vela: ${candleCount} páginas (${CANDLE_IDS.length} patrones × ${LANGS.length} idiomas)`);
 console.log(`✅ Hubs de sección: ${hubCount} (${SECCIONES.length} secciones × idiomas con contenido)`);
-console.log(`✅ Rutas del SPA con fichero propio: ${shellCount} (antes devolvían 404)`);
+console.log(`✅ Rutas de app con fichero propio: ${shellCount} shells con estado 200 (antes: 404 de Pages)`);
 console.log(`✅ Páginas puente por slug traducido: ${puenteCount} (fuera del sitemap, a propósito)`);
 console.log(`✅ sitemap.xml: ${all.length} URLs`);

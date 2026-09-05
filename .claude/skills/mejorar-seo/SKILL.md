@@ -83,7 +83,7 @@ ESTE ORDEN — es literalmente lo que se hizo para patrones/candles el 2026-09-0
 -- ruta1 ruta2…` sobre el/los fichero(s) fuente del CONTENIDO. **Un solo `--`**, con
 todas las rutas detrás — un segundo `--` es un pathspec literal que no casa nada y git
 lo tolera en silencio devolviendo el commit más reciente del repo ENTERO en vez de
-filtrar (BUG-085, real hasta el 2026-09-05). Si tocas esta función, pruébala con más de
+filtrar (BUG-089, real hasta el 2026-09-05). Si tocas esta función, pruébala con más de
 una ruta y confirma que el resultado varía según CUÁL de las rutas es más reciente, no
 sólo que devuelve "una fecha".
 

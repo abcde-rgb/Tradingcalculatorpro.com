@@ -203,11 +203,24 @@ function revisarPuente(fichero, html, rel) {
 }
 
 // ── el examen de una página ─────────────────────────────────────────────────
+// Las rutas de aplicación (`APP` en gen-seo-pages.js) son copias del shell de la
+// SPA escritas para que GitHub Pages las sirva con estado 200 en vez de 404.
+// Tienen UNA sola URL —la SPA traduce en cliente—, así que no llevan el juego de
+// hreflang de las páginas generadas y su canonical no lleva barra final. Se les
+// exige lo que sí les aplica: canonical propio, título y descripción.
+const APP_RUTAS = (() => {
+  const src = fs.readFileSync(path.join(__dirname, 'gen-seo-pages.js'), 'utf8');
+  const m = src.match(/const APP\s*=\s*\[([\s\S]*?)\n\];/);
+  return new Set((m ? [...m[1].matchAll(/^\s*\['([^']+)'/gm)].map((x) => x[1]) : [])
+    .map((r) => r.replace(/^\//, '')).filter(Boolean));
+})();
+
 function revisar(fichero) {
   const html = fs.readFileSync(fichero, 'utf8');
   const rel = path.relative(BUILD, path.dirname(fichero)).split(path.sep).join('/');
   const propia = urlDe(fichero);
   const lang = idiomaDe(rel);
+  const esApp = APP_RUTAS.has(rel);
 
   if (esPuente(html)) { revisarPuente(fichero, html, rel); return null; }
 
@@ -256,19 +269,22 @@ function revisar(fichero) {
   const canonical = attr(html, /<link rel="canonical" href="([^"]+)"/);
   if (!canonical) anota('canonical ausente', rel, '');
   else if (!mismoOrigen(canonical, DOMAIN)) anota('canonical a otro dominio', rel, canonical);
-  else if (unaBarra(canonical) !== unaBarra(propia))
+  else if (esApp) {
+    if (sinBarras(canonical) !== sinBarras(propia))
+      anota('canonical NO auto-referente', rel, `dice ${canonical}`);
+  } else if (unaBarra(canonical) !== unaBarra(propia))
     anota('canonical NO auto-referente', rel, `dice ${canonical}`);
 
   // 2 · hreflang
   const alt = [...html.matchAll(/<link rel="alternate" hreflang="([^"]+)"\s+href="([^"]+)"/g)];
   // Un `x-default` SOLO y auto-referente no es un juego incompleto: es la
   // declaración correcta de una página que tiene UNA versión para todo el
-  // mundo. Es el caso de las rutas de aplicación (`/pricing/`, `/about/`…):
+  // mundo. Es el caso de las rutas de aplicación (`/pricing`, `/about`…):
   // la SPA traduce en cliente, así que no existe `/en/pricing/` que declarar.
   // Exigirles los diez idiomas empujaría justo al error que `public/index.html`
   // documenta — diez URLs sirviendo el mismo HTML.
   const soloXDefault = alt.length === 1 && alt[0][1] === 'x-default'
-    && unaBarra(alt[0][2]) === unaBarra(propia);
+    && sinBarras(alt[0][2]) === sinBarras(propia);
   if (alt.length && !soloXDefault) {
     const vistos = alt.map((m) => m[1]);
     const faltan = [...HREFLANGS].filter((h) => !vistos.includes(h));
@@ -360,7 +376,7 @@ if (!fs.existsSync(SITEMAP)) {
   // ejemplo— produce ESA MISMA firma con fechas reales: `git log` sobre cada
   // fuente devuelve legítimamente "hoy" para casi todo, y el sitemap por sí
   // solo no distingue esto del bug que reemplaza. Se cazó en el propio build
-  // de esta guarda (BUG-085): un `--` de más en `fechaReal()` ignoraba en
+  // de esta guarda (BUG-089): un `--` de más en `fechaReal()` ignoraba en
   // silencio el pathspec y devolvía el último commit del REPO ENTERO en vez
   // del de la ruta pedida — con o sin ese bug, el sitemap final se ve IGUAL en
   // un día de cambios amplios, así que sólo el propio generador puede saber
@@ -394,23 +410,48 @@ if (!fs.existsSync(SITEMAP)) {
   // detectar las que sí faltan. Una exención escrita a mano se pudre igual que
   // cualquier otra lista escrita a mano.
   const genSrc = fs.readFileSync(path.join(__dirname, 'gen-seo-pages.js'), 'utf8');
-  const mMain = genSrc.match(/const MAIN\s*=\s*\[([\s\S]*?)\];/);
+  const mApp = genSrc.match(/const APP\s*=\s*\[([\s\S]*?)\n\];/);
   const rutasApp = new Set(
-    (mMain ? [...mMain[1].matchAll(/\['([^']+)'/g)].map((m) => m[1]) : [])
-      .flatMap((r) => LANGS.map(([, pref]) =>
-        sinBarras(`${DOMAIN}${pref}${r}`) || DOMAIN)));
-  if (!mMain) anota('no se pudo leer MAIN de gen-seo-pages.js', 'scripts/gen-seo-pages.js',
-                    'sin esa lista no se distingue una ruta de app de una página que falta');
+    (mApp ? [...mApp[1].matchAll(/^\s*\['([^']+)'/gm)].map((m) => m[1]) : [])
+      .map((r) => sinBarras(`${DOMAIN}${r}`) || DOMAIN));
+  if (!mApp) anota('no se pudo leer APP de gen-seo-pages.js', 'scripts/gen-seo-pages.js',
+                   'sin esa lista no se distingue una ruta de app de una página que falta');
 
+  // Toda URL del sitemap tiene que resolver a un fichero que GitHub Pages sepa
+  // servir con estado 200.
+  //
+  // Pages NO reescribe rutas: para `/pricing` prueba `pricing.html` y
+  // `pricing/index.html`, y si no encuentra ninguno sirve `404.html` **con
+  // estado HTTP 404**. Como el workflow copia el shell de la SPA a `404.html`,
+  // la aplicación arranca y la página se ve perfectamente — así que el fallo es
+  // invisible para una persona y total para un rastreador.
+  //
+  // Existe porque pasó, y en las URLs más caras del sitio: `/pricing`,
+  // `/education`, `/options`, `/options/strategies`, `/about`, `/contact` y
+  // `/legal` estaban en el sitemap con prioridad 0.85-0.9 y las siete devolvían
+  // 404 a Google. Search Console las marca «Enviada: no encontrada (404)», y
+  // encima los dos botones verdes de las 1.640 páginas estáticas apuntan a
+  // `/pricing`. Nada lo dijo: la comprobación anterior sólo miraba las rutas de
+  // dos segmentos o más, y a las de app las saltaba por ser rutas de app.
+  const sirvePages = (ruta) => {
+    const limpia = ruta.replace(/^\/|\/$/g, '');
+    if (!limpia) return fs.existsSync(path.join(BUILD, 'index.html'));
+    return fs.existsSync(path.join(BUILD, limpia, 'index.html'))
+        || fs.existsSync(path.join(BUILD, `${limpia}.html`));
+  };
   for (const loc of enSitemap) {
-    const sinBarra = sinBarras(loc);
-    if (rutasApp.has(sinBarra)) continue;
-    const ruta = rutaDe(loc).replace(/^\/|\/$/g, '');
-    if (ruta.split('/').length >= 2 && !norm.has(loc))
-      anota('sitemap anuncia una página que no existe', ruta, '');
+    if (!sirvePages(rutaDe(loc)))
+      anota('el sitemap anuncia una URL que GitHub Pages sirve con 404', rutaDe(loc),
+            'falta <ruta>/index.html o <ruta>.html en el build');
   }
-  for (const u of norm) if (!enSitemap.has(u))
-    anota('página generada que el sitemap no anuncia', rutaDe(u), '');
+  // Y al revés: una página generada que el sitemap no anuncia sólo la encuentra
+  // Google por enlaces. Las rutas de app premium (`/education`, `/options`…)
+  // están fuera a propósito —contenido tras el muro— y llevan `noindex`.
+  for (const u of norm) {
+    const rel = rutaDe(u).replace(/^\/|\/$/g, '');
+    if (rutasApp.has(sinBarras(u))) continue;
+    if (!enSitemap.has(u)) anota('página generada que el sitemap no anuncia', rutaDe(u), '');
+  }
 
   // robots.txt se lee AQUÍ, antes de las dos comprobaciones que lo necesitan:
   // la de enlaces internos (abajo) y la del sitemap (más abajo). Estaba leído
@@ -548,6 +589,27 @@ if (!fs.existsSync(SITEMAP)) {
   if (fs.existsSync(PUB_SITEMAP)) {
     anota('hay un sitemap en public/ que pisaría al generado', 'public/sitemap.xml',
       'lo escribe gen-sitemap.js, que el build no ejecuta; el bueno lo genera gen-seo-pages.js');
+  }
+
+  // Ningún `%PUBLIC_URL%` puede sobrevivir al build.
+  //
+  // CRA interpola ese marcador SÓLO en `index.html`; el resto de `public/` lo
+  // copia tal cual. Por eso `public/manifest.json` llegaba a producción con los
+  // doce marcadores literales: `"start_url": "%PUBLIC_URL%/?source=pwa"`,
+  // `"scope"`, `"id"`, los seis iconos y los tres accesos directos. Un manifiesto
+  // así no es un manifiesto degradado, es un manifiesto inválido: la PWA no se
+  // instala y no tiene iconos. No rompe ninguna pantalla —de ahí que llevara
+  // tiempo puesto— y no se ve más que abriendo el fichero servido.
+  //
+  // Se comprueba sólo `%PUBLIC_URL%` y no `%REACT_APP_*%`: el primero lo resuelve
+  // siempre el build, mientras que un `REACT_APP_` sin secreto en local queda
+  // literal a propósito y daría un falso positivo en cada build de desarrollo.
+  for (const f of paginas(BUILD).concat(
+        ['manifest.json', 'sw.js', 'offline.html', 'robots.txt', 'index.html']
+          .map((n) => path.join(BUILD, n)).filter((n) => fs.existsSync(n)))) {
+    if (fs.readFileSync(f, 'utf8').includes('%PUBLIC_URL%'))
+      anota('%PUBLIC_URL% sin sustituir en el build', path.relative(BUILD, f),
+            'CRA sólo interpola index.html; el resto de public/ se copia literal');
   }
 
   const SHELL = path.join(BUILD, 'index.html');
