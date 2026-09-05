@@ -110,7 +110,7 @@ export const TargetPriceCalculator = () => {
               />
             </div>
             
-            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="target-calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="target-calculate-btn">
               {t('calculate')}
             </Button>
           </div>

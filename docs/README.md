@@ -31,7 +31,7 @@ leen en el mismo momento ni con la misma intención.
 | [`TRADINGVIEW_PERSONALIZACION.md`](./TRADINGVIEW_PERSONALIZACION.md) | Gráficos y personalización por usuario |
 | [`MIGRACION_NEON.md`](./MIGRACION_NEON.md) | Conmutar la BD entre Cloud SQL y Neon (`DB_PROVIDER`) |
 | [`MCP.md`](./MCP.md) | Servidores MCP del agente (`playwright`, `firecrawl-mcp`): cómo se añaden, los tres ámbitos y dónde va la clave que no puede entrar en git |
-| [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. **Backend terminado; sigue sin una sola pantalla** (G-14) |
+| [`PLAN_DE_TRADING_spec.md`](./PLAN_DE_TRADING_spec.md) | Especificación del plan de trading versionado. **Ya tiene pantalla**: `TradingPlanPage` en `App.js:171` (`/plan`). De los cuatro módulos de G-14 siguen huérfanos `portfolio_risk.py` y `american_options.py` |
 
 ## 🚀 Voy a desplegar
 
@@ -56,6 +56,7 @@ leen en el mismo momento ni con la misma intención.
 
 | Documento | Para qué |
 |---|---|
+| [`ACADEMIA_MASTER_PLAN.md`](./ACADEMIA_MASTER_PLAN.md) | **Dirección de producto de la Academia** (12 niveles, permission gate, Performance Center, Trader Passport). No es backlog aprobado: nada está construido salvo que lo diga `ESTADO_PROYECTO.md`. Trae su propia reverificación contra el código en §0.bis |
 | [`PLAN_ACADEMIA.md`](./PLAN_ACADEMIA.md) | Estructura de la academia |
 | [`EDUCATION_BACKLOG.md`](./EDUCATION_BACKLOG.md) | Módulos formativos pendientes |
 | [`ESTUDIO_APRENDIZAJE.md`](./ESTUDIO_APRENDIZAJE.md) | Cómo se aprende a operar (base pedagógica) |

@@ -196,7 +196,7 @@ const GreeksTimeChart = ({ legs, stockPrice, daysToExpiry }) => {
               <div className="text-xs font-mono font-bold text-foreground mt-0.5">
                 {first.toFixed(3)} → {last.toFixed(3)}
               </div>
-              <div className={`text-[9px] font-mono ${delta >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+              <div className={`text-[9px] font-mono ${delta >= 0 ? 'text-long' : 'text-short'}`}>
                 {delta >= 0 ? '+' : ''}{delta.toFixed(3)} ({pct >= 0 ? '+' : ''}{pct.toFixed(1)}%)
               </div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Zap, RefreshCw, Loader2, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { Zap, RefreshCw, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -44,7 +45,7 @@ const UnusualActivity = ({ symbol }) => {
       <div className="bg-card border border-border rounded-xl p-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-[#fbbf24]" />
+            <Zap className="w-5 h-5 text-warn" />
             <h3 className="text-lg font-bold text-foreground">Unusual Options Activity</h3>
             <span className="text-xs text-muted-foreground ml-1">· {symbol}</span>
           </div>
@@ -54,7 +55,7 @@ const UnusualActivity = ({ symbol }) => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
             data-testid="refresh-unusual"
           >
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {loading ? <CargaVelas className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
             {t('refresh_ua003')}
           </button>
         </div>
@@ -99,13 +100,13 @@ const UnusualActivity = ({ symbol }) => {
             <div className="ml-auto flex items-center gap-4 text-[11px]">
               <div>
                 <span className="text-muted-foreground">Calls/Puts: </span>
-                <span className="font-bold text-[#4ade80]">{callCount}</span>
+                <span className="font-bold text-long">{callCount}</span>
                 <span className="text-muted-foreground"> / </span>
-                <span className="font-bold text-[#f87171]">{putCount}</span>
+                <span className="font-bold text-short">{putCount}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">P/C Ratio: </span>
-                <span className={`font-bold font-mono ${Number(putCallRatio) > 1 ? 'text-[#f87171]' : 'text-[#4ade80]'}`}>{putCallRatio}</span>
+                <span className={`font-bold font-mono ${Number(putCallRatio) > 1 ? 'text-short' : 'text-long'}`}>{putCallRatio}</span>
               </div>
             </div>
           )}
@@ -126,7 +127,7 @@ const UnusualActivity = ({ symbol }) => {
       {/* Table */}
       {loading && !data ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Escaneando chain...
+          <CargaVelas className="w-5 h-5 mr-2" /> Escaneando chain...
         </div>
       ) : results.length === 0 ? (
         <div className="bg-muted/40 border border-border rounded-xl p-8 text-center">
@@ -157,7 +158,7 @@ const UnusualActivity = ({ symbol }) => {
                 <tr key={`${r.type}-${r.expiration}-${r.strike}-${i}`} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2">
                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      r.type === 'call' ? 'bg-[#22c55e]/15 text-[#4ade80]' : 'bg-[#ef4444]/15 text-[#f87171]'
+                      r.type === 'call' ? 'bg-long/15 text-long' : 'bg-short/15 text-short'
                     }`}>
                       {r.type === 'call' ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                       {r.type.toUpperCase()}
@@ -173,7 +174,7 @@ const UnusualActivity = ({ symbol }) => {
                         whole volume — presents the most ordinary row on the
                         board as the most unusual one. */}
                     <span
-                      className={`font-mono font-bold ${r.ratio == null ? 'text-muted-foreground' : r.ratio > 10 ? 'text-[#fbbf24]' : r.ratio > 5 ? 'text-[#f59e0b]' : 'text-foreground'}`}
+                      className={`font-mono font-bold ${r.ratio == null ? 'text-muted-foreground' : r.ratio > 10 ? 'text-warn' : r.ratio > 5 ? 'text-warn' : 'text-foreground'}`}
                       title={r.ratio == null ? t('flowNoOiHint') : undefined}
                     >
                       {r.ratio == null ? t('flowNoOi') : `${r.ratio}x`}
@@ -181,9 +182,9 @@ const UnusualActivity = ({ symbol }) => {
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-muted-foreground">{(r.iv * 100).toFixed(0)}%</td>
                   <td className="px-3 py-2 text-right font-mono text-foreground">${r.premium?.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-right font-mono text-[#a78bfa]">${(r.estNotional / 1000).toFixed(0)}k</td>
+                  <td className="px-3 py-2 text-right font-mono text-compare">${(r.estNotional / 1000).toFixed(0)}k</td>
                   <td className="px-3 py-2 text-right">
-                    <span className={`font-mono text-[10px] ${r.isITM ? 'text-[#4ade80]' : 'text-muted-foreground'}`}>
+                    <span className={`font-mono text-[10px] ${r.isITM ? 'text-long' : 'text-muted-foreground'}`}>
                       {r.moneynessPct >= 0 ? '+' : ''}{r.moneynessPct}%
                     </span>
                   </td>

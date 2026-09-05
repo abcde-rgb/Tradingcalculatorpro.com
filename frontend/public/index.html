@@ -5,6 +5,49 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#080808" />
         <meta name="color-scheme" content="dark light" />
+        <!-- ══════════════════════════════════════════════════════════════
+             Content-Security-Policy (hueco G-10)
+
+             GitHub Pages no deja definir cabeceras, así que la política viaja
+             en un `meta`. Eso impone dos límites que conviene saber:
+
+               · `frame-ancestors` y `X-Frame-Options` NO funcionan en meta, así
+                 que el anti-clickjacking NO se resuelve aquí. Sigue pendiente y
+                 sólo se arregla con un CDN delante o saliendo de Pages.
+               · El meta no admite `report-only`. No hay ensayo: una política mal
+                 puesta rompe la web en producción y sin aviso. Por eso los
+                 orígenes de abajo NO están adivinados — salen de medir con
+                 Playwright lo que las once pantallas públicas piden de verdad,
+                 más las integraciones que viven tras el muro y no se pueden
+                 medir sin cuenta (TradingView, Google OAuth).
+
+               · `connect-src` necesita el origen `wss://` APARTE del `https://`:
+                 en CSP3 la relajación de esquemas va de `ws` a `http`/`https`,
+                 NUNCA al revés, así que `https://api…` no autoriza
+                 `wss://api…` y el WebSocket de alertas quedaba bloqueado. Lo
+                 destapó `pre-despliegue.js` en el navegador; ningún test
+                 offline podía verlo. `%REACT_APP_BACKEND_WS_URL%` lo deriva
+                 `craco.config.js` del backend, para que no pueda divergir.
+
+             `'unsafe-inline'` en `script-src` es obligado hoy: CRA y el arranque
+             de GTM inyectan scripts en línea. No protege contra XSS reflejado,
+             pero sí acota A QUÉ ORIGEN puede pedir código o datos la página, que
+             es lo que corta la exfiltración a un dominio del atacante.
+             ══════════════════════════════════════════════════════════════ -->
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'self';
+            script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://us-assets.i.posthog.com https://accounts.google.com https://s3.tradingview.com https://s.tradingview.com;
+            style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+            font-src 'self' data: https://fonts.gstatic.com;
+            img-src 'self' data: blob: https:;
+            connect-src 'self' %REACT_APP_BACKEND_URL% %REACT_APP_BACKEND_WS_URL% https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://us.i.posthog.com https://us-assets.i.posthog.com https://accounts.google.com;
+            frame-src 'self' https://s.tradingview.com https://s3.tradingview.com https://www.tradingview.com https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com;
+            worker-src 'self' blob:;
+            object-src 'none';
+            base-uri 'self';
+            form-action 'self';
+            upgrade-insecure-requests
+        " />
         <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
         <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="32x32" />
         <link rel="icon" href="%PUBLIC_URL%/favicon.svg" type="image/svg+xml" />
@@ -368,15 +411,41 @@
         </noscript>
         <!-- End Google Tag Manager (noscript) -->
 
+        <!-- ESTE BLOQUE NO ES UN MENSAJE DE ERROR: es lo único que lee un rastreador
+             que no ejecuta JavaScript, y los de IA (GPTBot, ClaudeBot, PerplexityBot)
+             no lo ejecutan. `#root` llega vacío, así que estas líneas son todo el texto
+             que existe en `/`, `/pricing`, `/about`, `/education`, `/options` y
+             `/options/strategies` para ellos. Tratándolo como un aviso de «activa
+             JavaScript» acabó diciendo «27 patrones de vela» cuando son 30 y mandando
+             al bot primero a /dashboard, que es premium y está en Disallow.
+
+             Las cifras salen de `src/lib/siteFacts.js` y `scripts/engine-check.js` las
+             comprueba también aquí: si el catálogo cambia y este texto no, CI falla. -->
         <noscript>
-            <h1>Trading Calculator PRO — Calculadoras y Simuladores de Trading Profesional</h1>
-            <p>Necesitas habilitar JavaScript para usar nuestra plataforma de trading.</p>
-            <p>Trading Calculator PRO ofrece calculadoras de apalancamiento, tamaño de posición, opciones (Black-Scholes), Monte Carlo, Fibonacci, y un centro educativo con 42+ patrones gráficos y 27 patrones de velas japonesas en 10 idiomas.</p>
+            <h1>Trading Calculator PRO — Calculadoras de trading, opciones y gestión de riesgo</h1>
+            <p>Herramientas para dimensionar posiciones y gestionar riesgo: 17 calculadoras
+               (tamaño de posición, apalancamiento, Monte Carlo, riesgo de ruina,
+               expectativa), opciones con Black-Scholes y griegas sobre 66 estrategias
+               documentadas, 186 activos con ficha, 42 patrones chartistas y 30 patrones
+               de vela. Disponible en 10 idiomas.</p>
+            <p>Contenido educativo. No es asesoramiento financiero: operar conlleva riesgo
+               de pérdida de capital.</p>
             <ul>
-                <li><a href="/dashboard">Dashboard con calculadoras</a></li>
-                <li><a href="/options">Suite de Opciones</a></li>
-                <li><a href="/education">Centro de Aprendizaje</a></li>
+                <li><a href="/education">Academia de trading</a></li>
+                <li><a href="/options">Opciones y griegas</a></li>
+                <li><a href="/options/strategies">Estrategias de opciones</a></li>
                 <li><a href="/pricing">Precios</a></li>
+                <li><a href="/about">Qué es TradingCalculator.Pro</a></li>
+                <li><a href="/sitemap.xml">Mapa completo del sitio</a></li>
+            </ul>
+            <p>Las calculadoras necesitan JavaScript, pero el contenido educativo está
+               además en páginas estáticas que no lo necesitan. Algunas, para empezar:</p>
+            <ul>
+                <li><a href="/tools/calculadora-tamano-posicion/">Calculadora de tamaño de posición</a></li>
+                <li><a href="/tools/simulador-monte-carlo-risk-of-ruin/">Simulador de Monte Carlo y riesgo de ruina</a></li>
+                <li><a href="/tools/calculadora-de-apalancamiento/">Calculadora de apalancamiento</a></li>
+                <li><a href="/learn/analisis-tecnico/">Análisis técnico</a></li>
+                <li><a href="/learn/gestion-del-capital/">Gestión del capital y del riesgo</a></li>
             </ul>
         </noscript>
 

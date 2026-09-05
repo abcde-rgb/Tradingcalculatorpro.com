@@ -122,7 +122,7 @@ export default function CrossMarginCourse() {
                     let cls = 'border-rule text-muted-foreground hover:border-primary/40';
                     if (answered && isCorrect) cls = 'border-long/60 bg-long/10 text-long';
                     else if (answered && oi === chosen) cls = 'border-short/60 bg-short/10 text-short';
-                    else if (answered) cls = 'border-rule/60 text-muted-foreground/60';
+                    else if (answered) cls = 'border-rule/60 text-muted-foreground';
                     return (
                       <button
                         key={opt}

@@ -290,3 +290,29 @@ creado un segundo backend en otra región.
 consola de GCP, así que ningún verificador de aquí puede afirmar que sigue
 conectado. Lo que sí se puede es mirar qué está corriendo, y el comando está en
 `DEPLOY_CHECKLIST.md` §0: la etiqueta de la imagen es el SHA del commit.
+
+## El panel de Ajustes es una consola con rail, no un cajón con buscador (2026-09-03)
+
+Se maquetaron **seis** rediseños completos de `/settings`
+([`maquetas/panel-cliente.html`](./maquetas/panel-cliente.html)) y se eligió la
+**Consola**: rail de secciones a la izquierda, panel de trabajo a la derecha.
+
+La finalista era el **Cajón**: un panel superpuesto con buscador, que resuelve
+mejor el problema de fondo —con dos docenas de ajustes, encontrarlos importa más
+que ordenarlos—. Se descartó por tres motivos, en este orden:
+
+1. **No tiene URL.** `AdminPage` manda a `/settings` al administrador sin 2FA, y
+   soporte necesita poder enlazar «tu ajuste está aquí». Un cajón obliga a
+   mantener además la página, o sea a construir las dos cosas.
+2. **Cerrado no comunica nada.** El rail enseña el punto ámbar del 2FA sin abrir
+   nada; el cajón, cerrado, no dice que haya algo pendiente.
+3. **Coste.** Buscador, índice de ajustes, foco atrapado y teclado, frente a un
+   layout y seis secciones.
+
+Lo que el cajón hacía mejor sigue siendo cierto, así que **el buscador queda
+pendiente como añadido a la consola**, no como diseño alternativo: es un filtro
+sobre una lista de secciones que ahora ya existe.
+
+Las otras cuatro (cabecera con pestañas, hoja de datos, panel de estado, rejilla)
+siguen en la maqueta con sus pros y contras escritos: si alguien vuelve a abrir
+esta discusión, el trabajo de comparar ya está hecho.

@@ -81,17 +81,17 @@ const OrderTypesGuide = () => {
   const { t } = useTranslation();
 
   const advanced = [
-    { id: 'iceberg', icon: Snowflake, color: 'text-cyan-500', ring: 'border-cyan-500/30 bg-cyan-500/5', name: t('otIcebergName'), desc: t('otIcebergDesc') },
-    { id: 'hidden', icon: EyeOff, color: 'text-purple-500', ring: 'border-purple-500/30 bg-purple-500/5', name: t('otHiddenName'), desc: t('otHiddenDesc') },
-    { id: 'oco', icon: Layers, color: 'text-blue-500', ring: 'border-blue-500/30 bg-blue-500/5', name: t('otOcoName'), desc: t('otOcoDesc') },
-    { id: 'fokioc', icon: Waves, color: 'text-amber-500', ring: 'border-amber-500/30 bg-amber-500/5', name: t('otFokIocName'), desc: t('otFokIocDesc') },
+    { id: 'iceberg', icon: Snowflake, color: 'text-info', ring: 'border-cyan-500/30 bg-cyan-500/5', name: t('otIcebergName'), desc: t('otIcebergDesc') },
+    { id: 'hidden', icon: EyeOff, color: 'text-compare', ring: 'border-purple-500/30 bg-purple-500/5', name: t('otHiddenName'), desc: t('otHiddenDesc') },
+    { id: 'oco', icon: Layers, color: 'text-info', ring: 'border-blue-500/30 bg-blue-500/5', name: t('otOcoName'), desc: t('otOcoDesc') },
+    { id: 'fokioc', icon: Waves, color: 'text-warn', ring: 'border-amber-500/30 bg-amber-500/5', name: t('otFokIocName'), desc: t('otFokIocDesc') },
   ];
 
   return (
     <Card className="bg-gradient-to-br from-blue-500/5 to-cyan-500/10 border-blue-500/30" data-testid="order-types-guide">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Layers className="w-5 h-5 text-blue-500" />
+          <Layers className="w-5 h-5 text-info" />
           {t('otGuideTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('otGuideIntro')}</p>
@@ -105,8 +105,8 @@ const OrderTypesGuide = () => {
             <OrderBookSVG t={t} />
           </div>
           <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
-            <p><span className="text-red-500 font-semibold">{t('otAsksLabel')}</span> — {t('otAsksDesc')}</p>
-            <p><span className="text-green-500 font-semibold">{t('otBidsLabel')}</span> — {t('otBidsDesc')}</p>
+            <p><span className="text-short font-semibold">{t('otAsksLabel')}</span> — {t('otAsksDesc')}</p>
+            <p><span className="text-long font-semibold">{t('otBidsLabel')}</span> — {t('otBidsDesc')}</p>
             <p><span className="text-foreground font-semibold">{t('otDepthLabel')}</span> — {t('otDepthDesc')}</p>
             <p className="flex items-start gap-1.5"><span>🧊</span><span>{t('otIcebergHint')}</span></p>
           </div>

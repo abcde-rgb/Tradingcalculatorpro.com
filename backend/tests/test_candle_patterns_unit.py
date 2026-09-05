@@ -25,7 +25,7 @@ def _ids(rows):
 
 
 def test_catalogue_complete_and_well_formed():
-    assert len(PATTERN_META) == 30
+    assert len(PATTERN_META) == 35
     for pid, meta in PATTERN_META.items():
         assert meta["type"] in ("bullish", "bearish", "neutral"), pid
         assert meta["behavior"] in ("reversal", "continuation", "indecision"), pid
@@ -266,6 +266,75 @@ def test_metrics_add_up_to_the_whole_candle():
     for det in d:
         m = det["metrics"]
         assert abs(m["bodyPct"] + m["upperWickPct"] + m["lowerWickPct"] - 100.0) < 0.2
+
+
+# ============================================================================
+#  Cinco patrones nuevos del mismo corpus (Bulkowski/Nison), investigados y
+#  añadidos a petición del dueño tras comparar con TrendSpider. Se dejaron
+#  fuera a propósito On Neck, Meeting Lines/Counterattack y Stick Sandwich/
+#  Homing Pigeon: Bulkowski mide que actúan "casi al azar" o AL REVÉS de su
+#  nombre de libro, y forzarlos en esta tabla (type/behavior alineados con
+#  rate) sería la misma clase de dato inventado que la Regla 1 prohíbe.
+# ============================================================================
+from candle_patterns import (  # noqa: E402
+    _is_bullish_belt_hold, _is_bearish_belt_hold, _is_in_neck,
+    _is_bullish_abandoned_baby, _is_bearish_abandoned_baby,
+)
+
+
+def test_bullish_belt_hold():
+    rows = [_c(100, 101, 99, 100.2), _c(100, 108, 100.0, 107)]
+    ids = [d["pattern_id"] for d in detect_all_patterns(rows) if d["index"] == 1]
+    assert "bullish-belt-hold" in ids
+
+
+def test_bearish_belt_hold():
+    rows = [_c(100, 101, 99, 99.8), _c(108, 108, 100.5, 101)]
+    ids = [d["pattern_id"] for d in detect_all_patterns(rows) if d["index"] == 1]
+    assert "bearish-belt-hold" in ids
+
+
+def test_belt_hold_does_not_fire_on_a_marubozu():
+    """El marubozu es el caso más extremo (sin mecha en NINGÚN lado): tiene su
+    propia entrada y no debe duplicarse como belt-hold."""
+    m = _candle_metrics(_c(100, 100.2, 25, 100.1))
+    assert _is_bullish_belt_hold(m) is False
+
+
+def test_in_neck():
+    rows = [_c(60, 61, 49, 50), _c(47, 50.3, 46, 50.4)]
+    assert _is_in_neck(rows[0], rows[1]) is True
+
+
+def test_in_neck_requires_the_gap_down():
+    """Sin el hueco por debajo del mínimo previo no es 'en el cuello': es
+    cualquier otra cosa que cierre cerca."""
+    prev = _c(60, 61, 49, 50)
+    curr_sin_hueco = _c(49.5, 50.3, 49, 50.4)   # abre POR ENCIMA del mínimo previo
+    assert _is_in_neck(prev, curr_sin_hueco) is False
+
+
+def test_bullish_abandoned_baby_needs_real_gaps_not_just_a_lower_close():
+    """La estrella de la mañana con doji ya exige que el cuerpo del doji quede
+    bajo el cierre de la primera vela; el abandoned baby exige más: que NI UNA
+    MECHA se toque a ningún lado. Sin eso, es una estrella con doji, no un
+    abandoned baby."""
+    c1, c2, c3 = _c(80, 82, 45, 50), _c(42, 44, 40, 42.1), _c(48, 90, 47, 85)
+    assert _is_bullish_abandoned_baby(c1, c2, c3) is True
+    ids = [d["pattern_id"] for d in detect_all_patterns([c1, c2, c3]) if d["index"] == 2]
+    assert "bullish-abandoned-baby" in ids
+    assert "morning-doji-star" not in ids       # el más específico manda
+
+    c2_pegado = _c(44.5, 46, 40, 44.9)          # el doji SÍ toca el mínimo de c1 (45): no hay hueco
+    assert _is_bullish_abandoned_baby(c1, c2_pegado, c3) is False
+
+
+def test_bearish_abandoned_baby():
+    c1, c2, c3 = _c(20, 55, 18, 50), _c(58, 60, 56, 58.1), _c(50, 52, 15, 18)
+    assert _is_bearish_abandoned_baby(c1, c2, c3) is True
+    ids = [d["pattern_id"] for d in detect_all_patterns([c1, c2, c3]) if d["index"] == 2]
+    assert "bearish-abandoned-baby" in ids
+    assert "evening-doji-star" not in ids
 
 
 if __name__ == "__main__":

@@ -14,12 +14,15 @@
  *   node tests/e2e/navegador/muro-cliente.js
  */
 const { chromium } = require('../lib/playwright-core');
-const { rutaChromium, BASE, descartaCookies, descartaModales } = require('../entorno');
+const { rutaChromium, BASE, API, descartaCookies, descartaModales,
+        CUENTA_LIBRE, aseguraCuentaLibre } = require('../entorno');
 
-const CUENTA = {
-  email: process.env.QA_CUENTA_LIBRE || 'sonda1787045926@ejemplo.com',
-  password: process.env.QA_CUENTA_LIBRE_CLAVE || 'Clave-Segura-123',
-};
+// La cuenta libre no se escribe a mano: se GARANTIZA. La versión anterior
+// apuntaba a `sonda1787045926@ejemplo.com`, un correo que había dejado una
+// tanda vieja; en cuanto la base se vació, el login falló y la sonda declaró
+// que «la cuenta sin premium no entra en la aplicación» — acusando al muro de
+// un fallo del banco de pruebas.
+const CUENTA = CUENTA_LIBRE;
 
 const fallos = [];
 const marca = (n, ok, d = '') => {
@@ -28,8 +31,25 @@ const marca = (n, ok, d = '') => {
 };
 
 (async () => {
+  await aseguraCuentaLibre(CUENTA);
+
+  // El token de la cuenta libre, para preguntarle al servidor directamente.
+  const tokenLibre = await fetch(`${API}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: CUENTA.email, password: CUENTA.password }),
+  }).then((r) => r.json()).then((d) => d.token);
+
   const navegador = await chromium.launch({ executablePath: rutaChromium(), args: ['--no-sandbox'] });
   const page = await (await navegador.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+
+  // El idioma se fija: las comprobaciones de abajo buscan prosa, y la interfaz
+  // se traduce al idioma del lector. Sin esto la sonda depende del
+  // `Accept-Language` de la máquina — verde aquí, roja en CI, por nada.
+  await page.addInitScript(() => {
+    localStorage.setItem('trading-i18n-storage',
+      JSON.stringify({ state: { locale: 'es', autoDetected: true }, version: 0 }));
+  });
 
   const respuestas = [];
   page.on('response', (r) => {
@@ -71,10 +91,18 @@ const marca = (n, ok, d = '') => {
   const contenidoPremium = await page.evaluate(() => Boolean(
     document.querySelector('[data-testid="analytics-dashboard"], [data-testid="journal-table"], table tbody tr'),
   ));
-  const avisoMuro = /suscripci[óo]n|desbloquea|hazte premium|requiere premium/i.test(antes);
+  // El muro tiene DOS formas legítimas, y la sonda sólo reconocía una: un
+  // aviso dentro de /performance, o —lo que hace hoy `ProtectedRoute`— echar a
+  // /pricing con «tu suscripción no está activa». Exigir sólo la primera
+  // declaraba roto un muro que funciona, y encima mejor: no llega a montar la
+  // pantalla protegida.
+  const enPrecios = /\/pricing/.test(page.url());
+  const avisoMuro = enPrecios
+    || /suscripci[óo]n|desbloquea|hazte premium|requiere premium/i.test(antes);
   marca('/performance enseña el muro y NO enseña datos a una cuenta gratuita',
         avisoMuro && !contenidoPremium,
-        `aviso de muro: ${avisoMuro ? 'sí' : 'NO'} · contenido premium visible: ${contenidoPremium ? 'SÍ' : 'no'}`);
+        `muro: ${enPrecios ? 'redirige a /pricing' : (avisoMuro ? 'aviso en la página' : 'NO')}`
+        + ` · contenido premium visible: ${contenidoPremium ? 'SÍ' : 'no'}`);
 
   // ── 2 · Mintiendo: se fuerza is_premium en el estado del cliente ─────
   console.log('\n── mintiéndole al cliente ──');
@@ -107,10 +135,34 @@ const marca = (n, ok, d = '') => {
   const ES_DATO_PREMIUM = /\/api\/(performance|journal|trades|plan|portfolio|backtest|monte-carlo)/;
   const api200 = respuestas.filter((r) => r.estado === 200
     && ES_DATO_PREMIUM.test(r.url) && !/\/analytics\/track/.test(r.url));
-  marca('el servidor sigue negando los datos aunque el cliente mienta',
-        api200.length === 0,
+  marca('la pantalla no filtra datos premium tras la mentira',
+        api200.length === 0 && !(await page.evaluate(() => Boolean(
+          document.querySelector('[data-testid="analytics-dashboard"], [data-testid="journal-table"], table tbody tr'),
+        ))),
         api200.length ? api200.slice(0, 3).map((r) => r.url.split('/api')[1]).join(', ')
                       : `${api403} respuestas 403, ninguna 2xx con datos`);
+
+  // ── Y la otra mitad, que faltaba ────────────────────────────────────
+  // «ninguna 2xx con datos» pasaba igual si NO SE PEDÍA NADA — y es lo que
+  // ocurre: al mentir, el guardia de cliente sigue echando a /pricing, la
+  // pantalla protegida no llega a montar y no hay petición que negar. La
+  // afirmación «el servidor sigue negando» quedaba sin comprobar, con el
+  // aspecto de estar comprobada.
+  //
+  // Para demostrarla hay que HACER la petición. Se hace desde Node con el
+  // token real de la cuenta libre: la cookie `secure` no sobrevive a
+  // `http://localhost`, así que pedirlo desde la página mediría «sin sesión»,
+  // que es otra cosa y más débil.
+  const denegados = [];
+  for (const ruta of ['/performance/analytics', '/performance/trades']) {
+    const r = await fetch(`${API}/api${ruta}`, {
+      headers: { Authorization: `Bearer ${tokenLibre}` },
+    });
+    denegados.push(`${ruta} → ${r.status}`);
+  }
+  marca('el servidor NIEGA los datos premium a un token sin premium',
+        denegados.every((d) => /→ (401|402|403)$/.test(d)),
+        denegados.join(' · '));
 
   const cambio = antes.replace(/\s+/g, '') !== despues.replace(/\s+/g, '');
   console.log(`    (la pantalla ${cambio ? 'SÍ' : 'no'} cambia de aspecto al mentir — cosmético)`);

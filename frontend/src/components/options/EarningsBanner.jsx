@@ -21,11 +21,11 @@ const EarningsBanner = ({ nextEarnings, daysToExpiry }) => {
 
   return (
     <div
-      className="mx-3 mt-2 bg-[#f59e0b]/10 border border-[#f59e0b]/40 rounded-lg px-3 py-1.5 flex items-center gap-2 text-[11px]"
+      className="mx-3 mt-2 bg-warn/10 border border-warn/40 rounded-lg px-3 py-1.5 flex items-center gap-2 text-[11px]"
       data-testid="earnings-warning"
     >
       <span className="text-base leading-none">📊</span>
-      <span className="text-[#fbbf24] font-semibold">Earnings {nextEarnings}</span>
+      <span className="text-warn font-semibold">Earnings {nextEarnings}</span>
       <span className="text-muted-foreground">
         ({whenLabel}) — {t('earningsWithinExpiry_1f0e13').replace('{n}', daysToExpiry)}
       </span>

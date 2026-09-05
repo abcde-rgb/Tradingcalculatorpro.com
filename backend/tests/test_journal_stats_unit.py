@@ -22,6 +22,7 @@ os.environ.setdefault("ENVIRONMENT", "development")
 os.environ.setdefault("JWT_SECRET", "test-only-secret")
 
 import server  # noqa: E402
+from ayuda_rutas import caminar_rutas  # noqa: E402
 from performance import sort_trades_chronologically  # noqa: E402
 
 agg = server._aggregate_journal_trades
@@ -153,9 +154,12 @@ class TestLimitsAreCapped:
     # colección con otro esquema, el BUG-039—, así que sólo queda la viva.
     @pytest.mark.parametrize("path", ["/api/performance/trades"])
     def test_limit_has_a_declared_ceiling(self, path):
+        # Igual que en `test_route_uniqueness_unit`: desde FastAPI 0.141 los
+        # routers incluidos no se aplanan en `app.routes`, así que buscar ahí
+        # deja de encontrar nada y el `next()` revienta con StopIteration.
         route = next(
-            r for r in server.app.routes
-            if getattr(r, "path", None) == path and "GET" in getattr(r, "methods", set())
+            r for camino, r in caminar_rutas(server.app)
+            if camino == path and "GET" in (getattr(r, "methods", None) or set())
         )
         limit = next(p for p in route.dependant.query_params if p.name == "limit")
         # Pydantic v2 guarda las restricciones como annotated-types en
@@ -164,3 +168,59 @@ class TestLimitsAreCapped:
         assert "Le" in bounds, f"{path} sirve `limit` sin techo"
         assert bounds["Le"].le == server.TRADES_LIMIT_MAX
         assert bounds["Ge"].ge == 1
+
+
+# ---------------------------------------------------------------------------
+# G-22 · Las dos rutas de estadísticas dicen lo MISMO
+# ---------------------------------------------------------------------------
+
+class TestExpectancyEsLaMismaEnLasDosRutas:
+    """`/journal/stats` y `/performance/analytics` leen la misma colección.
+
+    Y devolvían números distintos. `/journal/stats` calcula la esperanza como
+    P&L medio por operación —y lleva escrito por qué—; `/performance/analytics`
+    usaba `winRate·avgWin + (1 − winRate)·avgLoss`, identidad que **sólo se
+    cumple si no hay breakevens**: con un 0 en la muestra, ese `(1 − winRate)`
+    se lleva la operación neutra y la cobra a precio de pérdida media.
+
+    Con +100, −50 y 0 la fórmula daba 0,00 contra los 16,67 reales. El usuario
+    veía dos esperanzas distintas según por qué pantalla entrara.
+    """
+
+    @staticmethod
+    def _analytics(pnls):
+        from performance import compute_analytics
+        trades = [
+            {"pnl": p, "status": "closed", "exit_date": f"2026-01-{i + 1:02d}",
+             "entry_price": 100, "exit_price": 100 + p, "quantity": 1}
+            for i, p in enumerate(pnls)
+        ]
+        return compute_analytics(trades)
+
+    @staticmethod
+    def _journal(pnls):
+        trades = [{"pnl": p, "exit_date": f"2026-01-{i + 1:02d}", "status": "closed"}
+                  for i, p in enumerate(pnls)]
+        return stats_of(agg(trades), len(trades))
+
+    def test_con_un_breakeven_las_dos_coinciden(self):
+        pnls = [100.0, -50.0, 0.0]
+        a = self._analytics(pnls)["expectancy"]
+        j = self._journal(pnls)["expectancy"]
+        assert a == pytest.approx(j, abs=0.01), (
+            f"/performance/analytics dice {a} y /journal/stats {j} sobre los mismos datos"
+        )
+        assert a == pytest.approx(16.67, abs=0.01), "la esperanza es el P&L medio"
+
+    def test_sin_breakevens_el_resultado_no_cambia(self):
+        """El arreglo no puede mover el número en el caso que ya estaba bien."""
+        pnls = [100.0, -50.0, 200.0, -30.0]
+        a = self._analytics(pnls)["expectancy"]
+        assert a == pytest.approx(sum(pnls) / len(pnls), abs=0.01)
+        assert a == pytest.approx(self._journal(pnls)["expectancy"], abs=0.01)
+
+    def test_varios_breakevens_seguidos(self):
+        pnls = [90.0, 0.0, 0.0, 0.0, -30.0]
+        a = self._analytics(pnls)["expectancy"]
+        assert a == pytest.approx(12.0, abs=0.01)
+        assert a == pytest.approx(self._journal(pnls)["expectancy"], abs=0.01)

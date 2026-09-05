@@ -125,7 +125,7 @@ const WyckoffSchematic = () => {
     <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-orange-500/10" data-testid="wyckoff-schematic">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
-          <Layers className="w-5 h-5 text-amber-500" />
+          <Layers className="w-5 h-5 text-warn" />
           {t('wyckoffSchematicTitle')}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t('wyckoffSchematicIntro')}</p>
@@ -136,7 +136,7 @@ const WyckoffSchematic = () => {
             <Schematic data={ACC} color="#22c55e" title={t('wyckoffAccSchematic')} />
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
               {accLegend.map(([abbr, name]) => (
-                <span key={abbr}><span className="font-mono font-semibold text-green-600">{abbr}</span> {name}</span>
+                <span key={abbr}><span className="font-mono font-semibold text-long">{abbr}</span> {name}</span>
               ))}
             </div>
           </div>
@@ -144,7 +144,7 @@ const WyckoffSchematic = () => {
             <Schematic data={DIST} color="#ef4444" title={t('wyckoffDistSchematic')} />
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
               {distLegend.map(([abbr, name]) => (
-                <span key={abbr}><span className="font-mono font-semibold text-red-600">{abbr}</span> {name}</span>
+                <span key={abbr}><span className="font-mono font-semibold text-short">{abbr}</span> {name}</span>
               ))}
             </div>
           </div>
@@ -154,14 +154,14 @@ const WyckoffSchematic = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-4">
             <div className="flex items-center gap-2 mb-1.5">
-              <Repeat className="w-4 h-4 text-green-500" />
+              <Repeat className="w-4 h-4 text-long" />
               <span className="font-semibold text-sm">{t('wyckoffReaccName')}</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{t('wyckoffReaccDesc')}</p>
           </div>
           <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
             <div className="flex items-center gap-2 mb-1.5">
-              <Repeat className="w-4 h-4 text-red-500" />
+              <Repeat className="w-4 h-4 text-short" />
               <span className="font-semibold text-sm">{t('wyckoffRedistName')}</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">{t('wyckoffRedistDesc')}</p>

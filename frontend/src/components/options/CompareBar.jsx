@@ -32,12 +32,12 @@ const CompareCell = ({ label, a, b, winner, headers }) => {
         {label}
       </div>
       <div className="flex flex-col gap-0.5">
-        <div className={`flex items-center justify-between gap-1 ${winner === 'A' ? 'text-[#4ade80]' : 'text-muted-foreground'}`}>
+        <div className={`flex items-center justify-between gap-1 ${winner === 'A' ? 'text-long' : 'text-muted-foreground'}`}>
           <span className="text-[9px] font-bold">A</span>
           <span className="font-mono text-[10px] truncate">{a}</span>
           {winner === 'A' && <Trophy className="w-2.5 h-2.5 flex-shrink-0" />}
         </div>
-        <div className={`flex items-center justify-between gap-1 ${winner === 'B' ? 'text-[#c084fc]' : 'text-muted-foreground'}`}>
+        <div className={`flex items-center justify-between gap-1 ${winner === 'B' ? 'text-compare' : 'text-muted-foreground'}`}>
           <span className="text-[9px] font-bold">B</span>
           <span className="font-mono text-[10px] truncate">{b}</span>
           {winner === 'B' && <Trophy className="w-2.5 h-2.5 flex-shrink-0" />}
@@ -60,18 +60,18 @@ const CompareBar = ({
 
   return (
     <div
-      className="bg-gradient-to-r from-[#a855f7]/5 to-transparent border border-[#a855f7]/30 rounded-xl p-3"
+      className="bg-gradient-to-r from-compare/5 to-transparent border border-compare/30 rounded-xl p-3"
       data-testid="compare-panel"
     >
       <div className="flex items-center gap-3 mb-2">
-        <GitCompare className="w-4 h-4 text-[#c084fc]" />
-        <span className="text-xs font-bold text-[#c084fc] uppercase tracking-wider">
+        <GitCompare className="w-4 h-4 text-compare" />
+        <span className="text-xs font-bold text-compare uppercase tracking-wider">
           {t('comparing_1f0e14')}
         </span>
         <span className="text-[11px] text-muted-foreground">
-          <span className="text-[#4ade80] font-bold">A:</span> {t(selectedStrategy.name)}
+          <span className="text-long font-bold">A:</span> {t(selectedStrategy.name)}
           <span className="mx-2 text-muted-foreground">vs</span>
-          <span className="text-[#c084fc] font-bold">B:</span>
+          <span className="text-compare font-bold">B:</span>
         </span>
         <Select
           value={selectedStrategyB.id}
@@ -82,7 +82,7 @@ const CompareBar = ({
         >
           <SelectTrigger
             data-testid="strategy-b-select"
-            className="w-auto min-w-[9rem] h-7 bg-muted border-[#a855f7]/40 rounded-md px-2 text-xs text-foreground shadow-none focus:border-[#a855f7]"
+            className="w-auto min-w-[9rem] h-7 bg-muted border-compare/40 rounded-md px-2 text-xs text-foreground shadow-none focus:border-compare"
           >
             <SelectValue />
           </SelectTrigger>
@@ -97,7 +97,7 @@ const CompareBar = ({
                     key={s.id}
                     value={s.id}
                     disabled={s.id === selectedStrategy.id}
-                    className="text-xs focus:bg-[#a855f7]/15 focus:text-[#c084fc] data-[state=checked]:text-[#c084fc]"
+                    className="text-xs focus:bg-compare/15 focus:text-compare data-[state=checked]:text-compare"
                   >
                     {t(s.name)}
                   </SelectItem>

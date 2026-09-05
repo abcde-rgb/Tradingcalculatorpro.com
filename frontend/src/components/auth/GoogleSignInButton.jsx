@@ -33,7 +33,7 @@ export default function GoogleSignInButton({ country, language } = {}) {
   if (!GOOGLE_CLIENT_ID) {
     if (process.env.NODE_ENV !== 'production') {
       return (
-        <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-400 text-center">
+        <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-xs text-caution text-center">
           ⚠️ Google OAuth no configurado.<br />
           Añade <code className="font-mono bg-black/30 px-1 rounded">REACT_APP_GOOGLE_CLIENT_ID</code> en <code className="font-mono bg-black/30 px-1 rounded">frontend/.env</code>
         </div>

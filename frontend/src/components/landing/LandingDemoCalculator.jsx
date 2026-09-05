@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Regleta } from '@/components/ui/regleta';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,8 +18,8 @@ const num = (v) => {
  * Pure client-side math — no backend, no store, no auth — so prospects can use
  * it without registering. CTA nudges them to create a free account.
  */
-export default function LandingDemoCalculator() {
-  const { t } = useTranslation();
+export default function LandingDemoCalculator({ embedded = false }) {
+  const { t, locale } = useTranslation();
   const [balance, setBalance] = useState('1000');
   const [risk, setRisk] = useState('1');
   const [entry, setEntry] = useState('100');
@@ -36,9 +37,14 @@ export default function LandingDemoCalculator() {
   const fmt = (n, d = 2) =>
     Number.isFinite(n) ? n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
 
+  const Marco = embedded
+    ? ({ children }) => <div data-testid="landing-demo-wrap">{children}</div>
+    : ({ children }) => (
+      <section className="py-12 px-4"><div className="max-w-3xl mx-auto">{children}</div></section>
+    );
+
   return (
-    <section className="py-12 px-4">
-      <div className="max-w-3xl mx-auto">
+    <Marco>
         <Card
           className="border-primary/30 bg-card"
           data-testid="landing-demo-calc"
@@ -47,7 +53,7 @@ export default function LandingDemoCalculator() {
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 rounded-full px-3 py-1 mb-3">
               <Gauge className="w-3.5 h-3.5" /> {t('dcalcBadge')}
             </div>
-            <h2 className="font-unbounded text-2xl md:text-3xl font-bold mb-1 flex items-center gap-2">
+            <h2 className={`${embedded ? 'text-xl' : 'font-unbounded text-2xl md:text-3xl'} font-bold mb-1 flex items-center gap-2`}>
               <Calculator className="w-6 h-6 text-primary" /> {t('dcalcTitle')}
             </h2>
             <p className="text-sm text-muted-foreground">{t('dcalcSubtitle')}</p>
@@ -69,6 +75,25 @@ export default function LandingDemoCalculator() {
               <p className="text-sm text-muted-foreground mt-5">{t('dcalcInvalid')}</p>
             )}
 
+            {/* La regleta mide el trade que se acaba de dimensionar. Va después
+                de las cifras porque las explica: la separación entrada-stop es
+                1R, y de ahí salen los múltiplos marcados. */}
+            {r.valid && (
+              <div className="mt-6 pt-5 border-t border-rule">
+                <Regleta
+                  entry={entry}
+                  stop={stop}
+                  locale={locale}
+                  labels={{
+                    entry: t('regEntry'),
+                    stop: t('regStop'),
+                    caption: t('regCaption'),
+                    aria: t('regAria'),
+                  }}
+                />
+              </div>
+            )}
+
             <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
               <Link to="/register" className="w-full sm:w-auto shrink-0">
                 <Button size="lg" className="w-full gap-2" data-testid="demo-cta">
@@ -79,8 +104,7 @@ export default function LandingDemoCalculator() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </section>
+    </Marco>
   );
 }
 

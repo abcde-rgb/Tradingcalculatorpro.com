@@ -5796,3 +5796,633 @@ el mayor riesgo estructural), las 1589 páginas anzuelo (§6) y G-14.
   `check-edu-index` y `check-visuales-idioma`.
 
 ---
+
+### 2026-08-29 (2) — Entra el Master Plan de la Academia, reverificado
+El propietario aporta `TRADINGCALCULATORPRO_ACADEMY_MASTERPLAN_UNIFICADO.md` (698 líneas,
+consolidado de 16 análisis) como dirección de producto de la Academia. Se archiva en
+`docs/ACADEMIA_MASTER_PLAN.md`.
+
+- ✅ **Reverificado antes de archivar**, porque el propio documento lo exige en su regla
+  de oro y porque la convención del repo manda anotar la contradicción cuando un
+  documento discrepa del código. Resultado en su nueva **§0.bis**.
+- ✅ **Acierta** en: MAE/MFE implementado (`performance_metrics.py:176`),
+  `rule_compliance_rate` y `detect_behavioral_biases` (`performance.py:1032`, `:836`),
+  35 módulos backend, 27.019 líneas de Python, 199 rutas, 29 rutas de frontend,
+  59 ficheros × 1.015 funciones de test, y las 33 rutas sin consumidor del MAPA.
+- ⚠️ **Corregido en §0.bis**: dice 68 módulos de academia (son **91** en `eduIndex.js`),
+  «8-10 idiomas» (son **10**, con paridad forzada en CI), 7.290 claves i18n (son
+  **7.355**), 14 calculadoras (hay **17**: omite `Breakeven`, `CrossMarginSimulator` y
+  `LosingStreak`), y hereda la lista vieja de G-30 con 4 componentes muertos propios
+  (quedan **2**: `GreeksPanel` y `PriceTicker`; `TradingBasicsGuide` y `WhyItMatters` ya
+  se importan en `EducationPage.jsx:103` y `:104`). `auditar.py --estricto` lo confirma
+  por su cuenta: «2 componentes que nadie importa».
+- ✅ **G-14 está cerrado a medias, y el documento tenía razón en señalarlo.** El plan de
+  trading **sí tiene pantalla** (`TradingPlanPage`, `App.js:64` y `:171`, ruta `/plan`) y
+  el backtest también (`BacktestingPage`). Siguen huérfanos `portfolio_risk.py` y
+  `american_options.py`: cero menciones en todo `frontend/src`.
+- ✅ **Corregida una ficha falsa en `docs/README.md`**: decía de
+  `PLAN_DE_TRADING_spec.md` «Backend terminado; sigue sin una sola pantalla (G-14)».
+  Es falso desde que se enrutó `TradingPlanPage`. Es el mismo patrón del hueco G-29
+  (documentos que dan por abierto lo ya cerrado), esta vez en el índice de la doc.
+- ⬜ **No tocado**: `ESTADO_PROYECTO.md` §G-14 y su línea 62 siguen diciendo que los
+  cuatro módulos están sin pantalla, y §62 habla de 29 rutas mientras el MAPA dice 33 y
+  `check-rutas-muertas.py` dice 27 (miden cosas distintas, pero conviene que lo diga).
+  Es una revisión del semáforo, más grande que esta sesión, y no se improvisa.
+- ✅ Verificado: `check-doc-links` (105 documentos) · `gen-mapa --check` ·
+  `gen-instruments-js --check` · `gen-asistente --check` · `check-rutas-muertas` ·
+  `check-precios` · `auditar.py --breve` (lo que corre CI, exit 0). En el bloque E,
+  «las afirmaciones comprobables cuadran»: el documento nuevo no descuadra ninguna.
+  ⚠️ `auditar.py --estricto` sale **1**, pero sale 1 igual sobre `origin/main` limpio:
+  son los dos bloqueantes preexistentes (rastros de tecnología retirada y rutas sin
+  consumidor), no algo que traiga este cambio. CI usa `--breve`, que no bloquea.
+
+### 2026-08-31 — SEO para buscadores de IA: robots por grupos, llms.txt y la contradicción del sitemap
+Petición: revisar todo el SEO e indexación con el objetivo de ser la referencia
+que citan las IAs.
+
+- 🟠 **Hallazgo mayor, mitigado a medias: las 8 rutas de `MAIN` no están
+  prerenderizadas.** Los rastreadores de IA no ejecutan JavaScript y `#root`
+  llega vacío, así que `/`, `/pricing`, `/about`, `/education`, `/options` y
+  `/options/strategies` sólo enseñan lo que haya escrito a mano en el shell.
+  Medido sobre `build/index.html`: `#root` tiene **0 caracteres**, y el
+  `<body>` entero tenía **449** — un `<noscript>` que nadie contaba como
+  contenido. Las 1.640 páginas de `/learn/`, `/tools/`, `/markets/` y
+  `/estrategias/` sí están prerenderizadas, con texto real, JSON-LD y los 11
+  `hreflang`; el shell sólo lleva `x-default` (los otros diez los inyecta
+  `useSEO` en tiempo de ejecución, que es justo lo que el bot no ve).
+  ⚠️ **Corrección de una cifra que escribí mal antes en este mismo registro:**
+  las rutas de `MAIN` aparecen en el sitemap **8 veces, sólo en español**, no
+  80. No hay variante por idioma de ninguna de ellas — a diferencia de todo lo
+  generado, que sí tiene las diez. Añadirlas sin prerenderizar sería peor:
+  serían 72 URLs sirviendo el mismo shell.
+  Consecuencia que sigue en pie: una IA puede citar un módulo suelto de
+  `/learn/`, pero tiene muy poco de donde leer qué es TradingCalculator.Pro.
+  Prerenderizar esas 8 rutas es la palanca pendiente más grande.
+- ✅ **Reescrito el `<noscript>` del shell, que es esa portada.** Estaba escrito
+  como un aviso de «activa JavaScript» y no como contenido, con dos
+  consecuencias que sí eran bugs: decía **«27 patrones de velas japonesas»**
+  cuando el catálogo tiene **30** —la cifra exacta que `engine-check` ya
+  perseguía en `educationCenterDesc` y `seoEducationDesc`, en el único sitio
+  donde el candado no miraba— y su **primer enlace era `/dashboard`**, que es
+  premium y está en `Disallow`. Ahora lleva las cifras de `siteFacts.js`, el
+  aviso de riesgo, y enlaces a páginas estáticas reales para que el bot tenga
+  por dónde entrar al resto del sitio.
+- ✅ **`engine-check` gana 7 comprobaciones sobre ese bloque** (524 → 531): que
+  existe y tiene contenido, que sus cinco cifras son las de `siteFacts.js`, y
+  que no enlaza ninguna ruta que `robots.txt` prohíba —leyendo las rutas del
+  propio `robots.txt`, para que añadir un `Disallow` mañana quede cubierto sin
+  tocar nada—. Los tres sabotajes están registrados en `probar-verificadores.sh`
+  y medidos uno a uno: con sabotaje `exit=1`, sin él `exit=0`.
+- ✅ **Corregida la contradicción sitemap ↔ robots.** `/performance` es premium y
+  `robots.txt` la bloquea, pero el sitemap la anunciaba. El arreglo YA estaba
+  escrito, con su comentario, en `gen-sitemap.js`… que el build no ejecuta:
+  `postbuild` corre **sólo** `gen-seo-pages.js`, y ahí seguía en `MAIN`. Sitemap
+  1.649 → 1.648 URLs.
+- ✅ **Verificador nuevo en `check-seo.js`**: ninguna URL del sitemap puede estar
+  en `Disallow` del grupo `*`. Saboteado y comprobado (exit 1 con sabotaje, 0
+  sin él) y registrado en `probar-verificadores.sh`.
+- ✅ **Retirado `frontend/public/sitemap.xml`, que era una escopeta cargada.** Un
+  segundo sitemap de **8 URLs** con `lastmod` congelado en 2026-08-11, escrito
+  por `gen-sitemap.js` —que ya no ejecuta nadie—. CRA copia `public/` dentro de
+  `build/` y el `postbuild` lo pisa con el bueno, así que en el flujo normal no
+  se notaba; pero **cualquier build que no llegue al postbuild publica ése**, y
+  Search Console vería el sitio encoger de 1.648 URLs a 8. `check-seo` falla
+  ahora si reaparece. Queda pendiente decidir qué hacer con `gen-sitemap.js`:
+  no lo llama ni CI ni `package.json`, y su única salida era ese fichero.
+- 🐛 **Y esa escopeta ya se había disparado, dentro del propio
+  `probar-verificadores.sh`.** Tres sabotajes recompilan con `npx craco build`
+  a secas —el paso de webpack **sin** `postbuild`—, que vacía `build/` y se
+  lleva por delante las 1.640 páginas generadas. El bloque de `check-seo` viene
+  después, no encontraba ninguna, y **sus diez casos salían como «no pasa ni
+  ANTES de sabotear»**: diez sabotajes degradados a avisos que se leen como
+  ruido. Los tres recompilan ahora también las páginas. Nota a favor de
+  `check-seo`: se negó a pasar en verde sobre cero páginas, que es justo lo que
+  hizo visible el problema.
+- ✅ **`robots.txt` reescrito por grupos.** Corrige un fallo real de semántica: un
+  bot que casa con su propio grupo **ignora el grupo `*` entero**, `Disallow`
+  incluidos. `AhrefsBot`, `SemrushBot` y `MJ12bot` tenían sólo `Crawl-delay`, así
+  que tenían vía libre a `/admin`, `/dashboard`, `/settings` y `/api`. Ahora cada
+  grupo repite la lista de prohibidas.
+- ✅ **Política explícita de IA**, separada en dos bloques por si se quiere
+  cambiar sólo uno: los que CITAN (OAI-SearchBot, ChatGPT-User, PerplexityBot,
+  ClaudeBot, Google-Extended, Applebot-Extended…) y los de ENTRENAMIENTO (GPTBot,
+  CCBot, meta-externalagent). Ambos permitidos a propósito. `Bytespider` fuera.
+- ✅ **`frontend/public/llms.txt` nuevo**: mapa del sitio para agentes, con las
+  cifras de `SITE_FACTS` (que `engine-check` contrasta con el código), qué se
+  puede citar, y las tres advertencias de honestidad del proyecto — datos
+  sintéticos marcados, lo indefinido no es cero, y que no es asesoramiento.
+- ⬜ **No tocado, y es decisión de producto**: `/education` sigue en el sitemap y
+  es `premiumOnly`. No es la contradicción dura de `/performance` (robots sí la
+  permite), pero un rastreador que la siga se encuentra un muro.
+- ✅ Verificado: `i18n-check` · `engine-check` · `check-seo` ·
+  `check-enlaces-academia` · `gen-mapa --check` · `check-doc-links` ·
+  `gen-asistente --check` · `check-rutas-muertas` · `eslint` 0 errores · build.
+## 2026-08-28 — Lo que el banco de pruebas no miraba: un tema entero, un esquema y un `null`
+
+Sesión larga de «arréglalo todo, incluido lo que encuentres». Lo que se arregló
+importa menos que **dónde estaba escondido**: cinco de los seis fallos vivían en
+un punto ciego de las propias sondas, no en un rincón oscuro del producto.
+
+### Lo que se rompía de verdad
+
+| Qué | Dónde estaba escondido |
+|---|---|
+| El CSP bloqueaba `wss://`: las alertas en vivo, mudas en producción | `csp.js` recorría `/dashboard` **sin sesión**, y sin token el hook no abre nada |
+| Las cifras de P&L a 2,09:1 sobre papel — ilegibles | `accesibilidad.js` medía **un solo tema**: el oscuro, que es el de arranque |
+| Tres botones sin nombre accesible y uno inalcanzable con teclado | La sonda medía **cuatro páginas**; Ajustes no era una de ellas |
+| Un botón sin nombre **sólo en móvil** (`hidden sm:inline`) | Existe únicamente por debajo del punto de ruptura |
+| «nullR» en la R media | La regla de honestidad se aplicó en el productor, no en el consumidor |
+| El JWT del WebSocket, escrito en los registros de Cloud Run | Nadie miraba la URL, sólo si conectaba |
+
+Detalle y causa raíz de cada uno en [`DIARIO_BUGS.md`](./DIARIO_BUGS.md),
+BUG-025 a BUG-029.
+
+### La causa común de los colores
+
+`#22c55e` resultó ser **exactamente** `--long` del tema oscuro, y `#ef4444`
+exactamente `--short`. Los 1.499 colores escritos a mano no eran una paleta
+paralela: eran los tokens del sistema congelados en el valor de un tema. Por eso
+sustituirlos fue seguro —en oscuro el cambio es imperceptible, 7,61 → 7,54— y
+por eso arreglaba el claro de golpe: 2,19 → 4,65.
+
+### Lo que se aprendió sobre las sondas
+
+- **Interceptar la API envejece en silencio.** La ficción de `brokers.js` se
+  quedó sin los campos con los que la página compone la advertencia ESMA, y la
+  sonda acusó al producto de saltarse una obligación legal que cumple. Ahora
+  compara su conjunto de claves con el de la API real — y al estrenar esa
+  guarda destapó tres campos más desfasados.
+- **Medir prosa sin fijar el idioma es medir el `Accept-Language` de la
+  máquina.** Cuatro sondas comparaban castellano contra pantallas en inglés.
+- **«Ninguna respuesta 2xx con datos» pasa igual si no se pidió nada.**
+  `muro-cliente.js` afirmaba que el servidor niega los datos sin llegar a
+  pedirlos: al mentir, el guardia de cliente echa a `/pricing` y la pantalla
+  protegida no monta. Ahora se hace la petición y se exige el 403.
+- **`\bnull\b` no casa con «nullR».** La comprobación general daba verde
+  mientras la específica gritaba, sobre el mismo fallo.
+- **`npm install --no-save` sin `package.json` poda lo que no nombres.** La
+  guía de accesibilidad mandaba instalar axe-core aparte, y eso dejaba
+  `lib/playwright-core` como enlace roto. Ahora `arriba.sh` instala las dos
+  juntas.
+
+### Lo que quedó fuera a propósito
+
+- Los colores de **fondo** de paleta (`bg-red-500/15` y compañía, 543 clases) no
+  se tocaron: no son un problema de contraste de texto y cambiarlos sería un
+  rediseño, no un arreglo.
+- Los hexadecimales dentro de comillas (colores de gráficas de Recharts, 
+  ~200) tampoco: no son clases de Tailwind y axe no los evalúa como texto.
+
+### Verificado
+
+`accesibilidad.js` 2 temas × 8 páginas, escritorio y móvil: **0 incumplimientos
+graves** (eran 53 al ampliar la cobertura, y 77 sólo en `/performance` con el
+tema claro). 1.091 tests de backend + 9 nuevos del WebSocket. 433/433 del motor.
+`i18n-check` con 6.972 claves y 0 huecos. Catálogo en paridad, mapa regenerado,
+enlaces de doc resueltos, 29 rutas muertas todas decididas.
+
+### 2026-08-31 (cont. 4) — BUG-074: el cifrado de secretos fallaba en silencio
+
+Auditoría del panel de admin a petición del dueño ("qué le falta, buen diseño,
+ajustes y todo lo demás"). Dos hallazgos grandes de diseño/IA quedaron sólo
+reportados (32 secciones en scroll continuo sin navegación, 57 `fetch()` que
+disparan al montar la página, 70 colores Tailwind crudos fuera del sistema de
+tokens) — el dueño pidió arreglar primero el de seguridad.
+
+- 🔴 **Verificado contra `main` de hoy, no heredado de las ramas ya revisadas**:
+  `_encrypt_setting()` cae a texto plano sin loguear nada si falta
+  `SECRET_ENCRYPTION_KEY`, y esa variable no está en ningún workflow ni en
+  `DEPLOY_CHECKLIST.md` — sólo en `.env.example`, vacía. El panel no daba
+  ninguna señal de si una clave de Stripe/SendGrid/PayPal/Google quedaba
+  cifrada o no.
+- ✅ El otro half del hallazgo (`POST /admin/settings` de `admin_routes.py`
+  saltándose el cifrado y comparando contra la máscara `"***"`) **ya no
+  aplica**: comprobado que el `PUT /admin/settings` de `server.py` —el que de
+  verdad llama `IntegrationsEditor`— ya cifraba bien y rechazaba un valor con
+  el carácter de máscara dentro.
+- ✅ **Fix**: `cifrado_activo()` junto a `_get_fernet()`, aviso único al
+  arrancar si la clave falta, `GET /admin/settings` expone `encryption_active`,
+  panel pinta aviso ámbar (`text-warn`/`bg-warn`, tokens del sistema, no un
+  color suelto) sin bloquear el guardado. `DEPLOY_CHECKLIST.md` §C ya lista
+  la variable. `docs/DIARIO_BUGS.md` → BUG-074.
+- ✅ **7 tests nuevos** (`test_secret_encryption_unit.py`): activo/inactivo
+  según la variable, clave con forma inválida no cuenta como activa,
+  ida-y-vuelta del cifrado, idempotencia de `_decrypt_setting` sobre un valor
+  ya en claro, y que `admin_get_settings` de verdad expone el campo.
+- ✅ Verificado: pytest 1179 passed / 1 failed (el mismo de siempre, TLS sin
+  Postgres local en este sandbox) / 114 skipped · py_compile · build exit 0 ·
+  eslint 0 errores · i18n-check 7.366×10 (sin cambios — el aviso va en
+  castellano fijo, como el resto del panel admin, que no es superficie
+  multi-idioma) · engine-check · gen-mapa --check · check-doc-links.
+- ⚠️ **Pendiente y es operativo, no de código**: generar la clave
+  (`Fernet.generate_key()`) y ponerla en Cloud Run. Sin eso el aviso ámbar
+  sigue apareciendo, que es la señal correcta de que sigue sin cifrar.
+
+### 2026-08-31 (cont. 5) — Panel admin: navegación por secciones + limpieza de colores
+
+Los otros dos hallazgos de la misma auditoría, que en la sesión anterior quedaron
+"sólo reportados": las 32 tarjetas del panel en scroll vertical continuo sin
+navegación, y ~70 clases Tailwind con color de paleta crudo (`bg-red-500`,
+`text-blue-500`…) fuera de los tokens semánticos del sistema de diseño. El dueño
+confirmó las dos a la vez: "el cambio de diseño con más impacto" primero, los
+tokens "mecánico, se puede hacer a la vez".
+
+- ✅ **Navegación por secciones**: `AdminPage.jsx` agrupa las 32 tarjetas en 7
+  secciones (`Resumen`, `Ingresos y pagos`, `Marketing y uso`, `Afiliados`,
+  `Sistema`, `Configuración`, `Legal y RGPD`) detrás de un nuevo componente
+  `AdminNav` — pestañas horizontales en móvil, columna fija con borde activo en
+  escritorio. Sólo la sección activa se monta, así que sus tarjetas (cada una con
+  su propio `useAuthedLoad`) sólo piden datos **al abrirse**, no las 57 peticiones
+  en paralelo de antes con cada carga de `/admin`. El resumen (filtros + tabla de
+  usuarios + audit log) y las métricas de cabecera se quedan siempre visibles, sin
+  sección, porque son el primer vistazo que se quiere ver siempre.
+- ✅ **Estado en la URL**: `activeSection` vive en `?section=` vía
+  `useSearchParams` (no en un `useState` suelto) — un enlace a
+  `/admin?section=sistema` abre directamente esa sección, compartible y
+  recargable.
+- ✅ **Colores**: sustituidas todas las clases de paleta cruda por los tokens
+  semánticos ya registrados en `tailwind.config.js`
+  (`long`/`short`/`warn`/`caution`/`info`/`compare`) — `green→long`,
+  `red→short`, `blue→info`, `amber`/`yellow`→`warn`/`caution` según el uso,
+  `purple`/`indigo`→`compare`. Verificado con grep de las clases de paleta
+  Tailwind sobre el fichero final: **cero restantes**. Se dejó fuera a
+  propósito `PLAN_COLORS` (hexadecimales de las cinco insignias de plan): son
+  categóricos, no de estado, y forzarlos a los seis tokens habría perdido
+  distinción entre planes en vez de ganarla.
+- ✅ **Verificado en navegador de verdad** (no sólo build): stack de QA
+  (`tests/e2e/stack/arriba.sh`), cuenta admin sembrada con 2FA real (secreto
+  TOTP generado y verificado con `pyotp`, porque el guard de `ProtectedRoute`
+  exige `two_factor_enabled === true` para entrar a `/admin` — el dato de
+  prueba se revirtió al terminar). Comprobado en escritorio y móvil: las 7
+  pestañas cambian de contenido, cada sección lee sus datos al abrirse, el
+  aviso ámbar de cifrado (BUG-074) se pinta en `Configuración`, sin
+  desbordamiento horizontal y sin errores de consola.
+- ✅ Resto de la batería: `eslint` 0 errores (mismos avisos preexistentes) ·
+  `npm run build` + postbuild SEO sin cambios · `i18n-check` 7.366×10 sin huecos
+  (el panel admin no es superficie multi-idioma) · `engine-check` 535/535 ·
+  `gen-mapa --check` y `gen-asistente --check` regenerados · `check-doc-links`
+  130 documentos, todo resuelve. No se tocó ningún fichero de backend, así que
+  el pytest suite no aplica a este cambio.
+
+### 2026-08-31 (cont. 6) — Cinco patrones de vela más, investigados contra TrendSpider
+
+El dueño pidió comparar el escáner contra TrendSpider (226 patrones: 172 de velas +
+54 chartistas, medido con búsqueda web) y, tras verlo, que se documentara CÓMO detecta
+TrendSpider lo suyo antes de copiar nada. Metodología pública: pivotes + relaciones
+geométricas + volumen — el mismo esqueleto que ya llevaba diseñado y sin construir el
+Lote 5 de `DETALLE_TECNICAS_IMPLEMENTACION.md`. El 172 de velas no son 172 formas
+distintas: es la suma de cuatro fuentes con nombre propio (el corpus clásico Nison/
+Bulkowski, "The Strat" de Rob Smith, variantes de Bulkowski y "Newsome Candles", un
+sistema propietario de un tercero).
+
+- ✅ **5 patrones nuevos en `candle_patterns.py`** (30 → **35**), con cifras reales de
+  Bulkowski (thepatternsite.com, verificadas hoy, no inventadas): **Belt Hold**
+  alcista/bajista (71%/68%, rank 62/63), **In Neck** (53%, rank 17, fiabilidad baja
+  y se etiqueta como tal), **Abandoned Baby** alcista/bajista (70%/69%, rank 13/14 —
+  versión ESTRICTA de la estrella con doji, exige hueco real a los dos lados, no sólo
+  que el cuerpo del doji quede bajo el cierre de la vela anterior).
+- 🔍 **Investigados y descartados a propósito**: On Neck, Meeting Lines/Counterattack
+  y Stick Sandwich/Homing Pigeon. Bulkowski mide que actúan "casi al azar" o
+  **al revés de su nombre de libro** (Stick Sandwich se vende como reversión alcista
+  y en la muestra real actúa como continuación bajista el 62% de las veces). Forzarlos
+  en una tabla type/behavior/rate alineados habría sido la misma clase de dato
+  inventado que prohíbe la Regla 1 de honestidad numérica.
+- ✅ **7 tests nuevos** (`test_candle_patterns_unit.py`, 30 → 37 en el fichero):
+  positivos, el belt-hold no se confunde con un marubozu, el in-neck exige el hueco
+  de verdad, y el abandoned baby exige mecha sin tocar a los dos lados (no basta con
+  que el cuerpo del doji quede bajo el cierre, que es lo que ya exigía la estrella
+  con doji — si no, sale mal etiquetado como el patrón menos específico).
+- ✅ **Frontend**: `candlePatternMeta.js`, `tradingEducationContent.js` (stats +
+  entradas bullish/bearish) y `CandlePatternFigure.jsx` (5 ilustraciones SVG nuevas,
+  con huecos reales dibujados en los abandoned baby). **100 claves i18n** (Name+Desc
+  × 5 patrones × 10 idiomas) insertadas en los diccionarios principales y repartidas
+  con `split-i18n-edu.js` — las Desc son de la Academia y se quedaron ahí solas.
+- 📌 **G-40**: el hueco grande (~18-20 patrones chartistas geométricos, diseño
+  completo en el Lote 5, endpoint y fichero ya nombrados) queda en cola, a petición
+  expresa del dueño — es un proyecto de varias horas separado, no algo para colar en
+  la misma tanda que las cinco velas.
+- ✅ Verificado: pytest **1186 passed / 1 failed** (el mismo de siempre, TLS sin
+  Postgres local TCP en este sandbox) / 114 skipped · py_compile · eslint 0 errores ·
+  build + postbuild SEO · i18n-check **7.376×10, 0 huecos** · engine-check 535/535 ·
+  check-edu-index 91=91 · check-quiz 140/140 · check-i18n-identidad · gen-mapa/
+  gen-asistente/gen-instruments-js --check · check-rutas-muertas · check-doc-links.
+
+### 2026-08-31 (cont. 7) — BUG-075: "el correo no funciona ni magic link" — causa doble
+
+El dueño reportó que ni el envío de correos ni el magic link funcionaban, y pidió
+revisarlo entero. Dos causas, una de código (arreglada) y una operativa (sigue
+pendiente, y ya estaba escrita sin marcar como bloqueante).
+
+- 🔴 **Código — fallo total y silencioso.** `_send_magic_link_email()` y
+  `_send_email_verification()` mandan el correo con `httpx` en crudo contra la API
+  de SendGrid y **nunca miraban el código de respuesta**. `httpx` no lanza excepción
+  por un 4xx/5xx —sólo por fallos de red—, así que un rechazo de SendGrid (clave
+  inválida, dominio remitente sin verificar, límite de tasa) no dejaba ni una línea
+  en los logs de Cloud Run: el `except` nunca se disparaba porque no había nada que
+  capturar. El tercer camino de envío, `_send_email()` (reset de contraseña,
+  bienvenida, confirmación de suscripción), usa el SDK oficial y **sí** loguea sus
+  fallos — de ahí que "ni magic link" fuera la pista correcta: es justo el camino
+  que no dejaba rastro.
+- 🟡 **Operativo, no de código, y ya estaba en la documentación sin marcar como
+  bloqueante en la práctica**: `MIGRACION_DOMINIO.md` § «Lo que falta» punto 6 y
+  `DEPLOY_CHECKLIST.md` §H llevan sin marcar desde el cutover del dominio
+  (2026-08-28) — el dominio remitente `alerts@tradingcalculator.pro` no está
+  verificado en SendGrid, así que **cualquiera** de los tres caminos de envío se
+  rechaza. El punto 2 del mismo documento (`FRONTEND_URL` en el propio servicio de
+  Cloud Run, que sobrevive al despliegue) es la otra mitad: si sigue con el dominio
+  viejo, aunque el correo llegara, el enlace de dentro apuntaría a la URL antigua.
+- ✅ **Fix de código**: ambas funciones ahora comprueban `resp.status_code` y
+  loguean el cuerpo de la respuesta de SendGrid en cualquier `>= 300`. No cambia si
+  el correo sale o no —eso es operativo—, sólo hace que el fallo real, sea cual sea,
+  quede escrito en los logs en vez de desaparecer. **3 tests nuevos**
+  (`test_email_send_status_unit.py`): un 403/401 deja rastro, un 202 de éxito no
+  genera ruido.
+- ⚠️ **Pendiente y es del dueño, no del repo**: verificar el dominio remitente en
+  el panel de SendGrid y confirmar `FRONTEND_URL` en el servicio de Cloud Run —
+  comandos exactos en `MIGRACION_DOMINIO.md` puntos 2 y 6, ahora también anotado en
+  `DEPLOY_CHECKLIST.md` §H con el porqué.
+- ✅ Verificado: pytest **1189 passed / 1 failed** (el mismo de siempre, TLS sin
+  Postgres local TCP en este sandbox) / 114 skipped, incluidos los 3 tests nuevos ·
+  py_compile · gen-mapa/gen-asistente --check · check-doc-links · check-rutas-muertas.
+
+---
+
+### 2026-08-31 — El administrador estaba encerrado: BUG-076, BUG-077 y BUG-078
+
+Petición del dueño: *«hay que arreglar el admin de inmediato»*, revisando lo que
+tocaron los PR **#216 en adelante**, más el registro/inicio de sesión, la sospecha
+de que exigir el 2FA en el primer acceso deja al admin fuera, y la sesión que se
+cierra sola al recargar la pestaña.
+
+**El fallo principal estaba justo donde el dueño dijo**, y era el eslabón que
+faltaba de la cadena que empezó en el PR #216:
+
+- **BUG-076 · El admin no tenía salida.** `SettingsPage.jsx` pintaba
+  `<TwoFactorCard />` sólo con `auth_provider === 'password'`. La cuenta del
+  dueño entra con **Google**: `/admin` → `ProtectedRoute` ve
+  `two_factor_enabled === false` → te manda a `/settings` a activar el 2FA → y en
+  `/settings` no hay tarjeta de 2FA. Callejón sin salida, sin mensaje. El backend
+  nunca puso esa condición (`/auth/2fa/setup|enable|disable` van por
+  `require_user`): la restricción vivía sólo en esa línea del frontend.
+  El PR #216 (BUG-072) no lo causó pero lo **destapó**: al hacer que
+  `two_factor_enabled` viajara en las ocho respuestas, la guarda pasó a saltar
+  siempre, y lo que antes era «el panel se pinta y cada llamada da 428» pasó a ser
+  «no llegas al panel y no puedes arreglarlo».
+- **BUG-077 · La sesión se cerraba sola al recargar, y cerrar sesión no cerraba.**
+  Dos fallos opuestos sobre el mismo par de tokens: la rotación de `/auth/refresh`
+  mataba el token en el acto (un segundo canje = 401 = sesión cerrada), y
+  `silentRefresh` trataba **cualquier** respuesta no-OK como «sesión caducada»,
+  incluido el 502 de un arranque en frío de Cloud Run. Y `/auth/logout` revocaba
+  el token de acceso pero **no el de refresco**, que dura siete días.
+- **BUG-078 · Ocho sabotajes de `probar-verificadores.sh` no saboteaban nada.**
+  Encontrado de paso, al ir a añadir los míos.
+
+**Lo que se hizo**
+
+| Cambio | Dónde |
+|---|---|
+| La tarjeta de 2FA se pinta para **cualquier** cuenta | `SettingsPage.jsx`, `TwoFactorCard.jsx` |
+| **Margen de alta de 10 min**, un solo uso, pedido por el dueño | `require_admin` + `_abrir_o_comprobar_margen_2fa` |
+| Banda ámbar con cuenta atrás y enlace a Ajustes (10 idiomas) | `AdminPage.jsx`, `lib/i18n/*` |
+| `ProtectedRoute` deja de decidir sobre el 2FA de admin (**cierra G-39**) | `ProtectedRoute.jsx` |
+| El registro calcula `is_admin` con `ADMIN_EMAILS`, como las otras siete respuestas | `register` |
+| Ventana de 30 s para un refresh **recién rotado**, sólo para rotaciones | `_rotado_hace_nada`, `/auth/refresh` |
+| `silentRefresh` reintenta y sólo cierra con **401/403** | `lib/store.js` |
+| `logout` revoca también el refresh token | `logout` |
+| Los ocho heredocs de sabotaje, dedentados | `probar-verificadores.sh` |
+
+**Cómo se decidió el margen de 10 minutos.** Se abre **al usarlo**, no al crear la
+cuenta: un admin dado de alta hace seis meses conserva el suyo, y un atacante con
+la contraseña sólo lo encuentra intacto si el dueño nunca ha pisado el panel. La
+marca (`admin_2fa_grace_started_at`) **no se reescribe jamás** —ni al vencer, ni
+al activar y desactivar el 2FA—, así que son diez minutos en toda la vida de la
+cuenta. Abrirlo escribe un aviso en el log y una entrada en `admin_audit_log`.
+`ADMIN_2FA_GRACE_MINUTES=0` lo apaga entero.
+
+**Cómo se comprobó** — dos backends del mismo Postgres, uno con el código de
+`main` y otro con el arreglado, los dos con `ADMIN_2FA_OPTIONAL=false` (2FA
+exigido como en producción), sus dos builds servidos, y **la misma sonda** contra
+los dos:
+
+```
+CÓDIGO ORIGINAL (main)          CÓDIGO ARREGLADO
+❌ /admin se abre                ✅  (margen de alta)
+❌ el panel se pinta             ✅
+❌ Ajustes ofrece ACTIVAR 2FA    ✅  ← el encierro
+✅ margen vencido → Ajustes      ✅
+✅ el TOTP real activa           ✅
+5 fallos                         0 fallos (16 comprobaciones)
+```
+
+Y a nivel de API: `is_admin` en el registro `False → True`; primer `/admin/metrics`
+sin 2FA `428 → 200`; con la marca envejecida 11 min, `→ 428` y **no se reabre**;
+reuso de un refresh recién rotado `401 → 200`; tras `logout`, el refresh seguía
+dando **200 en las dos versiones** — eso era BUG-077(b), y ahora da 401.
+
+**El ✅ que no probaba nada.** La primera versión de la sonda buscaba el texto
+«dos pasos» en cualquier parte de `/settings`, y **pasaba con el código roto**: el
+aviso ámbar de «activa el 2FA» lleva esa frase, así que casaba justo en la
+pantalla donde la tarjeta no estaba. Se cambió por el BOTÓN («Activar 2FA»).
+Es el modo de fallo que el propio banco de pruebas advierte, y cayó igual.
+
+**Lo que NO se tocó, y hay que decidir fuera del repo**
+
+- **Las cookies de sesión son de tercera parte.** El frontend vive en
+  `tradingcalculator.pro` y el backend en `…run.app`: para el navegador son sitios
+  distintos, así que `access_token`/`refresh_token` son cookies de terceros.
+  Safari las bloquea por defecto (ITP) y Chrome está en ello. Donde estén
+  bloqueadas, **cada recarga cierra la sesión** y ningún arreglo de este commit lo
+  evita: el token de acceso no se persiste a propósito y el de refresco viaja sólo
+  por cookie. Lo que lo cierra de verdad es dar al backend un dominio del mismo
+  sitio (`api.tradingcalculator.pro`), que es un cambio de infraestructura.
+**G-41, abierto y cerrado en la misma sesión.** Al ir a añadir mis sabotajes
+aparecieron ocho que no saboteaban nada (BUG-078). Dedentarlos arregló siete; el
+octavo —el del login— seguía diciendo «SOBREVIVE» porque su ancla era un texto
+que BUG-070 había sustituido: el `replace` no encontraba nada, escribía el
+fichero igual y salía con 0. Esa segunda forma de morir en silencio **no se
+habría cazado dedentando**. La causa común es que `probar()` descartaba el código
+de salida del sabotaje, así que «el verificador no verifica» y «el sabotaje no
+tocó nada» imprimían lo mismo. Ahora un sabotaje que falla se reporta con su
+error y cuenta como fallo **del test**, no del producto.
+
+**La batería de sabotajes, entera.** 105 sabotajes detectados, 11 cebos que no
+producen falsos positivos, **0 «SOBREVIVE»**. Los 7 avisos de la primera pasada
+eran del banco de pruebas, no del producto, y se comprobaron uno por uno:
+
+- **5 (csp ×3, nulos ×2)**: mi `frontend/build` apuntaba al backend de :8090 —el
+  estricto que monté para comparar—, y esas sondas esperan el stack estándar de
+  :8080. Con el build correcto pasan las tres.
+- **2 (peso.js)**: la ruta `precios` se pasaba del presupuesto. **Compilando el
+  punto de partida de esta rama (`f5f79b4`) se pasa igual**: 1039 KB > 1038 KB
+  ya sin mis commits. El presupuesto se midió el 2026-08-27 y los PR #218 y #219
+  entraron después. Mis dos commits suman **1 KB más** (los tres textos del aviso
+  de 2FA × 10 idiomas, ~470 bytes en el idioma que se carga, más la lógica de
+  `silentRefresh`). Presupuesto rebasado en total: 2 KB, de los que **la mitad no
+  es de esta rama**. Re-medido con `--actualizar`, que es lo que el propio
+  verificador pide para un aumento deliberado.
+
+**Y otro ancla obsoleta, de la misma familia que BUG-078.** La guarda que decide
+si se prueban peso/CSP/nulos preguntaba por `curl -s` a
+`http://localhost:3100/Tradingcalculatorpro.com/` — la base de GitHub Pages de
+**antes** del cutover del 2026-08-28. Sin `-f`, curl sale 0 también con un 404,
+así que la guarda daba por bueno cualquier proceso escuchando en ese puerto. Va
+con `-f` y contra la raíz.
+
+**Verificado**: 1.204 tests (114 skip, 0 fallos), `py_compile` de los 26 módulos,
+eslint 0 errores, i18n 7.379 claves × 10 idiomas a la par, engine-check 535/535,
+catálogo en paridad, mapa y asistente al día, enlaces de doc OK, build de
+producción, y la sonda de navegador contra el backend real en sus dos versiones.
+
+## 2026-09-02 — Los indicadores de espera pasan a llevar la marca
+
+Ejecución del artefacto «Cargando con la marca» **excepto su pieza `CargaArco`**,
+excluida expresamente por el usuario. Lo demás entra entero.
+
+**El punto de partida.** 85 `<Loader2 className="animate-spin" />` repartidos por
+24 ficheros: el círculo genérico que trae shadcn. Es de lo que más veces se mira
+en una sesión —cada consulta a la cadena, cada refresco del escáner— y no llevaba
+nada del producto. No se ha dibujado ningún logotipo nuevo: se anima el que ya
+existe, con las coordenadas exactas de `public/tcpro-icono-512.svg`.
+
+**Una sola copia de la geometría.** `BrandMark.jsx` pasa a exportar `VELAS`,
+`Velas`, `Monograma`, `ARCO` y sus *viewBox*; `BrandLoading.jsx` los importa en
+vez de repetirlos. Dos copias de un logotipo divergen a la primera corrección, y
+aquí la corrección ya llegó una vez (el cutover de dominio del 2026-08-28).
+
+**Las cinco piezas y dónde han caído:**
+
+| Pieza | Dónde |
+|---|---|
+| `CargaVelas` | 58 sitios: dentro de botones y junto a etiquetas. Sustituye al `Loader2` |
+| `CargaMarca` | `PageLoader` de `App.js`, `PaymentPages`, `AuthPages`, `VerifyEmailPage` |
+| `CargaProgreso` | disponible; **sin usar a propósito** — ver abajo |
+| `CintaCarga` | borde superior de `OptionsSubHeader`: el refresco de fondo de la cadena |
+| `EsqueletoVelas` | vía `FilasEsqueleto`, en las 7 tablas de `AdminPage` que cargaban |
+
+**`CargaProgreso` no se ha cableado en ningún sitio, y es la decisión, no un
+olvido.** Sólo vale cuando el avance se mide de verdad; hoy ninguna espera de la
+web conoce su porcentaje. Fingirlo sería la versión visual de inventarse un dato,
+que es justo lo que las reglas de honestidad numérica prohíben con los números.
+Queda lista para la primera subida de fichero o backtest por lotes que sí lo mida.
+
+**Dos cosas que NO se han tocado**, ambas a conciencia:
+
+- `PaymentPages.jsx:104`, el `Loader2` del estado `pending`, **no lleva
+  `animate-spin`**: es un icono de estado («tu pago se está procesando», con un
+  botón para irse), no una espera viva. Animarlo diría que algo ocurre en esa
+  pantalla ahora mismo, y no ocurre. Sigue siendo el único `Loader2` del repo.
+- Los `RefreshCw` que giran mientras recargan: ahí el icono que da vueltas *es*
+  el botón de refrescar, un gesto distinto del «estoy esperando».
+
+**El indicador que empujaba el precio.** En `OptionsSubHeader` el `Loader2` vivía
+en la misma fila que la cotización, así que cada refresco metía 20 px y movía la
+cifra que el usuario está mirando para dimensionar. Ahora lo anuncia la cinta de
+2 px del borde superior, dentro de un envoltorio `h-0` para que al aparecer no
+mueva nada.
+
+**Movimiento reducido.** La regla global del proyecto deja toda animación en
+0,01 ms; sobre estas velas eso las congelaría a media impresión —dos casi
+transparentes— con pinta de adorno roto. Por eso `index.css` les **quita** la
+animación en vez de acelerarla, igual que ya se hacía con `.marquesina`. Quien
+pide menos movimiento se entera por `role="status"`, no por el movimiento.
+
+**Verificado**: eslint 0 errores (los avisos bajan de 115 a 108 al desaparecer
+los `Loader2` sin usar), build de producción + 1.648 URLs de sitemap, i18n 7.404
+claves × 10 idiomas sin claves nuevas (`CargaVelas` recibe el texto por prop, no
+llama a `t()`), engine-check 535/535, catálogo en paridad, mapa y asistente al
+día, enlaces de doc OK, `capturas.js` con las 36 pantallas públicas renderizando
+y sin errores de consola nuevos, y las seis piezas renderizadas de verdad con
+React + el CSS compilado y fotografiadas en claro y oscuro. Comprobado además que
+`tc-arco`/`tcpro-arco` **no aparecen en el CSS compilado**: la sección excluida
+no ha entrado por la puerta de atrás.
+
+
+## 2026-09-03 — Seis paneles de ajustes para elegir uno
+
+`/settings` son 673 líneas y **ocho tarjetas apiladas** en una columna de 672 px, todas
+con el mismo peso: la seguridad está partida en tres tarjetas seguidas que no se leen
+como un bloque, y la zona de peligro va detrás de «Acciones» con el mismo aspecto. Antes
+de rediseñar a ciegas, seis propuestas completas para que el propietario elija:
+[`docs/maquetas/panel-cliente.html`](./maquetas/panel-cliente.html) — consola con rail,
+cabecera con pestañas, hoja de datos sin tarjetas, panel con estado de la cuenta, cajón
+con buscador y rejilla de módulos. Cada una con lo que gana, lo que pierde y lo que
+cuesta escrito en la propia página.
+
+**No toca código de producción.** Es un fichero estático en `docs/maquetas/`, con los
+tokens reales de `index.css`, las tres familias del producto y las reglas de
+`identidad-visual` (un acento, filete de 1 px, dos radios, cero degradados,
+`tabular-nums`).
+
+Tres cosas que se anotaron por el camino:
+
+- **Tema e idioma no están en Ajustes** (viven en la cabecera) y la cuenta de la mesa
+  tampoco (vive en el dashboard). En las maquetas van marcados `propuesta`: decidir eso
+  es aparte de decidir el diseño.
+- **El ancla `#v5` dejaba la página desplazada al final** y las capturas salían en
+  blanco sin que nada fallara —el mismo modo de fallo que el smoke visual de agosto—. Se
+  cambió a `#/v5`, que no coincide con ningún `id` y no provoca salto.
+- **`#v1{display:grid}` ganaba por especificidad a `.screen{display:none}`**, así que
+  dos maquetas se pintaban a la vez, una encima de otra. Sólo se vio al mirar la captura;
+  el fichero cargaba «bien».
+
+La vista móvil del previsualizador usa **container queries**, no media queries: al
+estrechar el escenario a 390 px la maqueta reflow-ea de verdad en vez de encogerse.
+
+
+## 2026-09-03 (2) — El panel de ajustes pasa a ser una consola
+
+Elegida la maqueta 1 de las seis e implementada en `SettingsPage.jsx`. De ocho
+tarjetas apiladas en una columna de 672 px a **rail de seis secciones + panel**.
+
+**Lo que cambia para quien usa la web**
+
+- El rail dice el estado sin entrar: punto ámbar en Seguridad si falta el 2FA, el
+  plan en Suscripción, el capital en Mesa y riesgo.
+- **Cada sección tiene URL** (`/settings?s=seguridad`). `AdminPage` ya manda ahí al
+  administrador sin 2FA, en vez de a la página entera para que la busque.
+- **Tema e idioma** entran en Ajustes. Viajaban con la cuenta desde agosto pero sólo
+  se podían cambiar desde el menú de la cabecera, que es donde nadie los busca.
+- **Mesa y riesgo** entra en Ajustes: capital, riesgo por operación (% o dinero) y
+  vista de inicio.
+
+**Lo que NO se ha duplicado, y es lo que importa**
+
+- La sección de riesgo escribe en `deskAccount` —la MISMA preferencia de la mesa— y
+  calcula con `riskBudget()` de `deskMath.js` —la MISMA función—. El tope duro del
+  10 % no se reimplementa: si algún día cambia, cambia en un sitio.
+- `PREMIUM_THEMES` sube de `Header.jsx` a `lib/theme.js`. Ya son tres los que la
+  consumen (menú de escritorio, de móvil y Ajustes) y la tercera copia no llegó a
+  existir.
+
+**Una trampa que el rediseño podía haber colado.** La prueba
+`tests/e2e/navegador/admin-2fa.js` busca el botón «Activar 2FA» nada más abrir
+`/settings`, y con secciones eso deja de ser cierto: la tarjeta vive en Seguridad.
+Al administrador de Google le habría vuelto a pasar lo de BUG-076 —se le exige el
+2FA y no se le enseña dónde activarlo—, esta vez por la puerta del rediseño. Se
+arregla en los dos lados: `need2fa` abre Seguridad, y la prueba ahora **pulsa en el
+rail** en vez de ir por `?s=`, porque lo que hay que probar es que se puede
+ENCONTRAR, no que la URL existe.
+
+**Verificado**: `py_compile` de todo el backend, ESLint **0 errores** (y 0 avisos en
+los ficheros tocados), `i18n-check` 0 huecos en los 10 idiomas con las 24 claves
+nuevas, `engine-check` 535/535, catálogo en paridad, `gen-mapa --check`,
+`check-rutas-muertas`, `check-doc-links`, y `npm run build` en verde. Además la
+pantalla se ha **renderizado de verdad** desde el build compilado con la sesión
+sembrada y la API simulada: perfil, seguridad, mesa, preferencias y datos, en
+oscuro y claro, escritorio y 390 px, sin desbordamiento horizontal y sin errores de
+consola de la aplicación.
+
+La suite de backend: **1220 passed, 114 skipped, 1 failed**. El fallo es
+`test_shim_collection_unit.py::test_verify_full_rechaza_un_nombre_que_no_casa`, y
+**no es de este cambio** —el diff no toca un solo fichero de `backend/`—: pide un
+PostgreSQL en `127.0.0.1:5432` y aquí no lo hay, así que devuelve
+`ConnectionRefusedError`. Su guarda de *skip* sólo contempla
+`InvalidPasswordError`/`InvalidAuthorizationSpecificationError`, no «conexión
+rechazada», de modo que en un entorno sin Postgres **falla en vez de saltarse**. Es
+un hueco de la prueba, no del código; queda anotado sin tocarlo, porque arreglar
+una guarda de test dentro de un rediseño de interfaz es justo cómo se cuelan los
+cambios que nadie revisa.
+
+**Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
+PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
+ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.

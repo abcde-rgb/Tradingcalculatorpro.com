@@ -26,14 +26,14 @@ import AlertSection from './form/AlertSection';
 import { toast } from 'sonner';
 
 const SIDES = [
-  { id: 'long',  labelKey: 'tradeFormSideLong',  color: 'bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/40' },
-  { id: 'short', labelKey: 'tradeFormSideShort', color: 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/40' },
+  { id: 'long',  labelKey: 'tradeFormSideLong',  color: 'bg-long/15 text-long border-long/40' },
+  { id: 'short', labelKey: 'tradeFormSideShort', color: 'bg-short/15 text-short border-short/40' },
 ];
 
 // Compra/venta de la opción (long = comprada, short = vendida/emitida)
 const OPTION_SIDES = [
-  { id: 'long',  labelKey: 'tradeOptionBuy',  color: 'bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/40' },
-  { id: 'short', labelKey: 'tradeOptionSell', color: 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/40' },
+  { id: 'long',  labelKey: 'tradeOptionBuy',  color: 'bg-long/15 text-long border-long/40' },
+  { id: 'short', labelKey: 'tradeOptionSell', color: 'bg-short/15 text-short border-short/40' },
 ];
 
 const STATUS_OPTIONS = [
@@ -430,7 +430,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                 menos productos de los que la web anuncia y no sabe por qué. */}
             {restricted && (
               <p
-                className="mt-2 flex items-start gap-1.5 text-[11px] text-[#f59e0b] leading-relaxed"
+                className="mt-2 flex items-start gap-1.5 text-[11px] text-warn leading-relaxed"
                 data-testid="trade-products-restricted"
               >
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -535,7 +535,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                   className="mt-1"
                   data-testid="trade-multiplier"
                 />
-                <div className={`text-[10px] mt-0.5 ${contractSize == null ? 'text-[#ef4444]' : 'text-muted-foreground'}`}>
+                <div className={`text-[10px] mt-0.5 ${contractSize == null ? 'text-short' : 'text-muted-foreground'}`}>
                   {contractSize == null ? t('tfContractSizeMissing') : t('tfContractSizeHint')}
                 </div>
               </div>
@@ -674,13 +674,13 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
             {(rrWarn || riskWarn) && (
               <div className="mt-3 flex flex-wrap gap-3" data-testid="trade-rule-warnings">
                 {rrWarn && (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-[#f59e0b]" title={ruleTip(rules.rrSource)}>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-warn" title={ruleTip(rules.rrSource)}>
                     <AlertCircle className="w-3 h-3" />
                     {t('tradeWarnLowRR')} · {t('tradeRuleMinRR').replace('{v}', String(rules.minRR))}
                   </span>
                 )}
                 {riskWarn && (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-[#ef4444]" title={ruleTip(rules.riskSource)}>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-short" title={ruleTip(rules.riskSource)}>
                     <AlertCircle className="w-3 h-3" />
                     {t('tradeWarnOversize')} · {t('tradeRuleMaxRisk').replace('{v}', String(rules.maxRiskPct))}
                   </span>
@@ -702,7 +702,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                       onClick={() => set('option_type')(o.id)}
                       className={`flex-1 px-2 py-2 rounded-md text-xs font-bold uppercase border transition-all ${
                         form.option_type === o.id
-                          ? (o.id === 'call' ? 'bg-[#22c55e]/15 text-[#4ade80] border-[#22c55e]/40' : 'bg-[#ef4444]/15 text-[#f87171] border-[#ef4444]/40')
+                          ? (o.id === 'call' ? 'bg-long/15 text-long border-long/40' : 'bg-short/15 text-short border-short/40')
                           : 'border-border text-muted-foreground hover:text-foreground'
                       }`}
                       data-testid={`trade-option-${o.id}`}
@@ -792,7 +792,7 @@ const TradeFormModal = ({ open, onClose, onSaved, initialTrade = null }) => {
                         type="button"
                         onClick={() => toggleSetup(name)}
                         aria-label={`${t('tradeSetupRemove')} ${name}`}
-                        className="hover:text-[#ef4444] transition-colors"
+                        className="hover:text-short transition-colors"
                       >
                         <X className="w-3 h-3" />
                       </button>

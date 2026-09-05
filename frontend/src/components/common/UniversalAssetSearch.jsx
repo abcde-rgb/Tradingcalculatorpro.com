@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Search, X, Clock, Flame, ArrowUpRight, ArrowDownRight,
-  Bitcoin, Coins, DollarSign, LineChart, Layers, Building2, BarChart3, Loader2,
-} from 'lucide-react';
+  Bitcoin, Coins, DollarSign, LineChart, Layers, Building2, BarChart3 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { usePriceStore } from '@/lib/store';
 import { CRYPTO_LIST, COMMODITIES } from '@/lib/constants';
 import { universalSearchAPI } from '@/services/optionsApi';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 // ─────────────────────────────────────────────────────────────────────
 // Local curated catalogs (instant offline matches, no network call)
@@ -197,11 +197,11 @@ const COMMODITIES_FUTURES = [
 
 const CATEGORY_META = {
   crypto:      { icon: Bitcoin,    label: 'Crypto',      color: 'text-[#f7931a]' },
-  stocks:      { icon: Building2,  label: 'Acciones',    color: 'text-[#3b82f6]' },
-  etfs:        { icon: LineChart,  label: 'ETFs',        color: 'text-[#a855f7]' },
+  stocks:      { icon: Building2,  label: 'Acciones',    color: 'text-info' },
+  etfs:        { icon: LineChart,  label: 'ETFs',        color: 'text-compare' },
   indices:     { icon: BarChart3,  label: 'Índices',     color: 'text-[#06b6d4]' },
-  forex:       { icon: DollarSign, label: 'Forex',       color: 'text-[#22c55e]' },
-  commodities: { icon: Coins,      label: 'Commodities', color: 'text-[#eab308]' },
+  forex:       { icon: DollarSign, label: 'Forex',       color: 'text-long' },
+  commodities: { icon: Coins,      label: 'Commodities', color: 'text-caution' },
 };
 
 const RECENTS_KEY = 'universal_asset_recents';
@@ -507,7 +507,7 @@ const UniversalAssetSearch = ({
           autoComplete="off"
           spellCheck={false}
         />
-        {remoteLoading && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin mr-1" />}
+        {remoteLoading && <CargaVelas className="w-3.5 h-3.5 text-primary mr-1" />}
         {query && (
           <button
             type="button"
@@ -590,7 +590,7 @@ const UniversalAssetSearch = ({
         {showTrending && trendingAssets.length > 0 && (
           <div className="px-3 pt-2 pb-1">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Flame className="w-3 h-3 text-[#f59e0b]" />
+              <Flame className="w-3 h-3 text-warn" />
               <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
                 Trending
               </span>
@@ -601,7 +601,7 @@ const UniversalAssetSearch = ({
                   key={`trend-${a.id}`}
                   type="button"
                   onClick={() => handleSelect(a)}
-                  className="px-2 py-0.5 bg-muted border border-border rounded text-[11px] font-bold text-foreground hover:border-[#f59e0b]/40 transition-colors"
+                  className="px-2 py-0.5 bg-muted border border-border rounded text-[11px] font-bold text-foreground hover:border-warn/40 transition-colors"
                 >
                   {a.symbol}
                 </button>
@@ -665,7 +665,7 @@ const UniversalAssetSearch = ({
                           </div>
                           {ch != null && (
                             <div className={`text-[9px] font-semibold flex items-center justify-end gap-0.5 ${
-                              ch >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'
+                              ch >= 0 ? 'text-long' : 'text-short'
                             }`}>
                               {ch >= 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
                               {ch >= 0 ? '+' : ''}{ch.toFixed(2)}%

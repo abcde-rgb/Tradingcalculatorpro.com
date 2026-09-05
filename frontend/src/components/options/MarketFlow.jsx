@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Globe, Loader2, TrendingUp, TrendingDown, ArrowRight, Info } from 'lucide-react';
+import { Globe, TrendingUp, TrendingDown, ArrowRight, Info } from 'lucide-react';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -30,7 +31,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
     <div className="bg-card border border-border rounded-xl p-4" data-testid="market-flow">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Globe className="w-4 h-4 text-[#c084fc]" />
+          <Globe className="w-4 h-4 text-compare" />
           <h4 className="text-sm font-bold text-foreground">Market-Wide Flow</h4>
           <span className="text-[10px] text-muted-foreground">24 tickers populares</span>
         </div>
@@ -52,10 +53,10 @@ const MarketFlow = ({ onSelectSymbol }) => {
           <button
             onClick={scan}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a855f7]/15 border border-[#a855f7]/40 text-[#c084fc] text-xs font-bold hover:bg-[#a855f7]/25 disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-compare/15 border border-compare/40 text-compare text-xs font-bold hover:bg-compare/25 disabled:opacity-40"
             data-testid="market-scan-btn"
           >
-            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('escaneandoMercado_ba90ca')}</> : <><Globe className="w-3.5 h-3.5" /> {t('escanearMercado_d2e533')}</>}
+            {loading ? <><CargaVelas className="w-3.5 h-3.5" /> {t('escaneandoMercado_ba90ca')}</> : <><Globe className="w-3.5 h-3.5" /> {t('escanearMercado_d2e533')}</>}
           </button>
         </div>
       </div>
@@ -65,7 +66,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
         return (
           <p className="text-xs text-muted-foreground">
             {parts[0]}
-            <span className="text-[#c084fc] font-semibold">{t('escanear_mf002')}</span>
+            <span className="text-compare font-semibold">{t('escanear_mf002')}</span>
             {parts[1]}
           </p>
         );
@@ -73,7 +74,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
 
       {loading && !data && (
         <div className="flex items-center justify-center py-8 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('scanning24_mf003')}
+          <CargaVelas className="w-4 h-4 mr-2" /> {t('scanning24_mf003')}
         </div>
       )}
 
@@ -119,17 +120,17 @@ const MarketFlow = ({ onSelectSymbol }) => {
                     <td className="px-2 py-1.5 font-bold font-mono text-foreground">{r.symbol}</td>
                     <td className="px-2 py-1.5">
                       <span className={`text-[10px] font-bold px-1 py-0.5 rounded ${
-                        r.type === 'call' ? 'bg-[#22c55e]/15 text-[#4ade80]' : 'bg-[#ef4444]/15 text-[#f87171]'
+                        r.type === 'call' ? 'bg-long/15 text-long' : 'bg-short/15 text-short'
                       }`}>{r.type === 'call' ? <TrendingUp className="w-2.5 h-2.5 inline" /> : <TrendingDown className="w-2.5 h-2.5 inline" />} {r.type.toUpperCase()}</span>
                     </td>
                     <td className="px-2 py-1.5 text-right font-mono text-foreground">${r.strike}</td>
                     <td className="px-2 py-1.5 text-[10px] text-muted-foreground whitespace-nowrap">{r.expiration}</td>
                     <td className="px-2 py-1.5 text-right font-mono text-foreground">{r.volume.toLocaleString()}</td>
-                    <td className={`px-2 py-1.5 text-right font-mono font-bold ${r.ratio == null ? 'text-muted-foreground' : 'text-[#fbbf24]'}`}
+                    <td className={`px-2 py-1.5 text-right font-mono font-bold ${r.ratio == null ? 'text-muted-foreground' : 'text-warn'}`}
                         title={r.ratio == null ? t('flowNoOiHint') : undefined}>
                       {r.ratio == null ? t('flowNoOi') : `${r.ratio}x`}
                     </td>
-                    <td className="px-2 py-1.5 text-right font-mono text-[#a78bfa]">${(r.estNotional / 1000).toFixed(0)}k</td>
+                    <td className="px-2 py-1.5 text-right font-mono text-compare">${(r.estNotional / 1000).toFixed(0)}k</td>
                     <td className="px-2 py-1.5">
                       {onSelectSymbol && (
                         <button

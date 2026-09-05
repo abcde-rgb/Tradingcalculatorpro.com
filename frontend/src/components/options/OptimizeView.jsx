@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Loader2, Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight, AlertTriangle, ShieldAlert, Sigma, Activity } from 'lucide-react';
+import { Target, TrendingUp, Shield, Zap, Trophy, Percent, DollarSign, Wallet, ArrowRight, AlertTriangle, ShieldAlert, Sigma, Activity } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const SENTIMENTS = [
-  { id: 'very_bearish', labelKey: 'sentVeryBearish_6aa1', icon: '↓↓', color: 'text-[#ef4444]', bg: 'bg-[#ef4444]/15 border-[#ef4444]/40' },
-  { id: 'bearish',      labelKey: 'sentBearish_6aa2',     icon: '↓',  color: 'text-[#f87171]', bg: 'bg-[#f87171]/15 border-[#f87171]/40' },
-  { id: 'neutral',      labelKey: 'sentNeutral_6aa3',     icon: '→',  color: 'text-[#eab308]', bg: 'bg-[#eab308]/15 border-[#eab308]/40' },
-  { id: 'bullish',      labelKey: 'sentBullish_6aa4',     icon: '↑',  color: 'text-[#4ade80]', bg: 'bg-[#4ade80]/15 border-[#4ade80]/40' },
-  { id: 'very_bullish', labelKey: 'sentVeryBullish_6aa5', icon: '↑↑', color: 'text-[#22c55e]', bg: 'bg-[#22c55e]/15 border-[#22c55e]/40' },
+  { id: 'very_bearish', labelKey: 'sentVeryBearish_6aa1', icon: '↓↓', color: 'text-short', bg: 'bg-short/15 border-short/40' },
+  { id: 'bearish',      labelKey: 'sentBearish_6aa2',     icon: '↓',  color: 'text-short', bg: 'bg-short/15 border-short/40' },
+  { id: 'neutral',      labelKey: 'sentNeutral_6aa3',     icon: '→',  color: 'text-caution', bg: 'bg-caution/15 border-caution/40' },
+  { id: 'bullish',      labelKey: 'sentBullish_6aa4',     icon: '↑',  color: 'text-long', bg: 'bg-long/15 border-long/40' },
+  { id: 'very_bullish', labelKey: 'sentVeryBullish_6aa5', icon: '↑↑', color: 'text-long', bg: 'bg-long/15 border-long/40' },
 ];
 
 const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
@@ -110,7 +111,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
                   data-testid="target-price-input"
                 />
                 <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono font-semibold ${
-                  targetPct > 0 ? 'text-[#4ade80]' : targetPct < 0 ? 'text-[#f87171]' : 'text-muted-foreground'
+                  targetPct > 0 ? 'text-long' : targetPct < 0 ? 'text-short' : 'text-muted-foreground'
                 }`}>
                   {targetPct >= 0 ? '+' : ''}{targetPct.toFixed(1)}%
                 </span>
@@ -160,7 +161,7 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
               <button
                 onClick={() => setMode('max_return')}
                 className={`py-2.5 px-3 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                  mode === 'max_return' ? 'bg-[#f59e0b]/15 border-[#f59e0b]/40 text-[#fbbf24]' : 'bg-muted border-border text-muted-foreground'
+                  mode === 'max_return' ? 'bg-warn/15 border-warn/40 text-warn' : 'bg-muted border-border text-muted-foreground'
                 }`}
                 data-testid="mode-max-return"
               >
@@ -184,24 +185,24 @@ const OptimizeView = ({ symbol, stock, expirations, onOpenInCalculator }) => {
         <button
           onClick={runOptimize}
           disabled={loading || !targetPrice || !budget}
-          className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-primary to-[#4ade80] text-black font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="mt-5 w-full py-3 rounded-xl bg-gradient-to-r from-primary to-long text-black font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           data-testid="optimize-run"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('analizandoMercado_334c80')}</> : <><Target className="w-4 h-4" /> {t('optimizeNow_op005')}</>}
+          {loading ? <><CargaVelas className="w-4 h-4" /> {t('analizandoMercado_334c80')}</> : <><Target className="w-4 h-4" /> {t('optimizeNow_op005')}</>}
         </button>
       </div>
 
       {error && (
-        <div className="bg-[#ef4444]/10 border border-[#ef4444]/40 rounded-lg p-3 text-sm text-[#f87171]">{error}</div>
+        <div className="bg-short/10 border border-short/40 rounded-lg p-3 text-sm text-short">{error}</div>
       )}
 
       {/* A modelled chain is fine to explore with and unacceptable to trade off
           unlabelled. The backend flags it; this is where the user sees it. */}
       {results?.synthetic && (
-        <div className="bg-[#f59e0b]/10 border border-[#f59e0b]/50 rounded-lg p-3 flex gap-2.5"
+        <div className="bg-warn/10 border border-warn/50 rounded-lg p-3 flex gap-2.5"
           data-testid="synthetic-warning">
-          <AlertTriangle className="w-4 h-4 text-[#f59e0b] flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-[#fbbf24] leading-relaxed">
+          <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-warn leading-relaxed">
             <strong className="block mb-0.5">{t('synthDataTitle')}</strong>
             {t('synthDataBody')}
           </div>
@@ -255,7 +256,7 @@ const StrategyCard = ({ rank, result, onOpen }) => {
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${
-            rank === 1 ? 'bg-[#f59e0b]/20 text-[#fbbf24]' : rank === 2 ? 'bg-[#c0c0c0]/20 text-[#c0c0c0]' : rank === 3 ? 'bg-[#cd7f32]/20 text-[#cd7f32]' : 'bg-muted text-muted-foreground'
+            rank === 1 ? 'bg-warn/20 text-warn' : rank === 2 ? 'bg-[#c0c0c0]/20 text-[#c0c0c0]' : rank === 3 ? 'bg-[#cd7f32]/20 text-[#cd7f32]' : 'bg-muted text-muted-foreground'
           }`}>
             {rank === 1 ? <Trophy className="w-3.5 h-3.5" /> : `#${rank}`}
           </div>
@@ -267,7 +268,7 @@ const StrategyCard = ({ rank, result, onOpen }) => {
       <div className="flex flex-wrap gap-1 mb-3">
         {result.legs.map((leg, i) => (
           <span key={`${leg.type}-${leg.action}-${leg.strike}-${i}`} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
-            leg.action === 'buy' ? 'bg-[#22c55e]/10 text-[#4ade80] border-[#22c55e]/25' : 'bg-[#ef4444]/10 text-[#f87171] border-[#ef4444]/25'
+            leg.action === 'buy' ? 'bg-long/10 text-long border-long/25' : 'bg-short/10 text-short border-short/25'
           }`}>
             {leg.action === 'buy' ? 'BUY' : 'SELL'} {leg.quantity}x
             {leg.type !== 'stock' ? ` $${leg.strike} ${leg.type.toUpperCase()}` : ` ${leg.quantity} SHARES`}
@@ -306,18 +307,18 @@ const StrategyCard = ({ rank, result, onOpen }) => {
           who knows the word can assemble it here believing it is "the same thing
           but sold", so the warning belongs on the card, not in a footnote. */}
       {result.isUndefinedRisk && (
-        <div className="mb-3 rounded-lg border border-[#ef4444]/50 bg-[#ef4444]/10 px-2.5 py-2 flex gap-2"
+        <div className="mb-3 rounded-lg border border-short/50 bg-short/10 px-2.5 py-2 flex gap-2"
           data-testid={`undefined-risk-${result.strategyId}`}>
-          <ShieldAlert className="w-3.5 h-3.5 text-[#ef4444] flex-shrink-0 mt-0.5" />
+          <ShieldAlert className="w-3.5 h-3.5 text-short flex-shrink-0 mt-0.5" />
           <p className="text-[10px] leading-snug text-[#fca5a5]">
             <strong>{t('riskUndefinedTitle')}</strong> {t('riskUndefinedBody')}
           </p>
         </div>
       )}
       {result.riskLevel === 'substantial' && (
-        <div className="mb-3 rounded-lg border border-[#f59e0b]/50 bg-[#f59e0b]/10 px-2.5 py-2 flex gap-2">
-          <ShieldAlert className="w-3.5 h-3.5 text-[#f59e0b] flex-shrink-0 mt-0.5" />
-          <p className="text-[10px] leading-snug text-[#fbbf24]">
+        <div className="mb-3 rounded-lg border border-warn/50 bg-warn/10 px-2.5 py-2 flex gap-2">
+          <ShieldAlert className="w-3.5 h-3.5 text-warn flex-shrink-0 mt-0.5" />
+          <p className="text-[10px] leading-snug text-warn">
             <strong>{t('riskSubstantialTitle')}</strong> {t('riskSubstantialBody')}
           </p>
         </div>
@@ -329,18 +330,18 @@ const StrategyCard = ({ rank, result, onOpen }) => {
         {result.expectedValue !== undefined && (
           <Metric icon={Sigma} label={t('metricEV')}
             value={`$${result.expectedValue}`}
-            color={result.expectedValue >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'} />
+            color={result.expectedValue >= 0 ? 'text-long' : 'text-short'} />
         )}
         {result.cvar5 !== undefined && (
-          <Metric icon={ShieldAlert} label={t('metricCVaR')} value={`$${result.cvar5}`} color="text-[#f87171]" />
+          <Metric icon={ShieldAlert} label={t('metricCVaR')} value={`$${result.cvar5}`} color="text-short" />
         )}
-        <Metric icon={Zap} label="ROI" value={result.roi == null ? '—' : `${result.roi}%`} color="text-[#fbbf24]" />
+        <Metric icon={Zap} label="ROI" value={result.roi == null ? '—' : `${result.roi}%`} color="text-warn" />
         <Metric icon={Percent} label="POP" value={`${result.pop}%`} color="text-primary" />
         {result.probTouchBreakEven != null && (
-          <Metric icon={Activity} label={t('metricTouch')} value={`${result.probTouchBreakEven}%`} color="text-[#fbbf24]" />
+          <Metric icon={Activity} label={t('metricTouch')} value={`${result.probTouchBreakEven}%`} color="text-warn" />
         )}
-        <Metric icon={TrendingUp} label={t('profitMax_op008')} value={result.maxProfitUnlimited ? '∞' : `$${result.maxProfit}`} color="text-[#4ade80]" />
-        <Metric icon={Wallet} label={t('capital_op009')} value={`$${result.capitalRequired}`} color="text-[#a78bfa]" />
+        <Metric icon={TrendingUp} label={t('profitMax_op008')} value={result.maxProfitUnlimited ? '∞' : `$${result.maxProfit}`} color="text-long" />
+        <Metric icon={Wallet} label={t('capital_op009')} value={`$${result.capitalRequired}`} color="text-compare" />
       </div>
 
       <button

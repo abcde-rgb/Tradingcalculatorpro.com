@@ -326,13 +326,13 @@ function Tarjeta({ tarjeta, clon }) {
             es. Con «(entidad para la Unión Europea)» la frase es verdad para
             todo el mundo. */}
         {(info || regulador) && (
-          <p className="text-xs text-muted-foreground/80 mb-2 flex items-start gap-1 leading-snug"
+          <p className="text-xs text-muted-foreground mb-2 flex items-start gap-1 leading-snug"
              {...(clon ? {} : { 'data-testid': `partner-ficha-${id}` })}>
             {regulador && <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-px text-primary" />}
             <span>
               {[info, regulador].filter(Boolean).join(' · ')}
               {jurisdiccion && (
-                <span className="opacity-80"> — {t('brokersEntidadPara')} {jurisdiccion}</span>
+                <span> — {t('brokersEntidadPara')} {jurisdiccion}</span>
               )}
             </span>
           </p>
@@ -341,7 +341,7 @@ function Tarjeta({ tarjeta, clon }) {
         {/* A quién NO admite. En la tarjeta y antes del botón: enterarse
             después de rellenar el alta no le sirve a nadie. */}
         {noAdmite && (
-          <p className="text-xs text-muted-foreground/80 mb-2 leading-snug"
+          <p className="text-xs text-muted-foreground mb-2 leading-snug"
              {...(clon ? {} : { 'data-testid': `partner-noadmite-${id}` })}>
             <Ban className="w-3.5 h-3.5 shrink-0 mt-px inline-block mr-1 align-text-top" />
             {t('brokersNoAdmite')} {noAdmite}
@@ -356,7 +356,7 @@ function Tarjeta({ tarjeta, clon }) {
             dato deja la tarjeta promocionando sin avisar. */}
         {advertenciaCorta && (
           <p
-            className="text-sm leading-snug text-amber-500/90 mb-2 flex items-start gap-1.5"
+            className="text-sm leading-snug text-warn mb-2 flex items-start gap-1.5"
             {...(clon ? {} : { 'data-testid': `partner-advertencia-${id}` })}
           >
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -365,7 +365,7 @@ function Tarjeta({ tarjeta, clon }) {
               <span
                 role="link"
                 tabIndex={clon ? -1 : 0}
-                className="underline whitespace-nowrap hover:text-amber-400"
+                className="underline whitespace-nowrap hover:text-warn"
                 {...(clon ? {} : { 'data-testid': `partner-leermas-${id}` })}
                 onClick={(e) => {
                   // La tarjeta entera es un <a>: sin esto, «leer más» abriría

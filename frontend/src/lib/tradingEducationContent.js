@@ -783,6 +783,11 @@ export const CANDLE_PATTERN_STATS = {
   'three-black-crows':    { behavior: 'reversal',     successRate: 78, rank: 5 },
   'three-inside-up':      { behavior: 'reversal',     successRate: 65, rank: 16 },
   'three-inside-down':    { behavior: 'reversal',     successRate: 60, rank: 28 },
+  'bullish-belt-hold':      { behavior: 'reversal',     successRate: 71, rank: 62 },
+  'bearish-belt-hold':      { behavior: 'reversal',     successRate: 68, rank: 63 },
+  'in-neck':                { behavior: 'continuation', successRate: 53, rank: 17 },
+  'bullish-abandoned-baby': { behavior: 'reversal',     successRate: 70, rank: 13 },
+  'bearish-abandoned-baby': { behavior: 'reversal',     successRate: 69, rank: 14 },
 };
 
 export const getCandlestickPatterns = (t) => ({
@@ -890,6 +895,22 @@ export const getCandlestickPatterns = (t) => ({
       type: 'bullish',
       signal: t('bullishReversal'),
       reliability: t('mediumReliability')
+    },
+    {
+      id: 'bullish-belt-hold',
+      name: t('bullishBeltHoldName'),
+      description: t('bullishBeltHoldDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('mediumReliability') + '-' + t('highReliability')
+    },
+    {
+      id: 'bullish-abandoned-baby',
+      name: t('bullishAbandonedBabyName'),
+      description: t('bullishAbandonedBabyDesc'),
+      type: 'bullish',
+      signal: t('bullishReversal'),
+      reliability: t('highReliability')
     }
   ],
   bearish: [
@@ -996,6 +1017,30 @@ export const getCandlestickPatterns = (t) => ({
       type: 'bearish',
       signal: t('bearishReversal'),
       reliability: t('mediumReliability')
+    },
+    {
+      id: 'bearish-belt-hold',
+      name: t('bearishBeltHoldName'),
+      description: t('bearishBeltHoldDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('mediumReliability') + '-' + t('highReliability')
+    },
+    {
+      id: 'in-neck',
+      name: t('inNeckName'),
+      description: t('inNeckDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('lowReliability')
+    },
+    {
+      id: 'bearish-abandoned-baby',
+      name: t('bearishAbandonedBabyName'),
+      description: t('bearishAbandonedBabyDesc'),
+      type: 'bearish',
+      signal: t('bearishReversal'),
+      reliability: t('highReliability')
     }
   ],
   neutral: [
@@ -4026,4 +4071,63 @@ export const getCrossMargin = (t) => ({
     { id: 'xm-mc-5', module: 'xm-08', claim: t('xmMc5Claim'), reality: t('xmMc5Real') },
     { id: 'xm-mc-6', module: 'xm-10', claim: t('xmMc6Claim'), reality: t('xmMc6Real') },
   ],
+});
+
+// El proceso emocional de una sesión — la psicología ordenada por el MOMENTO en
+// que aparece, no por concepto. La academia ya cubre los sesgos uno a uno
+// (getTradingPsychology), las soluciones (getPsychSolutions) y la adherencia
+// (getSystemAdherence); lo que faltaba era el eje temporal: qué falla en cada
+// fase de una sesión, cómo lo detectas en ti mismo y qué acción lo corta.
+//
+// Las cuatro capas por fase son deliberadas:
+//   conscious → lo que hace la parte que razona
+//   auto      → lo que hace el hábito cuando el resultado aprieta
+//   signal    → la señal OBSERVABLE, que es lo que convierte esto en herramienta
+//               y no en otra lista de sesgos que ya te sabes
+//   fix       → la interrupción concreta, escrita como una orden, no como consejo
+//
+// Sin citas científicas: el material de origen atribuía cifras concretas a
+// estudios (efectos de cortisol, multiplicadores de aversión a la pérdida,
+// tamaños de muestra) que aquí no podemos verificar. Se describe la conducta,
+// que es observable, y no el estudio, que sería una cifra sin metodología.
+export const getSessionPhases = (t) => ({
+  title: t('sphTitle'),
+  intro: t('sphIntro'),
+  labels: {
+    conscious: t('sphLabConscious'),
+    auto: t('sphLabAuto'),
+    signal: t('sphLabSignal'),
+    fix: t('sphLabFix'),
+  },
+  phases: [
+    { id: 'pre',     name: t('sphPreName'),     conscious: t('sphPreConscious'),     auto: t('sphPreAuto'),     signal: t('sphPreSignal'),     fix: t('sphPreFix') },
+    { id: 'scan',    name: t('sphScanName'),    conscious: t('sphScanConscious'),    auto: t('sphScanAuto'),    signal: t('sphScanSignal'),    fix: t('sphScanFix') },
+    { id: 'thesis',  name: t('sphThesisName'),  conscious: t('sphThesisConscious'),  auto: t('sphThesisAuto'),  signal: t('sphThesisSignal'),  fix: t('sphThesisFix') },
+    { id: 'trigger', name: t('sphTriggerName'), conscious: t('sphTriggerConscious'), auto: t('sphTriggerAuto'), signal: t('sphTriggerSignal'), fix: t('sphTriggerFix') },
+    { id: 'entry',   name: t('sphEntryName'),   conscious: t('sphEntryConscious'),   auto: t('sphEntryAuto'),   signal: t('sphEntrySignal'),   fix: t('sphEntryFix') },
+    { id: 'losing',  name: t('sphLosingName'),  conscious: t('sphLosingConscious'),  auto: t('sphLosingAuto'),  signal: t('sphLosingSignal'),  fix: t('sphLosingFix') },
+    { id: 'winning', name: t('sphWinningName'), conscious: t('sphWinningConscious'), auto: t('sphWinningAuto'), signal: t('sphWinningSignal'), fix: t('sphWinningFix') },
+    { id: 'exit',    name: t('sphExitName'),    conscious: t('sphExitConscious'),    auto: t('sphExitAuto'),    signal: t('sphExitSignal'),    fix: t('sphExitFix') },
+    { id: 'review',  name: t('sphReviewName'),  conscious: t('sphReviewConscious'),  auto: t('sphReviewAuto'),  signal: t('sphReviewSignal'),  fix: t('sphReviewFix') },
+  ],
+  matrix: {
+    title: t('sphMxTitle'),
+    intro: t('sphMxIntro'),
+    colResult: t('sphMxColResult'),
+    colExec: t('sphMxColExec'),
+    colRead: t('sphMxColRead'),
+    win: t('sphMxWin'),
+    loss: t('sphMxLoss'),
+    good: t('sphMxGood'),
+    bad: t('sphMxBad'),
+    // result: 'win' | 'loss' — execution: 'good' | 'bad'. El caso (win, bad) es
+    // el que el diario tiene que poder marcar como error aunque el P&L sea verde.
+    rows: [
+      { id: 'win-good',   result: 'win',  exec: 'good', read: t('sphMxWinGood') },
+      { id: 'win-bad',    result: 'win',  exec: 'bad',  read: t('sphMxWinBad') },
+      { id: 'loss-good',  result: 'loss', exec: 'good', read: t('sphMxLossGood') },
+      { id: 'loss-bad',   result: 'loss', exec: 'bad',  read: t('sphMxLossBad') },
+    ],
+  },
+  note: t('sphNote'),
 });

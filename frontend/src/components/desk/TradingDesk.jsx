@@ -448,7 +448,7 @@ function EsperandoPregunta({ t, falta }) {
       className="rounded-lg border border-dashed border-rule bg-card/40 p-6 text-center"
       data-testid="desk-empty"
     >
-      <p className="font-mono text-4xl text-muted-foreground/40 tabular-nums">—</p>
+      <p className="font-mono text-4xl text-muted-foreground tabular-nums">—</p>
       <p className="mt-3 text-sm font-semibold">{t('deskEmptyTitle')}</p>
       <p className="mt-1 text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
         {falta ? t(`deskMissing_${falta}`) : t('deskEmptyReady')}

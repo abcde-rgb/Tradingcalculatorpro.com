@@ -23,7 +23,7 @@ administración, pagos (Stripe/PayPal/Revolut/cripto), autenticación (Google OA
 │
 ├── frontend/             React 19 + CRACO
 │   ├── src/components/     Por dominio: options/, performance/, calculators/, education/
-│   ├── src/lib/i18n/       8 idiomas con paridad total de claves (obligatoria)
+│   ├── src/lib/i18n/       10 idiomas con paridad total de claves (obligatoria)
 │   └── scripts/            Verificadores: i18n-check, engine-check, fetch-credentials
 │
 ├── docs/                 📖 Toda la documentación → empieza por docs/README.md
@@ -89,7 +89,7 @@ CoinGecko están bloqueados:
 cd backend   && python -m py_compile *.py          # todos los módulos, no una lista a mano
 cd backend   && pytest tests/ -q                   # unitarios offline; integración se salta
 cd frontend  && npx eslint src scripts             # falla sólo ante errores reales
-cd frontend  && node scripts/i18n-check.js         # paridad de claves en los 8 idiomas
+cd frontend  && node scripts/i18n-check.js         # paridad de claves en los 10 idiomas
 cd frontend  && node scripts/engine-check.js       # motor del simulador
 cd frontend  && npm run build                      # exit 0
 python scripts/check-doc-links.py                  # los enlaces de la doc resuelven

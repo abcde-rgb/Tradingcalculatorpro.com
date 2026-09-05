@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Crown, Check, CreditCard, Wallet, ArrowRight, Loader2, Building, ShoppingCart, Zap, Coins, Globe } from 'lucide-react';
+import { Crown, Check, CreditCard, Wallet, ArrowRight, Building, ShoppingCart, Zap, Coins, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -13,6 +13,7 @@ import { useSEO } from '@/hooks/useSEO';
 import { PlanPeriod } from '@/components/pricing/PlanPeriod';
 import { toast } from 'sonner';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -30,12 +31,12 @@ const PLANS_DATA = [
 
 // Payment methods will use t() for dynamic translation
 const PAYMENT_METHODS_DATA = [
-  { id: 'card',    icon: CreditCard,  color: 'text-blue-500',   nameKey: 'creditDebitCard', descKey: 'creditCardDesc', lifetimeOnly: false },
-  { id: 'sepa',    icon: Building,    color: 'text-emerald-500', nameKey: 'sepaDebit',       descKey: 'sepaDesc',       lifetimeOnly: false },
+  { id: 'card',    icon: CreditCard,  color: 'text-info',   nameKey: 'creditDebitCard', descKey: 'creditCardDesc', lifetimeOnly: false },
+  { id: 'sepa',    icon: Building,    color: 'text-long', nameKey: 'sepaDebit',       descKey: 'sepaDesc',       lifetimeOnly: false },
   { id: 'klarna',  icon: ShoppingCart,color: 'text-pink-500',   nameKey: 'klarnaPayment',   descKey: 'klarnaDesc',     lifetimeOnly: true  },
-  { id: 'paypal',  icon: Wallet,      color: 'text-blue-400',   nameKey: 'paypalPayment',   descKey: 'paypalDesc',     lifetimeOnly: false },
-  { id: 'nowpayments', icon: Coins,   color: 'text-amber-400',  nameKey: 'nowPaymentsPayment', descKey: 'nowPaymentsDesc', lifetimeOnly: false },
-  { id: 'revolut', icon: Zap,         color: 'text-indigo-400', nameKey: 'revolutPayment',  descKey: 'revolutDesc',    lifetimeOnly: false },
+  { id: 'paypal',  icon: Wallet,      color: 'text-info',   nameKey: 'paypalPayment',   descKey: 'paypalDesc',     lifetimeOnly: false },
+  { id: 'nowpayments', icon: Coins,   color: 'text-warn',  nameKey: 'nowPaymentsPayment', descKey: 'nowPaymentsDesc', lifetimeOnly: false },
+  { id: 'revolut', icon: Zap,         color: 'text-compare', nameKey: 'revolutPayment',  descKey: 'revolutDesc',    lifetimeOnly: false },
   { id: 'kunfupay', icon: Globe,      color: 'text-teal-400',   nameKey: 'kunfupayPayment', descKey: 'kunfupayDesc',   lifetimeOnly: false },
 ];
 
@@ -280,7 +281,7 @@ export default function PricingPage() {
                 </div>
               )}
               {gated && !isPremium && (
-                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-500" data-testid="pricing-gated-notice">
+                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-caution" data-testid="pricing-gated-notice">
                   <Crown className="w-4 h-4" />
                   <span className="text-sm font-medium">{t('gatedNotice')}</span>
                 </div>
@@ -442,7 +443,7 @@ export default function PricingPage() {
                         data-testid="checkout-btn"
                       >
                         {isLoading ? (
-                          <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
+                          <><CargaVelas className="w-5 h-5 mr-2" /> {t('processing')}</>
                         ) : (
                           <>Pagar con PayPal <ArrowRight className="ml-2" /></>
                         )}
@@ -455,7 +456,7 @@ export default function PricingPage() {
                         data-testid="checkout-btn"
                       >
                         {isLoading ? (
-                          <><Loader2 className="w-5 h-5 animate-spin mr-2" /> {t('processing')}</>
+                          <><CargaVelas className="w-5 h-5 mr-2" /> {t('processing')}</>
                         ) : isPremium ? (
                           <>{t('alreadyPremiumButton')}</>
                         ) : selectedPlan !== 'lifetime' && hayPrueba ? (

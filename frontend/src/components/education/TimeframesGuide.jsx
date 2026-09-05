@@ -105,7 +105,7 @@ export default function TimeframesGuide() {
           {/* Level 1 - Context */}
           <div className="w-full max-w-md">
             <div className="bg-blue-500/15 border border-blue-500/40 rounded-xl px-5 py-3 text-center">
-              <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-0.5">{t('tfLevel1Label')}</p>
+              <p className="text-xs font-bold text-info uppercase tracking-widest mb-0.5">{t('tfLevel1Label')}</p>
               <p className="text-sm font-semibold">W · D · H4</p>
               <p className="text-xs text-muted-foreground">{t('tfLevel1Desc')}</p>
             </div>
@@ -114,7 +114,7 @@ export default function TimeframesGuide() {
           {/* Level 2 - Signal */}
           <div className="w-full max-w-sm">
             <div className="bg-green-500/15 border border-green-500/40 rounded-xl px-5 py-3 text-center">
-              <p className="text-xs font-bold text-green-400 uppercase tracking-widest mb-0.5">{t('tfLevel2Label')}</p>
+              <p className="text-xs font-bold text-long uppercase tracking-widest mb-0.5">{t('tfLevel2Label')}</p>
               <p className="text-sm font-semibold">H4 · H1 · M30</p>
               <p className="text-xs text-muted-foreground">{t('tfLevel2Desc')}</p>
             </div>
@@ -123,7 +123,7 @@ export default function TimeframesGuide() {
           {/* Level 3 - Entry */}
           <div className="w-full max-w-xs">
             <div className="bg-orange-500/15 border border-orange-500/40 rounded-xl px-5 py-3 text-center">
-              <p className="text-xs font-bold text-orange-400 uppercase tracking-widest mb-0.5">{t('tfLevel3Label')}</p>
+              <p className="text-xs font-bold text-warn uppercase tracking-widest mb-0.5">{t('tfLevel3Label')}</p>
               <p className="text-sm font-semibold">M15 · M5 · M1</p>
               <p className="text-xs text-muted-foreground">{t('tfLevel3Desc')}</p>
             </div>
@@ -197,11 +197,11 @@ export default function TimeframesGuide() {
                     <div className="grid sm:grid-cols-2 gap-3 text-xs">
                       <div>
                         <p className="font-semibold text-muted-foreground mb-0.5">{t('tfDetailContext')}</p>
-                        <p className="text-foreground/80">{t(tf.contextKey)}</p>
+                        <p className="text-foreground">{t(tf.contextKey)}</p>
                       </div>
                       <div>
                         <p className="font-semibold text-muted-foreground mb-0.5">{t('tfDetailStop')}</p>
-                        <p className="text-foreground/80">{t(tf.stopKey)}</p>
+                        <p className="text-foreground">{t(tf.stopKey)}</p>
                       </div>
                     </div>
                   </div>
@@ -229,15 +229,15 @@ export default function TimeframesGuide() {
               </div>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="text-center">
-                  <p className="font-semibold text-blue-400 mb-0.5">{t('tfLevel1Label')}</p>
+                  <p className="font-semibold text-info mb-0.5">{t('tfLevel1Label')}</p>
                   <p className="font-mono font-bold">{c.context}</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-green-400 mb-0.5">{t('tfLevel2Label')}</p>
+                  <p className="font-semibold text-long mb-0.5">{t('tfLevel2Label')}</p>
                   <p className="font-mono font-bold">{c.signal}</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-orange-400 mb-0.5">{t('tfLevel3Label')}</p>
+                  <p className="font-semibold text-warn mb-0.5">{t('tfLevel3Label')}</p>
                   <p className="font-mono font-bold">{c.entry}</p>
                 </div>
               </div>
@@ -268,11 +268,11 @@ export default function TimeframesGuide() {
 
       {/* Key rules */}
       <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
-        <p className="text-sm font-semibold text-orange-400 mb-2">{t('tfRulesTitle')}</p>
+        <p className="text-sm font-semibold text-warn mb-2">{t('tfRulesTitle')}</p>
         <ul className="space-y-1">
           {[1, 2, 3].map(n => (
             <li key={n} className="text-xs text-muted-foreground flex items-start gap-2">
-              <span className="text-orange-400 mt-0.5">•</span>
+              <span className="text-warn mt-0.5">•</span>
               {t(`tfRule${n}`)}
             </li>
           ))}

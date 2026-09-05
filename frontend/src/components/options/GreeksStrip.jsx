@@ -15,15 +15,15 @@ const GreeksStrip = ({ greeks, dense = false, riskFree = null }) => {
 
   const items = [
     { key: 'delta', symbol: 'Δ', label: 'Delta', value: greeks.delta, hint: t('optGreekDeltaHint'),
-      color: greeks.delta >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]' },
+      color: greeks.delta >= 0 ? 'text-long' : 'text-short' },
     { key: 'gamma', symbol: 'Γ', label: 'Gamma', value: greeks.gamma, hint: t('optGreekGammaHint'),
-      color: 'text-[#f59e0b]' },
+      color: 'text-warn' },
     { key: 'theta', symbol: 'Θ', label: 'Theta', value: greeks.theta, hint: t('optGreekThetaHint'),
-      color: greeks.theta >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]' },
+      color: greeks.theta >= 0 ? 'text-long' : 'text-short' },
     { key: 'vega', symbol: 'ν', label: 'Vega', value: greeks.vega, hint: t('optGreekVegaHint'),
-      color: 'text-[#3b82f6]' },
+      color: 'text-info' },
     { key: 'rho', symbol: 'ρ', label: 'Rho', value: greeks.rho, hint: t('optGreekRhoHint'),
-      color: 'text-[#a78bfa]' },
+      color: 'text-compare' },
   ];
 
   // Segundo orden. No comparten fila con las primarias a propósito: describen

@@ -41,7 +41,7 @@ function ProgressDots({ current, total }) {
               ? "w-6 bg-green-500"
               : i === current
               ? "w-6 bg-green-400"
-              : "w-2 bg-zinc-600"
+              : "w-2 bg-muted-foreground/40"
           }`}
         />
       ))}
@@ -53,35 +53,35 @@ function Step1({ userName, t }) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
       <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30">
-        <TrendingUp className="w-8 h-8 text-green-400" />
+        <TrendingUp className="w-8 h-8 text-long" />
       </div>
       <div>
-        <h2 className="text-2xl font-bold text-white mb-1">
+        <h2 className="text-2xl font-bold text-foreground mb-1">
           {userName ? `${t('onboardingWelcome').replace('!', '')}, ${userName.split(" ")[0]}!` : t('onboardingWelcome')}
         </h2>
-        <p className="text-zinc-400 text-sm">{t('onboardingWelcomeSubtitle')}</p>
+        <p className="text-muted-foreground text-sm">{t('onboardingWelcomeSubtitle')}</p>
       </div>
-      <p className="text-zinc-300 text-sm leading-relaxed max-w-xs">
+      <p className="text-foreground text-sm leading-relaxed max-w-xs">
         {t('onboardingWelcomeDesc')}
       </p>
       <div className="flex items-center justify-center gap-6 mt-2">
         <div className="flex flex-col items-center gap-1.5">
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-            <Calculator className="w-5 h-5 text-green-400" />
+          <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center">
+            <Calculator className="w-5 h-5 text-long" />
           </div>
-          <span className="text-xs text-zinc-400">{t('calculate')}</span>
+          <span className="text-xs text-muted-foreground">{t('calculate')}</span>
         </div>
         <div className="flex flex-col items-center gap-1.5">
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-green-400" />
+          <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-long" />
           </div>
-          <span className="text-xs text-zinc-400">{t('onboardingStep1Analyze')}</span>
+          <span className="text-xs text-muted-foreground">{t('onboardingStep1Analyze')}</span>
         </div>
         <div className="flex flex-col items-center gap-1.5">
-          <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-green-400" />
+          <div className="w-10 h-10 rounded-lg bg-muted border border-border flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-long" />
           </div>
-          <span className="text-xs text-zinc-400">{t('onboardingStep1Register')}</span>
+          <span className="text-xs text-muted-foreground">{t('onboardingStep1Register')}</span>
         </div>
       </div>
     </div>
@@ -92,23 +92,23 @@ function Step2({ t }) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
       <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30">
-        <Calculator className="w-8 h-8 text-green-400" />
+        <Calculator className="w-8 h-8 text-long" />
       </div>
       <div>
-        <h2 className="text-xl font-bold text-white mb-1">{t('onboardingCalculators')}</h2>
-        <p className="text-zinc-400 text-sm">{t('onboardingCalcSubtitle')}</p>
+        <h2 className="text-xl font-bold text-foreground mb-1">{t('onboardingCalculators')}</h2>
+        <p className="text-muted-foreground text-sm">{t('onboardingCalcSubtitle')}</p>
       </div>
-      <p className="text-zinc-300 text-sm leading-relaxed max-w-xs">
+      <p className="text-foreground text-sm leading-relaxed max-w-xs">
         {t('onboardingCalcDesc')}
       </p>
       <div className="grid grid-cols-2 gap-2 w-full mt-1">
         {CALCULATORS.map((name) => (
           <div
             key={name}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted border border-border"
           >
-            <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-            <span className="text-xs text-zinc-200 font-medium">{name}</span>
+            <Check className="w-3.5 h-3.5 text-long flex-shrink-0" />
+            <span className="text-xs text-foreground font-medium">{name}</span>
           </div>
         ))}
       </div>
@@ -127,27 +127,27 @@ function Step3({ t }) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
       <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30">
-        <BarChart3 className="w-8 h-8 text-green-400" />
+        <BarChart3 className="w-8 h-8 text-long" />
       </div>
       <div>
-        <h2 className="text-xl font-bold text-white mb-1">{t('onboardingDashboard')}</h2>
-        <p className="text-zinc-400 text-sm">{t('onboardingDashboardSubtitle')}</p>
+        <h2 className="text-xl font-bold text-foreground mb-1">{t('onboardingDashboard')}</h2>
+        <p className="text-muted-foreground text-sm">{t('onboardingDashboardSubtitle')}</p>
       </div>
-      <p className="text-zinc-300 text-sm leading-relaxed max-w-xs">
+      <p className="text-foreground text-sm leading-relaxed max-w-xs">
         {t('onboardingDashboardDesc')}
       </p>
       <div className="flex flex-col gap-2 w-full mt-1">
         {tabs.map(({ icon: Icon, label, desc }) => (
           <div
             key={label}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted border border-border"
           >
             <div className="w-8 h-8 rounded-md bg-green-500/10 flex items-center justify-center flex-shrink-0">
-              <Icon className="w-4 h-4 text-green-400" />
+              <Icon className="w-4 h-4 text-long" />
             </div>
             <div className="text-left">
-              <p className="text-xs font-semibold text-zinc-100">{label}</p>
-              <p className="text-xs text-zinc-500">{desc}</p>
+              <p className="text-xs font-semibold text-foreground">{label}</p>
+              <p className="text-xs text-muted-foreground">{desc}</p>
             </div>
           </div>
         ))}
@@ -160,20 +160,20 @@ function Step4({ onComplete, t }) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
       <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 border border-green-500/30">
-        <Check className="w-8 h-8 text-green-400" />
+        <Check className="w-8 h-8 text-long" />
       </div>
       <div>
-        <h2 className="text-xl font-bold text-white mb-1">
+        <h2 className="text-xl font-bold text-foreground mb-1">
           {t('onboardingReady')}
         </h2>
-        <p className="text-zinc-400 text-sm">{t('onboardingAccountReady')}</p>
+        <p className="text-muted-foreground text-sm">{t('onboardingAccountReady')}</p>
       </div>
-      <p className="text-zinc-300 text-sm leading-relaxed max-w-xs">
+      <p className="text-foreground text-sm leading-relaxed max-w-xs">
         {t('onboardingStep4Desc')}
       </p>
       <button
         onClick={onComplete}
-        className="flex items-center gap-2 w-full justify-center px-5 py-3 rounded-lg bg-green-500 hover:bg-green-400 text-black font-semibold text-sm transition-colors mt-1"
+        className="flex items-center gap-2 w-full justify-center px-5 py-3 rounded-lg bg-green-500 hover:bg-green-400 text-primary-foreground font-semibold text-sm transition-colors mt-1"
       >
         {t('goToDashboard')}
         <ArrowRight className="w-4 h-4" />
@@ -223,7 +223,7 @@ export default function OnboardingModal() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) complete(); }}>
-      <DialogContent className="max-w-md bg-zinc-900 border border-zinc-700 text-white p-6 gap-0 [&>button]:text-zinc-400 [&>button]:hover:text-white">
+      <DialogContent className="max-w-md bg-card border border-border text-foreground p-6 gap-0 [&>button]:text-muted-foreground [&>button]:hover:text-foreground">
         <DialogHeader className="sr-only">
           <DialogTitle>{steps[step]}</DialogTitle>
         </DialogHeader>
@@ -238,10 +238,10 @@ export default function OnboardingModal() {
         </div>
 
         {!isLast && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-800">
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
             <button
               onClick={complete}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               {t('skip')}
             </button>
@@ -249,14 +249,14 @@ export default function OnboardingModal() {
               {!isFirst && (
                 <button
                   onClick={prev}
-                  className="px-4 py-2 rounded-lg text-sm text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm text-foreground hover:text-foreground bg-muted hover:bg-muted-foreground/20 transition-colors"
                 >
                   {t('previous')}
                 </button>
               )}
               <button
                 onClick={next}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-black bg-green-500 hover:bg-green-400 transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
               >
                 {t('next')}
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -266,10 +266,10 @@ export default function OnboardingModal() {
         )}
 
         {isLast && !isFirst && (
-          <div className="flex items-center justify-start mt-4 pt-4 border-t border-zinc-800">
+          <div className="flex items-center justify-start mt-4 pt-4 border-t border-border">
             <button
               onClick={prev}
-              className="px-4 py-2 rounded-lg text-sm text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 transition-colors"
+              className="px-4 py-2 rounded-lg text-sm text-foreground hover:text-foreground bg-muted hover:bg-muted-foreground/20 transition-colors"
             >
               {t('previous')}
             </button>

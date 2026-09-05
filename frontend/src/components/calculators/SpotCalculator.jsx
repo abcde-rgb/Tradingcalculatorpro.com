@@ -74,7 +74,7 @@ export const SpotCalculator = () => {
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Wallet className="w-5 h-5 text-purple-500" />
+          <Wallet className="w-5 h-5 text-compare" />
           {t('spot')}
         </CardTitle>
         <CardDescription className="text-xs leading-relaxed max-w-2xl">
@@ -127,7 +127,7 @@ export const SpotCalculator = () => {
               />
             </div>
             
-            <Button onClick={calculate} className="w-full bg-primary text-black hover:bg-primary/90" data-testid="spot-calculate-btn">
+            <Button onClick={calculate} className="w-full bg-primary text-primary-foreground hover:bg-primary/90" data-testid="spot-calculate-btn">
               {t('calculate')}
             </Button>
           </div>

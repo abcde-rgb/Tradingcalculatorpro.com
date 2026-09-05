@@ -263,7 +263,7 @@ function TradingViewWidgetComponent() {
             data-testid="favorite-btn" aria-label={t('favorite')}
           >
             {isFavorite ? (
-              <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+              <Star className="w-4 h-4 fill-yellow-500 text-caution" />
             ) : (
               <StarOff className="w-4 h-4" />
             )}
@@ -322,7 +322,7 @@ function TradingViewWidgetComponent() {
         {loadError && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-card z-10">
             <div className="text-center p-6">
-              <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
+              <AlertCircle className="w-12 h-12 text-caution mx-auto mb-3" />
               <h3 className="font-semibold mb-2">{t('chartLoadFailed')}</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {t('chartNotAvailable')}

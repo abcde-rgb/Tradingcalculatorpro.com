@@ -75,7 +75,7 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
   if (!stock) return null;
 
   const fmt = (n) => (n >= 0 ? '+' : '') + n.toFixed(2);
-  const colorize = (n) => (n >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]');
+  const colorize = (n) => (n >= 0 ? 'text-long' : 'text-short');
 
   return (
     <div className="space-y-2" data-testid="trade-advanced-panel">
@@ -88,10 +88,10 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
           data-testid="fees-toggle"
         >
           <div className="flex items-center gap-2">
-            <Wallet className="w-3.5 h-3.5 text-[#fbbf24]" />
+            <Wallet className="w-3.5 h-3.5 text-warn" />
             <span className="text-xs font-bold text-foreground">{t('feesAndDividends_adv001')}</span>
             {(feePerContract > 0 || dividendYield > 0) && (
-              <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#fbbf24]/15 text-[#fbbf24] font-bold">{t('active_adv008')}</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] bg-warn/15 text-warn font-bold">{t('active_adv008')}</span>
             )}
           </div>
           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expanded.fees ? 'rotate-180' : ''}`} />
@@ -152,7 +152,7 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
           data-testid="attribution-toggle"
         >
           <div className="flex items-center gap-2">
-            <Calculator className="w-3.5 h-3.5 text-[#a78bfa]" />
+            <Calculator className="w-3.5 h-3.5 text-compare" />
             <span className="text-xs font-bold text-foreground">{t('pnlAttribution_adv010')}</span>
           </div>
           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expanded.attribution ? 'rotate-180' : ''}`} />
@@ -242,7 +242,7 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
           data-testid="assignment-toggle"
         >
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-[#ef4444]" />
+            <AlertTriangle className="w-3.5 h-3.5 text-short" />
             <span className="text-xs font-bold text-foreground">{t('assignmentSim_adv020')}</span>
           </div>
           <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expanded.assignment ? 'rotate-180' : ''}`} />
@@ -273,10 +273,10 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
             {assignment && (
               <div className="space-y-2">
                 {assignment.assignments.map((a) => (
-                  <div key={`${a.leg}-${a.strike}`} className={`rounded p-2 border ${a.is_itm ? 'bg-[#ef4444]/10 border-[#ef4444]/30' : 'bg-background/60 border-border/40'}`}>
+                  <div key={`${a.leg}-${a.strike}`} className={`rounded p-2 border ${a.is_itm ? 'bg-short/10 border-short/30' : 'bg-background/60 border-border/40'}`}>
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="font-mono font-bold text-foreground">{a.leg}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${a.is_itm ? 'bg-[#ef4444]/30 text-[#f87171]' : 'bg-muted text-muted-foreground'}`}>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${a.is_itm ? 'bg-short/30 text-short' : 'bg-muted text-muted-foreground'}`}>
                         {a.is_itm ? t('itm_adv023') : t('expiresWorthless_adv024')}
                       </span>
                     </div>
@@ -284,13 +284,13 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
                       <div className="grid grid-cols-2 gap-2 mt-1 text-[10px]">
                         <div>
                           <span className="text-muted-foreground">{t('shares_adv025')}: </span>
-                          <span className={`font-mono font-bold ${a.shares_delivered >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+                          <span className={`font-mono font-bold ${a.shares_delivered >= 0 ? 'text-long' : 'text-short'}`}>
                             {a.shares_delivered >= 0 ? '+' : ''}{a.shares_delivered}
                           </span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">{t('cashFlow_adv026')}: </span>
-                          <span className={`font-mono font-bold ${a.cash_flow >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>
+                          <span className={`font-mono font-bold ${a.cash_flow >= 0 ? 'text-long' : 'text-short'}`}>
                             ${a.cash_flow.toFixed(0)}
                           </span>
                         </div>
@@ -301,10 +301,10 @@ const TradeAdvancedPanel = ({ legs, stock, feePerContract, onFeeChange, dividend
                 <div className="bg-primary/10 border border-primary/30 rounded p-2 flex items-center justify-between text-[11px]">
                   <span className="font-bold text-primary uppercase">{t('netResult_adv027')}</span>
                   <div className="flex gap-3 font-mono">
-                    <span className={assignment.net_shares >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}>
+                    <span className={assignment.net_shares >= 0 ? 'text-long' : 'text-short'}>
                       {assignment.net_shares >= 0 ? '+' : ''}{assignment.net_shares} sh
                     </span>
-                    <span className={assignment.net_cash_flow >= 0 ? 'text-[#4ade80]' : 'text-[#f87171]'}>
+                    <span className={assignment.net_cash_flow >= 0 ? 'text-long' : 'text-short'}>
                       ${assignment.net_cash_flow.toFixed(0)}
                     </span>
                   </div>

@@ -5,14 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, ShieldAlert, Loader2, Copy, Check } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Copy, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 // Two-step verification (TOTP) management: enable with an authenticator app,
-// or disable with a current code. Only shown for password accounts.
+// or disable with a current code.
+//
+// Para CUALQUIER cuenta, entre con contraseña, con Google o con enlace mágico:
+// los tres endpoints van por `require_user` y no miran el proveedor, y los tres
+// caminos de entrada piden el código si la cuenta lo tiene activado. Estuvo
+// oculta a las cuentas que no eran de contraseña, y como el 2FA es OBLIGATORIO
+// para administradores, un admin de Google quedaba encerrado: se le mandaba
+// aquí a activarlo y aquí no aparecía nada. Ver BUG-076.
 export default function TwoFactorCard() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
@@ -102,7 +110,7 @@ export default function TwoFactorCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          {enabled ? <ShieldCheck className="w-5 h-5 text-green-500" /> : <ShieldAlert className="w-5 h-5 text-muted-foreground" />}
+          {enabled ? <ShieldCheck className="w-5 h-5 text-long" /> : <ShieldAlert className="w-5 h-5 text-muted-foreground" />}
           {t('twoFactorSettingsTitle')}
           <Badge variant={enabled ? 'default' : 'outline'} className="ml-1 text-xs">
             {enabled ? t('twoFactorEnabledBadge') : t('twoFactorDisabledBadge')}
@@ -125,7 +133,7 @@ export default function TwoFactorCard() {
             {CodeInput}
             <div className="flex gap-2">
               <Button variant="destructive" onClick={confirmDisable} disabled={busy || code.length < 6}>
-                {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('twoFactorDisableBtn')}
+                {busy && <CargaVelas className="w-4 h-4 mr-2" />}{t('twoFactorDisableBtn')}
               </Button>
               <Button variant="ghost" onClick={() => { setMode('idle'); setCode(''); }} disabled={busy}>
                 {t('twoFactorCancelBtn')}
@@ -137,7 +145,7 @@ export default function TwoFactorCard() {
         {/* Disabled → offer enable */}
         {!enabled && mode !== 'enrolling' && (
           <Button onClick={startSetup} disabled={busy}>
-            {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('twoFactorEnableBtn')}
+            {busy && <CargaVelas className="w-4 h-4 mr-2" />}{t('twoFactorEnableBtn')}
           </Button>
         )}
 
@@ -169,7 +177,7 @@ export default function TwoFactorCard() {
               <div className="flex items-center gap-2">
                 <code className="flex-1 px-3 py-2 rounded-md bg-muted/50 border font-mono text-sm break-all">{setup.secret}</code>
                 <Button variant="outline" size="icon" onClick={copySecret} aria-label="Copy">
-                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="w-4 h-4 text-long" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
@@ -179,7 +187,7 @@ export default function TwoFactorCard() {
             </div>
             <div className="flex gap-2">
               <Button onClick={confirmEnable} disabled={busy || code.length < 6}>
-                {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('twoFactorConfirmBtn')}
+                {busy && <CargaVelas className="w-4 h-4 mr-2" />}{t('twoFactorConfirmBtn')}
               </Button>
               <Button variant="ghost" onClick={() => { setMode('idle'); setSetup(null); setCode(''); }} disabled={busy}>
                 {t('twoFactorCancelBtn')}

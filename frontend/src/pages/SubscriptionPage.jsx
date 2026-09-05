@@ -13,11 +13,11 @@ import {
 import { toast } from 'sonner';
 import {
   AlertCircle, CheckCircle, Calendar, CreditCard,
-  Download, ExternalLink, ArrowRightLeft, Crown, Loader2,
-} from 'lucide-react';
+  Download, ExternalLink, ArrowRightLeft, Crown } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -205,7 +205,7 @@ export default function SubscriptionPage() {
             <CardHeader>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-yellow-500" />
+                  <Crown className="h-5 w-5 text-caution" />
                   {t('estadoDeLaSuscripcion_5c2c42')}
                 </CardTitle>
                 {subscription?.status && <StatusBadge status={subscription.status} />}
@@ -247,8 +247,8 @@ export default function SubscriptionPage() {
                   {/* Cancellation warning */}
                   {isCanceling && (
                     <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                      <p className="text-sm text-amber-600 dark:text-amber-400">
+                      <AlertCircle className="h-5 w-5 text-warn mt-0.5 shrink-0" />
+                      <p className="text-sm text-warn dark:text-warn">
                         {t('subscriptionEndsOn')} <strong>{formatDate(periodEnd)}</strong>.{' '}
                         {t('cancelConfirmDesc')}
                       </p>
@@ -261,7 +261,7 @@ export default function SubscriptionPage() {
                     {!isLifetime && (
                       isCanceling ? (
                         <Button onClick={handleResume} disabled={resumeLoading}>
-                          {resumeLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                          {resumeLoading && <CargaVelas className="h-4 w-4 mr-2" />}
                           {t('resumeSubscriptionBtn')}
                         </Button>
                       ) : (
@@ -284,7 +284,7 @@ export default function SubscriptionPage() {
                     {/* Stripe portal → payment method & invoices */}
                     <Button variant="outline" onClick={handlePortal} disabled={portalLoading}>
                       {portalLoading
-                        ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ? <CargaVelas className="h-4 w-4 mr-2" />
                         : <CreditCard className="h-4 w-4 mr-2" />}
                       {t('managePaymentBtn')}
                     </Button>
@@ -404,7 +404,7 @@ export default function SubscriptionPage() {
               disabled={cancelLoading}
               className="w-full sm:w-auto"
             >
-              {cancelLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {cancelLoading && <CargaVelas className="h-4 w-4 mr-2" />}
               {t('confirmCancelBtn')}
             </Button>
           </DialogFooter>

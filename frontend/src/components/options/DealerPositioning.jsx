@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Info, Loader2 } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Info } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { fetchPositioning, calculateAdvancedGreeks } from '../../services/optionsApi';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 // Compact money formatter for GEX magnitudes (they run into millions/billions).
 const compact = (v) => {
@@ -96,19 +97,19 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
             </span>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground/70 mb-4">{t('gexPanelIntro')}</p>
+        <p className="text-[11px] text-muted-foreground mb-4">{t('gexPanelIntro')}</p>
 
         {loading && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
-            <Loader2 className="w-4 h-4 animate-spin" /> {t('loading')}
+            <CargaVelas className="w-4 h-4" /> {t('loading')}
           </div>
         )}
 
         {/* Modelled chain → no real open interest → we refuse to invent GEX. */}
         {!loading && data?.synthetic && (
-          <div className="flex items-start gap-2 rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-3"
+          <div className="flex items-start gap-2 rounded-lg border border-warn/40 bg-warn/5 p-3"
             data-testid="gex-synthetic-warning">
-            <AlertTriangle className="w-4 h-4 text-[#f59e0b] flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-warn flex-shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground leading-relaxed">
               {data.syntheticWarning || t('gexSyntheticWarn')}
             </p>
@@ -128,7 +129,7 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
               <Tile label={t('gexTotal')} value={compact(gex.total)}
                 hint={gex.total >= 0 ? t('gexPositiveHint') : t('gexNegativeHint')}
-                color={gex.total >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
+                color={gex.total >= 0 ? 'text-long' : 'text-short'}
                 testId="gex-total" />
               <Tile label={t('gexFlip')}
                 value={gex.flipStrike != null ? gex.flipStrike : '—'}
@@ -154,13 +155,13 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
                     <div className="relative flex-1 h-3.5 bg-muted/30 rounded-sm overflow-hidden">
                       <div className="absolute inset-y-0 left-1/2 w-px bg-border" />
                       <div
-                        className={positive ? 'absolute inset-y-0 bg-[#22c55e]/70' : 'absolute inset-y-0 bg-[#ef4444]/70'}
+                        className={positive ? 'absolute inset-y-0 bg-long/70' : 'absolute inset-y-0 bg-short/70'}
                         style={positive
                           ? { left: '50%', width: `${pct}%` }
                           : { right: '50%', width: `${pct}%` }}
                       />
                     </div>
-                    <span className={`w-20 font-mono shrink-0 ${positive ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+                    <span className={`w-20 font-mono shrink-0 ${positive ? 'text-long' : 'text-short'}`}>
                       {compact(row.gex)}
                     </span>
                   </div>
@@ -176,20 +177,20 @@ export default function DealerPositioning({ ticker, stock, legs, expirationIdx =
         <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">
           <ArrowUpRight className="w-4 h-4" /> {t('soGreeksTitle')}
         </h3>
-        <p className="text-[11px] text-muted-foreground/70 mb-4">{t('soGreeksIntro')}</p>
+        <p className="text-[11px] text-muted-foreground mb-4">{t('soGreeksIntro')}</p>
         <div className="grid grid-cols-2 gap-3">
           <Tile label={t('soVanna')}
             value={adv?.vanna != null ? adv.vanna.toFixed(4) : '—'}
             hint={t('soVannaHint')}
-            color={adv?.vanna == null ? 'text-muted-foreground' : adv.vanna >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
+            color={adv?.vanna == null ? 'text-muted-foreground' : adv.vanna >= 0 ? 'text-long' : 'text-short'}
             testId="so-vanna" />
           <Tile label={t('soCharm')}
             value={adv?.charm != null ? adv.charm.toFixed(4) : '—'}
             hint={t('soCharmHint')}
-            color={adv?.charm == null ? 'text-muted-foreground' : adv.charm >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}
+            color={adv?.charm == null ? 'text-muted-foreground' : adv.charm >= 0 ? 'text-long' : 'text-short'}
             testId="so-charm" />
         </div>
-        <div className="flex items-start gap-2 mt-3 text-[10px] text-muted-foreground/70">
+        <div className="flex items-start gap-2 mt-3 text-[10px] text-muted-foreground">
           <ArrowDownRight className="w-3 h-3 flex-shrink-0 mt-0.5" />
           <span>{t('soGreeksUnits')}</span>
         </div>

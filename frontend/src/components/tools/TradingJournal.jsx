@@ -80,19 +80,19 @@ export const TradingJournal = () => {
     <Card className="bg-card border-yellow-500/30">
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-yellow-500" />
+          <BookOpen className="w-5 h-5 text-caution" />
           Diario local (archivado)
         </CardTitle>
-        <span className="text-xs px-2 py-1 rounded bg-yellow-500/15 text-yellow-500 whitespace-nowrap">
+        <span className="text-xs px-2 py-1 rounded bg-yellow-500/15 text-caution whitespace-nowrap">
           Solo lectura
         </span>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <div className="flex gap-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/25">
-          <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-caution shrink-0 mt-0.5" />
           <div className="space-y-1 text-sm">
-            <p className="font-semibold text-yellow-500">
+            <p className="font-semibold text-caution">
               Estas {trades.length} operaciones nunca se guardaron en tu cuenta.
             </p>
             <p className="text-muted-foreground leading-relaxed">
@@ -143,7 +143,7 @@ export const TradingJournal = () => {
                   <div className="flex items-center gap-2">
                     <span className="font-bold">{trade.symbol}</span>
                     {trade.leverage > 1 && (
-                      <span className="text-xs text-yellow-500">{trade.leverage}x</span>
+                      <span className="text-xs text-caution">{trade.leverage}x</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">

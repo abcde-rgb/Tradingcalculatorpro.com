@@ -10,7 +10,8 @@ import json as _json_module
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
+from contextlib import asynccontextmanager
+from pydantic import ConfigDict, BaseModel, Field, EmailStr
 from typing import Any, Dict, List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -127,6 +128,26 @@ def _deserialize(raw) -> dict:
 _SAFE_FIELD_RE = _re_module.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 
+
+def _detalle_publico(e: Exception, generico: str) -> str:
+    """Lo que se le puede contar al cliente sobre un error interno: casi nada.
+
+    Había trece `detail=str(e)` / `detail=f"…{e}"`. El texto de una excepción no
+    está pensado para un usuario: lleva rutas, nombres de tabla, identificadores
+    internos y, en el caso de Stripe, a veces parte de la petición. El manejador
+    global (`_unhandled_exception_handler`) ya generaliza los 500 que se le
+    escapan a nadie; estas trece lo esquivaban por ser `HTTPException` explícitas.
+
+    Stripe es la única excepción razonable: su `user_message` existe justamente
+    para enseñárselo al cliente («tu tarjeta ha sido rechazada»), así que ese sí
+    se pasa. Todo lo demás va al log y al usuario le llega el mensaje genérico.
+    """
+    mensaje = getattr(e, "user_message", None)
+    if isinstance(mensaje, str) and mensaje.strip():
+        return mensaje.strip()
+    return generico
+
+
 def _literal_regex(text: str) -> str:
     """Convierte texto de un buscador en un patrón que lo busca TAL CUAL.
 
@@ -138,6 +159,31 @@ def _literal_regex(text: str) -> str:
     paréntesis y la búsqueda hace lo que el usuario espera: subcadena literal.
     """
     return _re_module.escape(text or "")
+
+
+def _regex_seguro(patron) -> str:
+    """Un patrón que PostgreSQL pueda compilar, pase lo que pase.
+
+    `_literal_regex` protege AL LLAMADOR, y hoy sólo hay uno que se acuerde de
+    usarlo (el buscador del panel admin). Esto protege el punto de paso: un
+    patrón que no compila —un `(` suelto, un `[` sin cerrar— aborta la consulta
+    entera con *invalid regular expression* y la petición acaba en 500, con el
+    filtro ya dentro de la cadena SQL y sin forma de recuperarse.
+
+    Si el patrón compila, se respeta tal cual: hay usos deliberados de expresión
+    regular (`{"$regex": "^i18n_"}` en `admin_routes`) que deben seguir
+    funcionando. Si NO compila, sólo puede venir de texto que alguien tecleó, y
+    lo que esa persona espera es buscar esa cadena literalmente.
+
+    Es la misma decisión que G-15: arreglar la causa en el único sitio por el
+    que pasa todo, en vez de confiar en que cada ruta futura se acuerde.
+    """
+    texto = patron if isinstance(patron, str) else str(patron or "")
+    try:
+        _re_module.compile(texto)
+        return texto
+    except _re_module.error:
+        return _re_module.escape(texto)
 
 
 def _build_where_clause(filter_dict: dict, start_param: int = 1):
@@ -208,7 +254,7 @@ def _build_where_clause(filter_dict: dict, start_param: int = 1):
                         parts.append(f"(data->>'{ key }') ~* ${param_idx}")
                     else:
                         parts.append(f"(data->>'{ key }') ~ ${param_idx}")
-                    params.append(operand)
+                    params.append(_regex_seguro(operand))
                     param_idx += 1
                 elif op == "$options":
                     continue  # handled with $regex
@@ -964,11 +1010,61 @@ class Database:
                 min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
         else:
+            # TCP. Por defecto, SSL VERIFICADO: es la única forma de conectar a
+            # Neon/Supabase y no queremos que un despliegue caiga a texto claro
+            # por accidente.
+            #
+            # Pero la rama trataba TODO host TCP como si fuera Neon, así que un
+            # Postgres local sin SSL fallaba con CERTIFICATE_VERIFY_FAILED —
+            # incluida la orden de desarrollo que documentaban CLAUDE.md y el
+            # README (hueco G-11). Ahora se respeta `sslmode`/`ssl` de la URL,
+            # que es el parámetro estándar de libpq:
+            #
+            #   ...?sslmode=disable   → sin SSL (sólo desarrollo local)
+            #   ...?sslmode=require   → cifrado sin verificar el certificado
+            #   sin parámetro         → verificado (el comportamiento de antes)
+            #
+            # `sslmode=disable` se RECHAZA en producción: bajar el cifrado por
+            # una cadena de conexión mal copiada no puede ser algo que ocurra en
+            # silencio.
             import ssl as _ssl
-            ssl_ctx = _ssl.create_default_context()
+            from urllib.parse import parse_qs, urlparse
+
+            consulta = parse_qs(urlparse(database_url).query)
+            modo = (consulta.get("sslmode") or consulta.get("ssl") or [""])[0].lower()
+
+            # ⚠️ El parámetro `ssl=` de asyncpg NO basta para verificar.
+            #
+            # Pasarle un `SSLContext` sin decir `sslmode` deja el modo en
+            # `prefer`, y para prefer/allow/require asyncpg fuerza
+            # `check_hostname=False` + `verify_mode=CERT_NONE` sobre una copia
+            # del contexto. Es decir: el código decía «SSL verificado», el
+            # comentario lo repetía, y lo que hacía era CIFRAR SIN AUTENTICAR —
+            # abierto a un intermediario que presente cualquier certificado.
+            # Comprobado contra un Postgres con certificado autofirmado: conectó
+            # sin rechistar, y `pg_stat_ssl` confirmaba cifrado.
+            #
+            # Sólo `verify-ca` y `verify-full` verifican de verdad, así que el
+            # modo va EXPLÍCITO en la cadena de conexión.
+            if modo in ("disable", "false", "off", "0"):
+                if os.environ.get("ENVIRONMENT", "production") == "production":
+                    raise RuntimeError(
+                        "sslmode=disable no se permite en producción: la conexión a la "
+                        "base de datos viajaría en claro. Quita el parámetro o usa "
+                        "sslmode=require."
+                    )
+                modo_efectivo = "disable"
+            elif modo in ("require", "allow", "prefer", "verify-ca"):
+                # Escotilla para un proveedor cuyo certificado no encadene
+                # contra el almacén del sistema. Es una decisión consciente.
+                modo_efectivo = modo
+            else:
+                modo_efectivo = "verify-full"
+
             self._pool = await asyncpg.create_pool(
-                clean_url, ssl=ssl_ctx, min_size=5, max_size=20,
-                timeout=10, command_timeout=30,
+                f"{clean_url}?sslmode={modo_efectivo}",
+                ssl=_ssl.create_default_context() if modo_efectivo.startswith("verify") else None,
+                min_size=5, max_size=20, timeout=10, command_timeout=30,
             )
 
     async def create_all_tables(self):
@@ -984,6 +1080,8 @@ class Database:
             "referrals", "referral_redemptions",
             "affiliates", "affiliate_payout_runs", "affiliate_payout_lines",
             "affiliate_payout_requests",
+            # Solicitudes de cobro del monedero de referidos (el admin las paga a mano).
+            "referral_payout_requests",
             "password_reset_tokens", "email_verification_tokens",
             # Admin panel features (queried/written in admin_routes.py — must
             # exist upfront, since Collection methods don't auto-create tables)
@@ -1140,12 +1238,36 @@ DEMO_PASSWORD = _demo_pw
 _ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 # Emails with FREE full (comp) access — always treated as premium without paying.
-# Útil mientras no está la facturación/Stripe activa. Ampliable por env FREE_ACCESS_EMAILS
-# (coma-separado); hardcodeamos una cuenta de cortesía por defecto.
-_FREE_ACCESS_EMAILS = (
-    {e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()}
-    | {"tradingcalculatorpro@gmail.com"}
-)
+# Útil mientras no está la facturación/Stripe activa. Sólo por FREE_ACCESS_EMAILS
+# (coma-separado).
+#
+# ⚠️ NO vuelvas a codificar aquí una dirección concreta. Había una
+# (`tradingcalculatorpro@gmail.com`) y era un muro de pago abierto: cualquiera
+# que registrase ese email —nadie lo había hecho— entraba premium con dos
+# peticiones anónimas. Una cortesía se concede sobre un `user_id` ya existente,
+# no sobre una cadena que cualquiera puede reclamar registrándose.
+_FREE_ACCESS_EMAILS = {
+    e.strip().lower() for e in os.environ.get("FREE_ACCESS_EMAILS", "").split(",") if e.strip()
+}
+
+
+def normalize_email(email: str | None) -> str:
+    """La forma canónica de un email: sin espacios y en minúsculas.
+
+    Existe porque la autorización de este backend se apoya en la cadena del
+    email —`_ADMIN_EMAILS`, `_FREE_ACCESS_EMAILS`, la atribución de referidos—
+    y los guardias comparaban `user["email"].lower()` mientras el registro
+    guardaba lo que llegase. Con `ADMIN_EMAILS=owner@example.com`, registrar
+    `Owner@Example.com` pasaba el control de duplicados (igualdad exacta), creaba
+    una SEGUNDA cuenta, y esa cuenta pasaba `require_admin` al bajarla a
+    minúsculas. Escalada a administrador con un registro público.
+
+    Regla: todo email que entre por una petición pasa por aquí ANTES de tocar la
+    base de datos, tanto para escribir como para buscar. Si añades una ruta que
+    reciba un email, aplícala; `test_email_normalizado_unit.py` recorre los
+    puntos de entrada y falla si alguno se salta.
+    """
+    return (email or "").strip().lower()
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
@@ -1155,7 +1277,24 @@ SUBSCRIPTION_PLANS = {
     "lifetime":  {"name": "De Por Vida", "price": 500.00, "currency": "EUR", "interval": "lifetime", "days": 36500, "stripe_price_id": "price_1TXM8YImYjMeegYBouBCvmC0", "klarna": True},
 }
 
-app = FastAPI(title="Trading Calculator PRO API")
+# ── Los docs interactivos, sólo fuera de producción ──────────────────────────
+# `FastAPI()` publica `/docs`, `/redoc` y `/openapi.json` sin autenticación. Eso
+# es el índice COMPLETO de la API —incluidas las rutas de admin, con sus
+# parámetros y sus esquemas— servido a cualquiera que lo pida. No da acceso a
+# nada, pero entrega el mapa: qué existe, cómo se llama y qué espera.
+#
+# En desarrollo hacen falta: `tests/e2e/api/autorizacion.py` lee `/openapi.json`
+# para comprobar que una ruta retirada ya no existe (un 404 no distingue
+# «retirada» de «bien protegida»), y el banco corre con `ENVIRONMENT=development`.
+_DOCS_ABIERTOS = os.environ.get("ENVIRONMENT", "production").lower() in (
+    "development", "dev", "local", "test",
+)
+app = FastAPI(
+    title="Trading Calculator PRO API",
+    docs_url="/docs" if _DOCS_ABIERTOS else None,
+    redoc_url="/redoc" if _DOCS_ABIERTOS else None,
+    openapi_url="/openapi.json" if _DOCS_ABIERTOS else None,
+)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
@@ -1267,6 +1406,72 @@ ADMIN_2FA_OPTIONAL = (
     and os.environ.get("ADMIN_2FA_OPTIONAL", "true").lower() != "false"
 )
 
+# Margen de cortesía para dar de alta el segundo factor, UNA sola vez por cuenta.
+#
+# Sin él, el primer administrador de una instalación se encuentra con un muro:
+# entra al panel, recibe 428, y la pantalla que le resuelve el problema está en
+# otra parte. Con él, la primera vez que un admin sin TOTP toca el panel se le
+# abre una ventana de diez minutos para activarlo con el panel delante.
+#
+# Las tres propiedades que lo hacen aceptable, y que están fijadas por tests:
+#   · ES DE UN SOLO USO. El instante de apertura se graba en la fila
+#     (`admin_2fa_grace_started_at`) y NO SE REESCRIBE NUNCA: ni al expirar, ni
+#     al activar y desactivar el 2FA, ni al ascender de nuevo la cuenta. Una
+#     cuenta sólo tiene diez minutos en toda su vida.
+#   · SE ABRE AL USARLA, no al crear la cuenta. Un admin dado de alta hace seis
+#     meses conserva su margen; un atacante que robe hoy esa contraseña se lo
+#     encuentra intacto sólo si el dueño nunca ha pisado el panel.
+#   · QUEDA REGISTRADA. Abrirla escribe un aviso en el log y una entrada en
+#     `admin_audit_log`, así que no es una puerta silenciosa.
+#
+# A 0 se desactiva por completo (el 428 vuelve a ser inmediato).
+try:
+    ADMIN_2FA_GRACE_MINUTES = max(0, int(os.environ.get("ADMIN_2FA_GRACE_MINUTES", "10")))
+except ValueError:
+    ADMIN_2FA_GRACE_MINUTES = 10
+
+# La palanca de emergencia: una FECHA LÍMITE, no un interruptor.
+#
+# `ADMIN_2FA_GRACE_MINUTES` resultó ser una trampa: se abre sola con la primera
+# visita al panel —que puede ser un clic sin intención— y no se reabre nunca. Si
+# se agota, el dueño se queda fuera de su propio panel sin ninguna forma de
+# entrar, que es exactamente lo que este código existía para evitar.
+#
+# Esto es la salida, y funciona aunque el margen esté gastado:
+#
+#     gcloud run services update tradingcalculator-api --region us-east1 \
+#       --update-env-vars ADMIN_2FA_BYPASS_UNTIL=2026-09-02T18:00:00Z
+#
+# Por qué es aceptable en producción, al contrario que `ADMIN_2FA_OPTIONAL`:
+#   · SE APAGA SOLA. Es un instante, no un booleano. Pasada la fecha vuelve el
+#     428 aunque la variable siga puesta y nadie se acuerde de quitarla — que es
+#     lo que de verdad pasa con los interruptores de emergencia.
+#   · PONERLA ES EL SEGUNDO FACTOR. Requiere acceso a la consola de Google Cloud
+#     y un despliegue del servicio. Quien tenga sólo la contraseña del admin no
+#     puede activarla; quien tenga GCP ya es dueño de todo de todos modos.
+#   · DEJA RASTRO. Cada petición que pasa por aquí escribe un aviso en el log y
+#     una entrada en `admin_audit_log`.
+#
+# Una fecha ilegible o pasada NO abre nada: cualquier duda deja el 428 en pie.
+ADMIN_2FA_BYPASS_UNTIL = (os.environ.get("ADMIN_2FA_BYPASS_UNTIL") or "").strip()
+
+
+def _bypass_2fa_vigente() -> Optional[datetime]:
+    """El instante en que caduca la palanca, si está puesta y aún no ha pasado."""
+    if not ADMIN_2FA_BYPASS_UNTIL:
+        return None
+    try:
+        limite = datetime.fromisoformat(ADMIN_2FA_BYPASS_UNTIL.replace("Z", "+00:00"))
+    except ValueError:
+        logging.error(
+            "[admin] ADMIN_2FA_BYPASS_UNTIL no es una fecha ISO-8601 (%s): se ignora, "
+            "el 2FA sigue siendo obligatorio", log_safe(ADMIN_2FA_BYPASS_UNTIL),
+        )
+        return None
+    if limite.tzinfo is None:
+        limite = limite.replace(tzinfo=timezone.utc)
+    return limite if datetime.now(timezone.utc) < limite else None
+
 
 def _real_client_ip(request: Optional[Request]) -> str:
     """Client IP as seen by our outermost trusted proxy.
@@ -1325,6 +1530,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     name: str
+    # El formulario de registro los MANDA —y el país es un `<select required>`,
+    # así que no se puede completar sin elegirlo—. Al no estar declarados aquí,
+    # Pydantic los descartaba EN SILENCIO: la cuenta nacía sin país ni idioma y
+    # nadie volvía a preguntárselo, porque el modal de recuperación sólo mira a
+    # los usuarios de Google. Obligar a rellenar algo que se tira es peor que
+    # no preguntarlo.
+    country: Optional[str] = None
+    preferred_locale: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -1437,8 +1650,15 @@ async def _is_token_revoked(payload: dict) -> bool:
     return bool(await db.revoked_tokens.find_one({"jti": jti}, {"_id": 1}))
 
 
-async def _revoke_token(payload: dict) -> None:
-    """Insert the token's jti into the blacklist so subsequent requests fail."""
+async def _revoke_token(payload: dict, motivo: str = "logout") -> None:
+    """Insert the token's jti into the blacklist so subsequent requests fail.
+
+    `motivo` distingue las dos razones por las que un token acaba aquí, que no
+    significan lo mismo: `logout` es «el dueño ha cerrado la sesión, no vuelve a
+    valer jamás»; `rotation` es «lo hemos cambiado por uno nuevo hace un
+    momento». Sin esa distinción no se puede tolerar la carrera de dos pestañas
+    refrescando a la vez sin abrir también la puerta a reusar un token cerrado.
+    """
     jti = payload.get("jti")
     if not jti:
         return  # nothing to revoke
@@ -1455,9 +1675,55 @@ async def _revoke_token(payload: dict) -> None:
             "user_id": payload.get("user_id"),
             "expires_at": expires_at,
             "revoked_at": datetime.now(timezone.utc),
+            "reason": motivo,
         }},
         upsert=True,
     )
+
+
+# Ventana en la que un refresh token RECIÉN ROTADO se sigue aceptando.
+#
+# El fallo que cierra: `/auth/refresh` rota el token —revoca el viejo y emite
+# uno nuevo— y el frontend lo llama AL ARRANCAR, porque el access token vive
+# sólo en memoria. Con dos pestañas abiertas (o una recarga mientras otra
+# pestaña arranca) las dos leen la MISMA cookie y llaman a la vez: la primera
+# rota, la segunda llega con el token que la primera acaba de revocar y recibe
+# 401. El store trata el 401 como «el servidor dice que no» y cierra la sesión.
+# Resultado: recargar una pestaña te echa, y no se cura sola.
+#
+# La ventana sólo cubre `reason == "rotation"`. Un token revocado por LOGOUT
+# sigue muriendo en el acto, que es lo que promete el botón de cerrar sesión.
+try:
+    REFRESH_ROTATION_GRACE_SECONDS = max(0, int(os.environ.get("REFRESH_ROTATION_GRACE_SECONDS", "30")))
+except ValueError:
+    REFRESH_ROTATION_GRACE_SECONDS = 30
+
+
+async def _rotado_hace_nada(payload: dict) -> bool:
+    """¿Este refresh token es uno que acabamos de rotar nosotros mismos?
+
+    Cualquier duda —sin jti, sin registro, otro motivo, fecha ilegible— responde
+    False y el 401 se mantiene.
+    """
+    if REFRESH_ROTATION_GRACE_SECONDS <= 0:
+        return False
+    jti = payload.get("jti")
+    if not jti:
+        return False
+    doc = await db.revoked_tokens.find_one({"jti": jti}, {"_id": 0})
+    if not doc or doc.get("reason") != "rotation":
+        return False
+    marca = doc.get("revoked_at")
+    if isinstance(marca, datetime):
+        revocado = marca if marca.tzinfo else marca.replace(tzinfo=timezone.utc)
+    else:
+        try:
+            revocado = datetime.fromisoformat(str(marca).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return False
+        if revocado.tzinfo is None:
+            revocado = revocado.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - revocado).total_seconds() <= REFRESH_ROTATION_GRACE_SECONDS
 
 
 async def _revoke_all_tokens_for_user(user_id: str) -> int:
@@ -1638,12 +1904,81 @@ async def require_admin(
     # finish setting this up" and send the admin to Settings instead of a dead
     # end. Escape hatch for local development only.
     if not user.get("totp_enabled") and not ADMIN_2FA_OPTIONAL:
-        raise HTTPException(
-            status_code=428,
-            detail="Los administradores deben activar la verificación en dos pasos "
-                   "(Ajustes → Seguridad) antes de usar el panel.",
-        )
+        # …salvo dos escapes, en este orden.
+        #
+        # (a) La palanca de emergencia, que alguien con acceso a Cloud Run ha
+        #     puesto a propósito y con fecha de caducidad. Va PRIMERO para que
+        #     funcione aunque el margen de alta ya esté gastado — que es
+        #     justamente cuando hace falta.
+        # (b) El margen de alta: diez minutos, una vez en la vida de la cuenta,
+        #     para activar el segundo factor con el panel delante en vez de
+        #     contra un muro. Ver ADMIN_2FA_GRACE_MINUTES.
+        caduca = _bypass_2fa_vigente()
+        if caduca is not None:
+            logging.warning(
+                "[admin] 2FA omitido por ADMIN_2FA_BYPASS_UNTIL (caduca %s) para %s",
+                log_safe(caduca.isoformat()), log_safe(user.get("email", "")),
+            )
+            await log_admin_action(
+                admin=user, action="admin_2fa_bypass_used",
+                details={"expires_at": caduca.isoformat()}, request=request,
+            )
+            return user
+        if not await _abrir_o_comprobar_margen_2fa(user, request):
+            raise HTTPException(
+                status_code=428,
+                detail="Los administradores deben activar la verificación en dos pasos "
+                       "(Ajustes → Seguridad) antes de usar el panel.",
+            )
     return user
+
+
+async def _abrir_o_comprobar_margen_2fa(user: dict, request: Optional[Request] = None) -> bool:
+    """¿Sigue abierto el margen de alta de 2FA de este administrador?
+
+    Lo abre la PRIMERA llamada que llega hasta aquí, y sólo esa: el instante se
+    graba en la fila y a partir de entonces esta función únicamente lee. Si la
+    cuenta ya gastó su margen —porque expiró, o porque activó el 2FA y luego lo
+    desactivó— devuelve False para siempre y el que llama responde 428.
+
+    Devolver False es el camino seguro: cualquier error de reloj, de formato o
+    de base de datos deja el 428 en pie.
+    """
+    if ADMIN_2FA_GRACE_MINUTES <= 0:
+        return False
+
+    ahora = datetime.now(timezone.utc)
+    marca = user.get("admin_2fa_grace_started_at")
+
+    if marca:
+        try:
+            inicio = datetime.fromisoformat(str(marca).replace("Z", "+00:00"))
+        except ValueError:
+            return False
+        if inicio.tzinfo is None:
+            inicio = inicio.replace(tzinfo=timezone.utc)
+        return ahora < inicio + timedelta(minutes=ADMIN_2FA_GRACE_MINUTES)
+
+    # Primera vez: se abre, se graba y se deja constancia. El `$set` va con el
+    # instante YA calculado (no con "ahora" del servidor de base de datos) para
+    # que el margen que se concede sea exactamente el que se acaba de medir.
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"admin_2fa_grace_started_at": ahora.isoformat()}},
+    )
+    user["admin_2fa_grace_started_at"] = ahora.isoformat()
+    logging.warning(
+        "[admin] Margen de alta de 2FA abierto (%s min, uso único) para %s",
+        log_safe(ADMIN_2FA_GRACE_MINUTES), log_safe(user.get("email", "")),
+    )
+    await log_admin_action(
+        admin=user,
+        action="admin_2fa_grace_opened",
+        details={"minutes": ADMIN_2FA_GRACE_MINUTES, "expires_at":
+                 (ahora + timedelta(minutes=ADMIN_2FA_GRACE_MINUTES)).isoformat()},
+        request=request,
+    )
+    return True
 
 
 # ============================================================
@@ -1726,6 +2061,32 @@ DATA_RETENTION_DAYS = int(os.environ.get("DATA_RETENTION_DAYS", "90"))
 # datos, que es exactamente la multa que el RGPD contempla. Con una sola tupla,
 # olvidarse deja de ser posible; `test_user_data_collections_unit.py` fija que
 # ninguna colección con `user_id` se quede fuera.
+# Campos del documento de usuario que SÍ salen en el export del RGPD.
+#
+# Es una lista blanca a propósito. Era una lista negra de una sola clave
+# (`if k not in ("password",)`), así que cada campo nuevo del usuario se
+# exportaba solo, sin que nadie lo decidiera. Así salían por `/auth/my-data`
+# `totp_secret` y `totp_pending_secret`: la semilla del segundo factor, en un
+# JSON que acaba en la carpeta de Descargas. Esa semilla sobrevive al cambio de
+# contraseña y a `_revoke_all_tokens_for_user`, así que quien la copie conserva
+# el segundo factor para siempre. Contradecía además la política escrita en
+# `_USER_DATA_COLLECTIONS`: los artefactos de seguridad no se exportan nunca.
+#
+# Regla: un campo nuevo NO se exporta hasta que alguien lo añada aquí. Si el
+# campo es un secreto, no se añade. `test_export_rgpd_unit.py` lo fija.
+_EXPORTABLE_PROFILE_FIELDS = frozenset({
+    "id", "email", "name", "picture", "created_at",
+    "auth_provider", "email_verified",
+    "subscription_plan", "subscription_end", "is_premium", "premium_lapsed_at",
+    "is_admin",
+    "referral_code", "referred_by_code", "referred_at",
+    "referral_wallet", "referral_wallet_redeemed",
+    "country", "locale", "timezone",
+    # `totp_enabled` sí: saber que tienes 2FA activo es un dato tuyo.
+    # `totp_secret` / `totp_pending_secret` NO: son la credencial, no el dato.
+    "totp_enabled",
+})
+
 _USER_DATA_COLLECTIONS = (
     "trades", "calculations", "alerts", "saved_positions", "portfolio",
     "user_states", "journal_entries", "trading_plans",
@@ -1737,7 +2098,7 @@ _USER_DATA_COLLECTIONS = (
 # Datos del usuario que se exportan y se borran con la cuenta, pero que la purga
 # por impago NO toca: los referidos son contabilidad del programa, no datos de
 # trading, y purgarlos a los 90 días borraría créditos ya ganados.
-_USER_NON_PURGED_COLLECTIONS = ("referrals",)
+_USER_NON_PURGED_COLLECTIONS = ("referrals", "referral_payout_requests")
 
 # Facturación: se borra con la cuenta y se exporta (en forma resumida), pero la
 # purga por impago NO la toca — quien deja de pagar conserva su histórico.
@@ -1843,7 +2204,6 @@ async def purge_lapsed_user_data(database, now: Optional[datetime] = None) -> in
 
 # ============= STARTUP - Create Demo User =============
 
-@app.on_event("startup")
 async def startup_event():
     """Initialise asyncpg pool, create tables, seed demo user."""
 
@@ -1976,14 +2336,32 @@ def _norm_country(value: Optional[str]) -> Optional[str]:
     return code if len(code) == 2 and code.isalpha() else None
 
 
+# El alta NO lleva límite de tasa, y es una decisión, no un descuido.
+#
+# Llevaba `@limiter.limit("3/hour")`, y el cubo es POR IP: detrás de un NAT
+# compartido —una oficina, el CGNAT de un operador móvil, una universidad— tres
+# personas distintas agotaban la cuota de todas las demás, y la cuarta recibía un
+# 429 sin haber intentado nada raro. En un producto de pago eso son altas
+# perdidas que no dejan rastro: el 429 se ve en el navegador del usuario, no en
+# los logs de nadie. Ya pasó una vez a lo grande (BUG-015: la clave del limitador
+# era la IP del frontend de Cloud Run, así que el cubo era GLOBAL y eran tres
+# registros por hora en toda la web).
+#
+# ⚠️ Lo que queda expuesto, para quien venga a decidir otra cosa: cada llamada
+# INSERTA una fila y dispara DOS correos por SendGrid (bienvenida y verificación).
+# Sin límite aquí, la protección tiene que estar en la capa de delante (Cloud Run,
+# Cloud Armor, un WAF) o en el propio SendGrid; no la hay en la aplicación.
+#
+# Los otros `3/hour` del fichero —enlace mágico, recuperar contraseña y borrado de
+# cuenta— siguen puestos: ahí el límite protege al DUEÑO de la cuenta de que le
+# inunden el buzón o le borren los datos, que es otro problema.
 @api_router.post("/auth/register", response_model=dict)
-@limiter.limit("3/hour")
 async def register(request: Request, response: Response, user_data: UserCreate):
     # El correo se normaliza AL ESCRIBIR y se comprueba sin distinguir mayúsculas.
     # Sin lo primero conviven `Ana@x.com` y `ana@x.com` como cuentas distintas;
     # sin lo segundo, registrarse con otra caja crea la segunda encima de la
     # primera y el usuario acaba con dos cuentas sin saber en cuál están sus datos.
-    email_norm = user_data.email.strip().lower()
+    email_norm = normalize_email(user_data.email)
     existing = await db.users.find_one({"email": {"$ieq": email_norm}})
     if existing:
         raise HTTPException(status_code=400, detail="No se pudo completar el registro. Verifica tus datos.")
@@ -2000,6 +2378,11 @@ async def register(request: Request, response: Response, user_data: UserCreate):
         "is_admin": False,
         "auth_provider": "password",
         "email_verified": False,
+        # Normalizados por las mismas funciones que usa `/auth/profile`: un país
+        # que no es ISO-3166 alfa-2 o un idioma que ninguna pantalla sabe pintar
+        # se guardan como None, no tal cual.
+        "country": _norm_country(user_data.country),
+        "preferred_locale": _norm_locale(user_data.preferred_locale),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
@@ -2027,11 +2410,19 @@ async def register(request: Request, response: Response, user_data: UserCreate):
             "subscription_plan": None,
             "subscription_end": None,
             "is_premium": False,
-            "is_admin": False,
+            # `ADMIN_EMAILS` también manda aquí. Esta respuesta lo daba por
+            # `False` fijo mientras login, refresh, `/auth/me`, Google y el
+            # enlace mágico lo calculaban con la lista: el dueño que se
+            # registraba por primera vez con SU correo de administrador salía a
+            # una sesión sin panel, y sólo aparecía al recargar (que es cuando
+            # entra `/auth/refresh`). El mismo usuario, dos respuestas distintas.
+            "is_admin": email_norm.lower() in _ADMIN_EMAILS,
             # Cuenta recién creada: nunca tiene TOTP. Viaja igualmente para que
             # todas las respuestas de auth tengan la misma forma (ver BUG-072).
             "two_factor_enabled": False,
             "auth_provider": "password",
+            "country": user["country"],
+            "preferred_locale": user["preferred_locale"],
             "email_verified": False,
         }
     }
@@ -2083,6 +2474,8 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
             "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
             "last_seen": now_iso,
             "login_count": (user.get("login_count") or 0) + 1,
@@ -2185,6 +2578,8 @@ async def get_me(user: dict = Depends(require_user)):
         "is_premium": is_premium,
         "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         "auth_provider": user.get("auth_provider", "password"),
+        "country": user.get("country"),
+        "preferred_locale": user.get("preferred_locale"),
         "email_verified": bool(user.get("email_verified", False)),
         "two_factor_enabled": bool(user.get("totp_enabled", False)),
         "picture": user.get("picture"),
@@ -2204,16 +2599,39 @@ async def logout(
     response: Response,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ):
-    """Revoke the caller's JWT so it cannot be reused even if leaked. Also clears httpOnly cookies."""
+    """Revoke the caller's JWT so it cannot be reused even if leaked. Also clears httpOnly cookies.
+
+    Se revocan LOS DOS tokens, no sólo el de acceso. Borrar las cookies deja
+    limpio el navegador que cierra la sesión, pero no invalida nada: quien
+    tuviera copia del refresh —una extensión, una copia de seguridad del perfil,
+    un proxy— seguía canjeándolo por sesiones nuevas durante siete días, con el
+    botón de «cerrar sesión» ya pulsado. El de acceso caduca en una hora; el de
+    refresco es el que abre la puerta, y era justo el que sobrevivía.
+    """
     _clear_auth_cookies(response)
+    revocados = 0
+
+    # El de refresco: sólo viaja por cookie (su path es /api/auth/refresh), así
+    # que se lee de ahí. Se marca como `logout`, NO como `rotation`: la ventana
+    # de tolerancia a la rotación no puede resucitar una sesión cerrada.
+    crudo_refresh = request.cookies.get("refresh_token")
+    if crudo_refresh:
+        try:
+            carga = jwt.decode(crudo_refresh, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            if carga.get("type") == "refresh":
+                await _revoke_token(carga, motivo="logout")
+                revocados += 1
+        except jwt.InvalidTokenError:
+            pass  # caducado o falso: ya no vale, nada que revocar
+
     token = _extract_token_from_request(request, credentials)
     if not token:
-        return {"ok": True, "revoked": False}
+        return {"ok": True, "revoked": revocados > 0}
     try:
         payload = decode_token(token)
     except HTTPException:
-        return {"ok": True, "revoked": False}
-    await _revoke_token(payload)
+        return {"ok": True, "revoked": revocados > 0}
+    await _revoke_token(payload, motivo="logout")
     return {"ok": True, "revoked": True}
 
 
@@ -2240,7 +2658,11 @@ async def refresh_access_token(request: Request, response: Response, body: Token
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Token no es un refresh token.")
 
-    if await _is_token_revoked(payload):
+    if await _is_token_revoked(payload) and not await _rotado_hace_nada(payload):
+        # Revocado de verdad (logout, o una rotación de hace rato): 401.
+        # Si en cambio lo acabamos de rotar nosotros hace segundos, es la
+        # carrera de dos pestañas arrancando a la vez y no una sesión cerrada:
+        # se le entrega un par nuevo. Ver REFRESH_ROTATION_GRACE_SECONDS.
         raise HTTPException(status_code=401, detail="Refresh token revocado. Inicia sesión de nuevo.")
 
     if await _is_user_session_revoked(payload):
@@ -2256,7 +2678,7 @@ async def refresh_access_token(request: Request, response: Response, body: Token
         raise HTTPException(status_code=401, detail="Usuario no encontrado.")
 
     # Revoke old refresh token (rotation)
-    await _revoke_token(payload)
+    await _revoke_token(payload, motivo="rotation")
 
     new_access = create_token(user_id, email)
     new_refresh = create_refresh_token(user_id, email)
@@ -2283,6 +2705,8 @@ async def refresh_access_token(request: Request, response: Response, body: Token
             # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
             "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
         },
     }
@@ -2372,6 +2796,15 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
     user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    # El segundo factor se exigía SÓLO en /auth/login. Quien tuviera TOTP activo
+    # podía saltárselo pidiendo un enlace mágico a su propio correo: un atacante
+    # con acceso al buzón —que es justo contra lo que protege el 2FA— entraba con
+    # sesión completa. Mismo contrato que el login: token pendiente y a verificar.
+    if user.get("totp_enabled"):
+        return {
+            "totp_required": True,
+            "pending_token": _create_2fa_pending_token(user["id"], user["email"]),
+        }
     await db.users.update_one({"id": user["id"]}, {"$set": {
         "last_seen": datetime.now(timezone.utc).isoformat(),
         "login_count": (user.get("login_count") or 0) + 1,
@@ -2403,6 +2836,8 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
             "is_premium": check_premium(user),
             "subscription_plan": user.get("subscription_plan"),
             "auth_provider": user.get("auth_provider", "magic_link"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
         },
     }
 
@@ -2429,10 +2864,20 @@ async def _send_magic_link_email(to_email: str, name: str, magic_url: str) -> No
 </div>"""}],
         }
         async with _httpx.AsyncClient(timeout=10) as c:
-            await c.post(
+            resp = await c.post(
                 "https://api.sendgrid.com/v3/mail/send",
                 json=payload,
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            )
+        # `httpx` no lanza por sí solo en un 4xx/5xx — sin este chequeo, una
+        # clave inválida, un dominio remitente sin verificar o un límite de
+        # SendGrid fallaban en total silencio: ni excepción ni log, el correo
+        # sin más no llegaba y no había ni rastro de por qué. `_send_email`
+        # (el otro camino, con el SDK) sí lo captura; este no lo hacía.
+        if resp.status_code >= 300:
+            logging.warning(
+                "[magic-link] SendGrid respondió %s al enviar a %s: %s",
+                log_safe(resp.status_code), log_safe(to_email), log_safe(resp.text[:500]),
             )
     except Exception as e:
         logging.warning(f"[magic-link] email error: {log_safe(e)}")
@@ -2474,9 +2919,17 @@ async def _send_email_verification(user_id: str, to_email: str, name: str) -> No
 </div>"""}],
         }
         async with _httpx.AsyncClient(timeout=10) as c:
-            await c.post(
+            resp = await c.post(
                 "https://api.sendgrid.com/v3/mail/send", json=payload,
                 headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            )
+        # Mismo fallo que el magic link: httpx no lanza por un 4xx/5xx, así que
+        # sin comprobar el código un envío rechazado (clave inválida, dominio
+        # remitente sin verificar…) no dejaba ni rastro en los logs.
+        if resp.status_code >= 300:
+            logging.warning(
+                "[verify-email] SendGrid respondió %s al enviar a %s: %s",
+                log_safe(resp.status_code), log_safe(to_email), log_safe(resp.text[:500]),
             )
     except Exception as e:
         logging.warning(f"[verify-email] send error: {log_safe(e)}")
@@ -2556,7 +3009,10 @@ async def change_password(request: Request, body: ChangePasswordRequest, user: d
     if not user_doc or not user_doc.get("password"):
         raise HTTPException(status_code=400, detail="Esta cuenta usa login con Google. Usa la opción de Google para gestionar tu contraseña.")
 
-    if not verify_password(body.current_password, user_doc["password"]):
+    # bcrypt bloquea el event loop entero: era la última llamada síncrona en un
+    # handler async (invariante de CLAUDE.md). El resto ya usaba la versión
+    # asíncrona; ésta se quedó atrás.
+    if not await verify_password_async(body.current_password, user_doc["password"]):
         raise HTTPException(status_code=401, detail="Contraseña actual incorrecta")
 
     await db.users.update_one(
@@ -2685,6 +3141,8 @@ async def totp_verify(request: Request, response: Response, body: TotpVerifyRequ
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
             "two_factor_enabled": True,
         },
@@ -2861,6 +3319,8 @@ async def passkey_login_complete(
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
             "two_factor_enabled": bool(user.get("totp_enabled")),
         },
@@ -2934,7 +3394,7 @@ async def export_my_data(request: Request, user: dict = Depends(require_user)):
     """RGPD Art. 20 — portabilidad de datos. Devuelve todos los datos del usuario en JSON."""
     import json as _json
     user_id = user["id"]
-    safe_user = {k: v for k, v in user.items() if k not in ("password",)}
+    safe_user = {k: v for k, v in user.items() if k in _EXPORTABLE_PROFILE_FIELDS}
 
     async def collect(collection, query):
         # find() returns a lazy _Cursor; it must be materialised with .to_list().
@@ -3017,6 +3477,10 @@ GOOGLE_CLIENT_ID = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
 class GoogleAuthRequest(BaseModel):
     """Payload sent by the SPA after Google's button returns an ID token."""
     credential: str  # the Google-issued ID token (JWT signed by Google)
+    # `loginWithGoogle` los manda desde la página de registro, y se perdían por
+    # lo mismo que en `UserCreate`. Google no da ninguno de los dos.
+    country: Optional[str] = None
+    preferred_locale: Optional[str] = None
 
 
 @api_router.post("/auth/google")
@@ -3047,7 +3511,7 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
         logging.warning("Google token validation failed: %s", log_safe(exc))
         raise HTTPException(status_code=401, detail="Token de Google inválido") from exc
 
-    email = (info.get("email") or "").lower()
+    email = normalize_email(info.get("email"))
     if not email or not info.get("email_verified"):
         raise HTTPException(status_code=401, detail="Cuenta de Google sin email verificado")
 
@@ -3072,6 +3536,8 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "is_premium": False,
             "is_admin": False,
             "auth_provider": "google",
+            "country": _norm_country(payload.country),
+            "preferred_locale": _norm_locale(payload.preferred_locale),
             "google_sub": info.get("sub"),     # stable Google user id
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -3122,6 +3588,18 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             # ocurrir aunque el `$set` fallara por lo que fuera.
             await _revoke_all_tokens_for_user(user["id"])
 
+    # Igual que en /auth/login y en el enlace mágico: si la cuenta tiene TOTP,
+    # Google prueba QUIÉN eres, no que tengas el segundo factor. Sin esto, una
+    # sesión de Google robada saltaba el 2FA que el usuario activó a propósito.
+    # (Las passkeys sí se saltan el TOTP, y está justificado por escrito en
+    # `passkeys.py`: la passkey ya es un factor de posesión resistente al
+    # phishing. Google no lo es.)
+    if user.get("totp_enabled"):
+        return {
+            "totp_required": True,
+            "pending_token": _create_2fa_pending_token(user["id"], user["email"]),
+        }
+
     token = create_token(user["id"], user["email"])
     refresh_token = create_refresh_token(user["id"], user["email"])
     _set_auth_cookies(response, token, refresh_token)
@@ -3146,15 +3624,101 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
             "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "google"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
         },
     }
 
 class ProfileUpdateRequest(BaseModel):
+    """Lo que Ajustes puede cambiar de la propia cuenta.
+
+    `name` y `picture` NO estaban, y la pantalla los mandaba: el botón
+    «Guardar» de Ajustes devolvía 405 (además pedía PUT, que tampoco existía).
+    Las dos mitades —pantalla y endpoint— se escribieron por separado y nunca
+    se encontraron; el propio docstring del endpoint decía «lo que sigue
+    faltando es la pantalla» cuando la pantalla llevaba tiempo hecha.
+    """
     country: Optional[str] = None
     preferred_locale: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=80)
+    picture: Optional[str] = Field(None, max_length=500)
 
 
+@api_router.get("/auth/admin-status")
+async def admin_status(user: dict = Depends(require_user)):
+    """Por qué el panel te deja entrar o no. Sobre TU PROPIA cuenta.
+
+    Existe porque «el admin no funciona» tiene cuatro causas distintas que dan
+    cuatro pantallas parecidas —te echa a la portada, te echa a Ajustes, el panel
+    sale vacío, el panel se cae— y desde fuera no se distinguen. Sin esto, cada
+    diagnóstico es una ronda de suposiciones: pasó tres veces seguidas.
+
+    No filtra nada: son datos de tu propia cuenta que ya conoces, más la
+    configuración del servidor que decide sobre ti. Va por `require_user`, así
+    que hay que haber iniciado sesión, y no dice nada de NINGÚN otro usuario.
+    """
+    email = (user.get("email") or "").lower()
+    es_admin = bool(user.get("is_admin")) or email in _ADMIN_EMAILS
+    tiene_2fa = bool(user.get("totp_enabled"))
+    caduca_bypass = _bypass_2fa_vigente()
+
+    # El margen de alta, sin abrirlo: esto es un diagnóstico, no una puerta.
+    margen = {"minutos_configurados": ADMIN_2FA_GRACE_MINUTES, "estado": "sin_usar"}
+    marca = user.get("admin_2fa_grace_started_at")
+    if ADMIN_2FA_GRACE_MINUTES <= 0:
+        margen["estado"] = "desactivado"
+    elif marca:
+        try:
+            inicio = datetime.fromisoformat(str(marca).replace("Z", "+00:00"))
+            if inicio.tzinfo is None:
+                inicio = inicio.replace(tzinfo=timezone.utc)
+            fin = inicio + timedelta(minutes=ADMIN_2FA_GRACE_MINUTES)
+            vivo = datetime.now(timezone.utc) < fin
+            margen.update({"estado": "abierto" if vivo else "gastado",
+                           "abierto_el": inicio.isoformat(), "caduca_el": fin.isoformat()})
+        except ValueError:
+            margen["estado"] = "marca_ilegible"
+
+    if not es_admin:
+        motivo = ("Esta cuenta NO es administradora. El panel responde 403 y la app "
+                  "te devuelve a la portada. Revisa ADMIN_EMAILS en el servicio "
+                  "(coma sin espacios, minúsculas) o asciende la cuenta desde otra admin.")
+        puede = False
+    elif tiene_2fa or ADMIN_2FA_OPTIONAL or caduca_bypass is not None:
+        motivo = "Puedes entrar al panel."
+        puede = True
+    elif margen["estado"] == "abierto":
+        motivo = (f"Entras por el margen de alta, que caduca el {margen['caduca_el']}. "
+                  "Activa la verificación en dos pasos AHORA: no se vuelve a abrir.")
+        puede = True
+    else:
+        motivo = ("Eres administradora pero la cuenta no tiene verificación en dos "
+                  "pasos, y el margen de alta está " + margen["estado"] + ". El panel "
+                  "responde 428. Actívala en Ajustes → Seguridad, o pon "
+                  "ADMIN_2FA_BYPASS_UNTIL en el servicio con una fecha futura.")
+        puede = False
+
+    return {
+        "email": user.get("email"),
+        "puede_entrar_al_panel": puede,
+        "motivo": motivo,
+        "es_admin": es_admin,
+        "por_lista_admin_emails": email in _ADMIN_EMAILS,
+        "por_marca_en_la_fila": bool(user.get("is_admin")),
+        "hay_admin_emails_configurado": bool(_ADMIN_EMAILS),
+        "two_factor_enabled": tiene_2fa,
+        "auth_provider": user.get("auth_provider", "password"),
+        "margen_de_alta": margen,
+        "bypass_activo_hasta": caduca_bypass.isoformat() if caduca_bypass else None,
+        "entorno_permite_saltarse_2fa": ADMIN_2FA_OPTIONAL,
+    }
+
+
+# Las dos, y no es indecisión: el store del frontend llama con POST y la
+# pantalla de Ajustes con PUT. Registrar sólo una dejaba a la otra en 405,
+# que es exactamente lo que pasaba.
 @api_router.post("/auth/profile")
+@api_router.put("/auth/profile")
 async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends(require_user)):
     """El usuario fija su propio pais e idioma de interfaz.
 
@@ -3171,6 +3735,19 @@ async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends
         updates["country"] = _norm_country(payload.country)
     if payload.preferred_locale is not None:
         updates["preferred_locale"] = _norm_locale(payload.preferred_locale)
+    if payload.name is not None:
+        nombre = payload.name.strip()
+        # Un nombre vacío no se guarda: dejaría la cuenta sin cómo llamarla en
+        # los correos y en la cabecera. Se ignora, no se rechaza.
+        if nombre:
+            updates["name"] = nombre
+    if payload.picture is not None:
+        foto = payload.picture.strip()
+        # Cadena vacía = quitar la foto, que es una acción legítima. Cualquier
+        # otra cosa tiene que ser una URL http(s): un `javascript:` aquí acaba
+        # en el `src` de un <img> de la cabecera.
+        if not foto or foto.startswith(("https://", "http://")):
+            updates["picture"] = foto or None
     if updates:
         await db.users.update_one({"id": user["id"]}, {"$set": updates})
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or user
@@ -3178,6 +3755,8 @@ async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends
         "ok": True,
         "country": fresh.get("country"),
         "preferred_locale": fresh.get("preferred_locale"),
+        "name": fresh.get("name"),
+        "picture": fresh.get("picture"),
     }
 
 
@@ -3751,11 +4330,22 @@ def _simulate_one_mc_path(
     initial: float, num_trades: int, win_rate: float,
     avg_win: float, avg_loss: float, rng: secrets.SystemRandom,
 ) -> Dict[str, Any]:
-    """Simulate one full equity curve and its max drawdown."""
+    """Simulate one full equity curve, its max drawdown, and whether it ruined.
+
+    `arruinada` es lo que le pasa a la CUENTA, no lo que marca el saldo final.
+    El resumen contaba `saldo final <= 0`, así que una trayectoria que tocaba
+    -500 en la operación 20 y terminaba en +2.000 no contaba como ruina — y una
+    cuenta real en cero no sigue operando para recuperarse: la cierra el bróker.
+    Medido sobre 100 operaciones al 45 % de aciertos, eso publicaba 0,88 % donde
+    el riesgo real es 1,19 %.
+
+    La simulación además CORTA al tocar cero, que es lo que ocurre de verdad.
+    """
     balance = initial
     curve = [balance]
     peak = balance
     max_dd = 0.0
+    arruinada = False
     for _ in range(num_trades):
         balance += avg_win if rng.random() < win_rate else avg_loss
         curve.append(balance)
@@ -3764,20 +4354,36 @@ def _simulate_one_mc_path(
         dd = (peak - balance) / peak if peak > 0 else 0
         if dd > max_dd:
             max_dd = dd
-    return {"final": balance, "curve": curve, "max_dd_pct": max_dd * 100}
+        if balance <= 0:
+            arruinada = True
+            break
+    return {"final": balance, "curve": curve, "max_dd_pct": max_dd * 100,
+            "arruinada": arruinada}
 
 
-def _summarize_mc_runs(initial: float, finals: List[float], drawdowns: List[float]) -> Dict[str, Any]:
-    """Compute percentile/risk-of-ruin statistics from a batch of MC final balances."""
+def _summarize_mc_runs(initial: float, finals: List[float], drawdowns: List[float],
+                       ruinas: Optional[List[bool]] = None) -> Dict[str, Any]:
+    """Compute percentile/risk-of-ruin statistics from a batch of MC paths.
+
+    `ruinas` marca, por trayectoria, si el saldo LLEGÓ a tocar cero. Es opcional
+    para no romper llamadas antiguas, pero sin ella el riesgo de ruina se
+    infravalora: ver `_simulate_one_mc_path`.
+    """
     finals_sorted = sorted(finals)
     n = len(finals_sorted)
+    if n == 0:
+        return {}
     return {
         "initialCapital": initial,
         "avgFinalBalance": round(sum(finals_sorted) / n, 2),
         "percentile5": round(finals_sorted[int(n * 0.05)], 2),
         "percentile50": round(finals_sorted[int(n * 0.50)], 2),
         "percentile95": round(finals_sorted[int(n * 0.95)], 2),
-        "riskOfRuin": round(sum(1 for b in finals_sorted if b <= 0) / n * 100, 2),
+        # Cuenta las trayectorias que TOCARON cero en algún momento, no las que
+        # acabaron por debajo. Ver `_simulate_one_mc_path`.
+        "riskOfRuin": round(
+            (sum(1 for r in ruinas if r) if ruinas
+             else sum(1 for b in finals_sorted if b <= 0)) / n * 100, 2),
         "avgMaxDrawdown": round(sum(drawdowns) / len(drawdowns), 2),
         "profitProbability": round(sum(1 for b in finals_sorted if b > initial) / n * 100, 2),
     }
@@ -3794,20 +4400,25 @@ async def run_monte_carlo(request: dict, user: dict = Depends(require_user)) -> 
     avg_loss = request.get("avgLoss", -50)
     initial = request.get("initialCapital", 10000)
     num_trades = min(int(request.get("numTrades", 100)), 1000)
-    num_simulations = min(int(request.get("numSimulations", 1000)), 5000)
+    # `min(..., 5000)` no tenía suelo: con numSimulations=0 el resumen dividía
+    # entre n=0 y la ruta devolvía un 500.
+    num_simulations = max(1, min(int(request.get("numSimulations", 1000)), 5000))
 
     rng = secrets.SystemRandom()
     finals: List[float] = []
     drawdowns: List[float] = []
+    ruinas: List[bool] = []
     curves: List[List[float]] = []
     for _ in range(num_simulations):
         path = _simulate_one_mc_path(initial, num_trades, win_rate, avg_win, avg_loss, rng)
         finals.append(path["final"])
         drawdowns.append(path["max_dd_pct"])
+        ruinas.append(bool(path.get("arruinada")))
         if len(curves) < 100:  # keep first 100 paths for charting
             curves.append(path["curve"])
 
-    return {"simulations": curves[:50], "statistics": _summarize_mc_runs(initial, finals, drawdowns)}
+    return {"simulations": curves[:50],
+            "statistics": _summarize_mc_runs(initial, finals, drawdowns, ruinas)}
 
 # ============= CALCULATIONS =============
 
@@ -4272,14 +4883,29 @@ async def paypal_capture_order(
         await db.payment_transactions.update_one({"id": transaction["id"]}, {"$set": {"status": "pending"}})
         raise HTTPException(status_code=503, detail="PayPal no está configurado")
 
+    # ⚠️ TODA salida de error a partir del claim tiene que devolver la
+    # transacción a `pending`. La rama del 503 de arriba ya lo hacía; el 502 y
+    # el 402 no, y la transacción se quedaba clavada en `capturing`: al
+    # reintentar, el `find_one_and_update` no encontraba nada en `pending` y la
+    # ruta respondía `already_paid` SIN conceder premium. Cobro sin producto —
+    # y encima invisible, porque `paid_not_permium` de la reconciliación busca
+    # `status == "paid"`, no `capturing`.
+    async def _soltar_claim():
+        await db.payment_transactions.update_one(
+            {"id": transaction["id"], "status": "capturing"},
+            {"$set": {"status": "pending"}},
+        )
+
     try:
         capture_result = await _paypal_capture_order(order_id, pp_client_id, pp_client_secret, pp_mode)
     except Exception as _e:
         logging.error(f"[paypal] capture error for {log_safe(order_id)}: {log_safe(_e)}")
+        await _soltar_claim()
         raise HTTPException(status_code=502, detail="Error al capturar pago PayPal. Contacta soporte.")
 
     capture_status = capture_result.get("status")
     if capture_status != "COMPLETED":
+        await _soltar_claim()
         raise HTTPException(
             status_code=402,
             detail=f"Pago no completado (estado: {capture_status}). Inténtalo de nuevo."
@@ -4288,6 +4914,7 @@ async def paypal_capture_order(
     plan_id = transaction["plan_id"]
     plan = SUBSCRIPTION_PLANS.get(plan_id)
     if not plan:
+        await _soltar_claim()
         raise HTTPException(status_code=400, detail="Plan no válido")
 
     # Reuse existing subscription activation (no stripe_session_id — pass empty string)
@@ -4835,7 +5462,7 @@ async def cancel_subscription(
                 "cancel_at": sub.current_period_end
             }
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4881,7 +5508,7 @@ async def resume_subscription(user: dict = Depends(require_user)):
 
         return {"message": "Subscription resumed successfully", "resumed": True}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4916,7 +5543,7 @@ async def create_portal_session(request: dict, user: dict = Depends(require_user
         
         return {"url": session.url}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -4960,7 +5587,7 @@ async def get_billing_history(user: dict = Depends(require_user)):
             ]
         }
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
     except Exception as e:
         logging.error(f"Error fetching billing history: {log_safe(e)}")
         return {"invoices": []}
@@ -5126,8 +5753,7 @@ class OptionLegInput(BaseModel):
     iv: Optional[float] = 0.3
     daysToExpiry: Optional[int] = 30
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
     def get_qty(self):
         return self.quantity or self.qty or 1
@@ -5284,7 +5910,7 @@ async def opt_get_stock(symbol: str):
         data = await asyncio.to_thread(get_stock_data, symbol)
     except Exception as e:
         logging.error(f"Error getting stock data for {log_safe(symbol)}: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
     if data.get("price") is None:
         try:
@@ -5788,7 +6414,7 @@ async def opt_calculate_payoff(request: PayoffRequest) -> Dict[str, Any]:
         }
     except Exception as e:
         logging.error(f"Payoff calculation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 class ImpliedVolRequest(BaseModel):
@@ -5858,7 +6484,7 @@ async def opt_calculate_greeks(request: GreeksRequest) -> Dict[str, Any]:
         return calculate_greeks(legs_dicts, request.stockPrice, q=request.dividendYield or 0.0)
     except Exception as e:
         logging.error(f"Greeks calculation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.post("/calculate/pnl-attribution")
@@ -5879,7 +6505,7 @@ async def opt_pnl_attribution(request: PnlAttributionRequest) -> Dict[str, Any]:
         )
     except Exception as e:
         logging.error(f"PnL attribution error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.post("/calculate/assignment")
@@ -5922,7 +6548,7 @@ async def opt_assignment(request: AssignmentRequest) -> Dict[str, Any]:
         return result
     except Exception as e:
         logging.error(f"Assignment simulation error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 class AmericanPriceRequest(BaseModel):
@@ -6046,7 +6672,7 @@ async def optimize_options_strategy(req: OptimizeRequest):
         }
     except Exception as e:
         logging.error(f"Optimize error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=_detalle_publico(e, "No se pudo completar la operación. Inténtalo de nuevo en unos minutos."))
 
 
 @api_router.get("/options/earnings/{symbol}")
@@ -6561,6 +7187,22 @@ Be direct and quantitative. Do not restate numbers the trader can already see �
 explain what they IMPLY. Maximum 280 words."""
 
 
+
+def _texto_de_respuesta(message) -> str:
+    """El primer bloque de TEXTO de una respuesta de la API de Claude.
+
+    `message.content[0].text` da por hecho que el primer bloque es texto. Hoy lo
+    es, pero deja de serlo en cuanto alguien active el pensamiento adaptativo o
+    una herramienta: el primer bloque pasa a ser de otro tipo y la ruta revienta
+    con AttributeError, en una función de pago. Buscar el bloque por su tipo
+    cuesta lo mismo y no depende del orden.
+    """
+    for bloque in getattr(message, "content", None) or []:
+        if getattr(bloque, "type", None) == "text" or hasattr(bloque, "text"):
+            return getattr(bloque, "text", "") or ""
+    return ""
+
+
 @api_router.post("/options/ai-analyze")
 @limiter.limit("10/minute")
 async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: dict = Depends(require_user)) -> Dict[str, Any]:
@@ -6594,18 +7236,27 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
             logging.warning(f"AI coach: could not load trader context: {log_safe(ctx_err)}")
 
         prompt = _build_ai_trade_prompt(req, analytics)
-        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
+        # ID sin sufijo de fecha: los identificadores actuales están completos
+        # tal cual y `claude-sonnet-4-5-20250929` apuntaba a una instantánea
+        # concreta de un modelo que ya no es el vigente de su gama. Cuando esa
+        # instantánea se retire, el AI Coach —que es una función de PAGO— deja
+        # de responder. `AI_COACH_MODEL` sigue permitiendo cambiarlo sin
+        # desplegar; lo que no se puede cambiar por variable de entorno es el
+        # texto de la web, así que la versión ya no se anuncia en la copy.
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-5")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
                 model=model,
-                max_tokens=1024,
+                # 1024 truncaba el análisis a mitad de frase justo en las
+                # estructuras con más patas, que son las que más texto piden.
+                max_tokens=4096,
                 system=AI_COACH_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
         return {
-            "analysis": message.content[0].text,
+            "analysis": _texto_de_respuesta(message),
             "model": model,
             "usedTraderContext": bool(analytics and analytics.get("closed_trades")),
             # Shown at the point of use, not just in the footer.
@@ -6616,7 +7267,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         }
     except _anthropic.APIError as e:
         logging.error(f"AI analyze API error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="El análisis de IA no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.")
     except HTTPException:
         # Un 4xx que esta función acaba de lanzar es una RESPUESTA, no un fallo.
         # `HTTPException` hereda de `Exception`, así que sin esta línea el
@@ -6628,7 +7279,7 @@ async def ai_analyze_trade(request: Request, req: AITradeAnalysisRequest, user: 
         raise
     except Exception as e:
         logging.error(f"AI analyze error: {log_safe(e)}")
-        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="El análisis de IA no está disponible ahora mismo. Inténtalo de nuevo en unos minutos.")
 
 
 # ─── Asistente de la Academia ─────────────────────────────────────
@@ -6710,7 +7361,14 @@ async def education_assistant(
             f"Pregunta del usuario:\n{req.question.strip()[:500]}\n\n"
             f"Módulos disponibles (los únicos que existen):\n{listing}"
         )
-        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-4-5-20250929")
+        # ID sin sufijo de fecha: los identificadores actuales están completos
+        # tal cual y `claude-sonnet-4-5-20250929` apuntaba a una instantánea
+        # concreta de un modelo que ya no es el vigente de su gama. Cuando esa
+        # instantánea se retire, el AI Coach —que es una función de PAGO— deja
+        # de responder. `AI_COACH_MODEL` sigue permitiendo cambiarlo sin
+        # desplegar; lo que no se puede cambiar por variable de entorno es el
+        # texto de la web, así que la versión ya no se anuncia en la copy.
+        model = os.environ.get("AI_COACH_MODEL", "claude-sonnet-5")
         message = await _asyncio.get_event_loop().run_in_executor(
             None,
             lambda: client.messages.create(
@@ -6720,7 +7378,7 @@ async def education_assistant(
                 messages=[{"role": "user", "content": prompt}],
             ),
         )
-        answer = (message.content[0].text or "").strip()
+        answer = _texto_de_respuesta(message).strip()
 
         # El modelo no puede mandar a donde no hay: si cita un identificador que
         # no estaba entre los candidatos, la respuesta se tira entera. Es
@@ -8195,7 +8853,7 @@ async def admin_update_user(request: Request, user_id: str, payload: AdminUserUp
         updates["name"] = payload.name
 
     if payload.email is not None:
-        new_email = payload.email.lower()
+        new_email = normalize_email(payload.email)
         if new_email != user["email"]:
             # Sin `$ieq`, cambiar un correo a otra caja pasa el control de
             # choque y crea un duplicado. Ver BUG-070.
@@ -8438,7 +9096,12 @@ async def _load_settings_doc() -> Dict[str, Any]:
 # Set SECRET_ENCRYPTION_KEY in env (generate once: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 # Without this key, secrets fall back to plaintext — functional but not encrypted at application level.
 # GCP Cloud SQL still encrypts at rest; this adds an extra layer.
-
+#
+# Sin la variable, esto caía a texto plano EN SILENCIO: ni un log, ni una
+# señal en el panel. Un admin podía teclear la clave secreta de Stripe
+# creyendo que quedaba cifrada y no había forma de saberlo. Ahora arranca con
+# un aviso (una vez, no por cada guardado) y `cifrado_activo()` viaja a
+# `GET /admin/settings` para que el panel lo pinte.
 _ENC_PREFIX = "fernet:"
 
 def _get_fernet():
@@ -8451,6 +9114,18 @@ def _get_fernet():
     except Exception as _e:
         logging.warning(f"[settings] Fernet init failed: {log_safe(_e)}")
         return None
+
+def cifrado_activo() -> bool:
+    """Si es False, `_encrypt_setting` está devolviendo el valor tal cual."""
+    return _get_fernet() is not None
+
+if not cifrado_activo():
+    logging.warning(
+        "⚠️  SECRET_ENCRYPTION_KEY no está configurada — las claves de Stripe, "
+        "SendGrid, PayPal y Google que se guarden desde /admin quedarán en "
+        "texto plano en la base de datos. Genera una con: python -c "
+        "\"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+    )
 
 def _encrypt_setting(value: str) -> str:
     if not value:
@@ -8512,6 +9187,7 @@ async def admin_get_settings(admin: dict = Depends(require_admin)):
     out.update(flags)
     out["updated_at"] = doc.get("updated_at")
     out["updated_by"] = doc.get("updated_by")
+    out["encryption_active"] = cifrado_activo()
     return out
 
 
@@ -8838,7 +9514,7 @@ async def admin_refund_subscription(request: Request, user_id: str, admin: dict 
         )
         return {"status": "refunded", "refund_id": refund.id}
     except stripe.error.StripeError as e:
-        raise HTTPException(status_code=400, detail=f"Error de Stripe: {e}")
+        raise HTTPException(status_code=400, detail=_detalle_publico(e, "No se pudo completar la operación con la pasarela de pago. Inténtalo de nuevo."))
 
 
 # ── REVENUE ANALYTICS ────────────────────────────────────────────────────────
@@ -9578,6 +10254,10 @@ try:
         "require_user": require_user,
         "require_admin": require_admin,
         "limiter": limiter,
+        # La IP del referido se guardaba con el PRIMER salto de x-forwarded-for,
+        # que es justo el trozo que puede escribir el cliente. `_real_client_ip`
+        # cuenta desde la derecha con TRUSTED_PROXY_HOPS y no es falsificable.
+        "real_client_ip": _real_client_ip,
     })
     register_affiliate_program(api_router, db, {
         "require_user": require_user,
@@ -9593,6 +10273,10 @@ try:
         # El poller necesita poder mandar correo: sin esto, una alerta con canal
         # de correo pedido se dispararía y no saldría de la pestaña.
         "send_email": _send_email,
+        # El apretón de manos de un WebSocket NO pasa por el middleware de
+        # CORS, así que el endpoint tiene que comprobar `Origin` por su cuenta
+        # antes de aceptar la cookie como credencial.
+        "cors_origins": _CORS_ORIGINS,
     })
     logging.info("✅ Extended modules registered into api_router (module-level)")
 except Exception as _e:
@@ -9694,7 +10378,6 @@ else:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
-@app.on_event("shutdown")
 async def shutdown_db_client():
     try:
         from realtime_alerts import stop_poller
@@ -9702,3 +10385,60 @@ async def shutdown_db_client():
     except Exception:
         pass
     await db.close()
+
+
+# ============================================================
+#  Ciclo de vida (sustituye a @app.on_event, retirado en FastAPI)
+# ============================================================
+#
+# `startup_event` y `shutdown_db_client` se definen MUCHO después de crear
+# `app`, así que no se pueden pasar como `lifespan=` en el constructor sin
+# reordenar medio fichero — y reordenar el arranque es justo lo que no conviene
+# tocar a ciegas. Engancharlo aquí conserva el orden y el comportamiento
+# exactos, y quita las dos deprecaciones (G-19).
+@asynccontextmanager
+async def _ciclo_de_vida(_app):
+    await startup_event()
+    tarea_purga = asyncio.create_task(_purga_periodica())
+    try:
+        yield
+    finally:
+        tarea_purga.cancel()
+        try:
+            await tarea_purga
+        except (asyncio.CancelledError, Exception):  # noqa: B014
+            pass
+        await shutdown_db_client()
+
+
+app.router.lifespan_context = _ciclo_de_vida
+
+
+# ── La purga por retención necesita repetirse, no sólo arrancar ──────────────
+#
+# `purge_lapsed_user_data` sólo corría en el arranque. Con `min-instances=1`, un
+# contenedor que no se reinicie en semanas NO PURGA NADA: la política de
+# conservar los datos DATA_RETENTION_DAYS y borrarlos después queda escrita y sin
+# cumplir, que en materia de RGPD es peor que no tenerla — es una promesa
+# incumplida por escrito.
+#
+# Un bucle dentro del proceso no es tan sólido como un Cloud Scheduler, pero no
+# depende de configurar nada fuera del repositorio y convierte «nunca» en «cada
+# día». Si algún día hay planificador, esto se quita.
+PURGA_CADA_SEGUNDOS = int(os.environ.get("PURGE_INTERVAL_SECONDS", 24 * 3600))
+
+
+async def _purga_periodica():
+    """Repite la purga por retención mientras el proceso viva."""
+    while True:
+        try:
+            await asyncio.sleep(PURGA_CADA_SEGUNDOS)
+            purgados = await purge_lapsed_user_data(db)
+            if purgados:
+                logging.info(
+                    "[retención] purgados los datos de %d usuario(s) sin pago > %d días",
+                    log_safe(purgados), log_safe(DATA_RETENTION_DAYS))
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001 — un fallo no puede matar el bucle
+            logging.warning("[retención] la purga periódica falló: %s", log_safe(e))

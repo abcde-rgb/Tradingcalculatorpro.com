@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles, CornerDownLeft, Search, AlertTriangle, Loader2 } from 'lucide-react';
+import { Sparkles, CornerDownLeft, Search, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { useAuthStore } from '@/lib/store';
 import { buildEduIndex, searchEdu, clearEduIndex } from '@/lib/eduIndex';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -130,7 +131,12 @@ export default function EduAssistant({ onGoToTopic }) {
             data-testid="edu-ask-input"
           />
         </div>
-        <Button type="submit" disabled={!question.trim()} className="gap-2" data-testid="edu-ask-submit">
+        {/* `aria-label` porque la etiqueta va en un `hidden sm:inline`: en móvil
+            el botón se queda con el icono solo y sin nombre accesible, que es
+            un incumplimiento crítico y sólo aparece por debajo del punto de
+            ruptura — por eso hay que medir accesibilidad también en móvil. */}
+        <Button type="submit" disabled={!question.trim()} className="gap-2"
+                aria-label={t('eduAskButton')} data-testid="edu-ask-submit">
           <CornerDownLeft className="w-4 h-4" />
           <span className="hidden sm:inline">{t('eduAskButton')}</span>
         </Button>
@@ -176,14 +182,14 @@ export default function EduAssistant({ onGoToTopic }) {
                       data-testid={`edu-ask-hit-${r.id}`}
                     >
                       <span className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] text-primary/70 tabular-nums">
+                        <span className="font-mono text-[10px] text-primary tabular-nums">
                           {String(i + 1).padStart(2, '0')}
                         </span>
                         <span className="text-sm font-semibold group-hover:text-primary transition-colors">
                           {r.title}
                         </span>
                         {r.evidence && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#f59e0b]/15 text-[#fbbf24]">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-warn/15 text-warn">
                             <AlertTriangle className="w-2.5 h-2.5" />
                             {t(r.evidence === 'disputed' ? 'eduEvidenceDisputed' : 'eduEvidenceCaution')}
                           </span>
@@ -203,7 +209,7 @@ export default function EduAssistant({ onGoToTopic }) {
                   enlaces son la respuesta y esto es el comentario. */}
               {thinking && (
                 <p className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground" data-testid="edu-ask-thinking">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <CargaVelas className="w-3.5 h-3.5" />
                   {t('eduAskThinking')}
                 </p>
               )}

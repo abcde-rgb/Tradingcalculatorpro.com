@@ -33,6 +33,7 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
 
 FALLOS=0
 TEMPORALES=()
+SALIDA_SABOTAJE=""
 
 # La guarda va ANTES del trap, y el orden no es estético.
 #
@@ -59,10 +60,17 @@ fi
 # Pase lo que pase —error, Ctrl-C, salida anticipada— el repositorio queda como
 # estaba. Un test que ensucia el árbol es un test que nadie vuelve a ejecutar.
 limpiar() {
-  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -f "$f"; done
+  # `-r` porque algún temporal es un directorio (la copia de `build/static/js`).
+  for f in "${TEMPORALES[@]:-}"; do [ -n "$f" ] && rm -rf "$f"; done
+  rm -f "${SALIDA_SABOTAJE:-}"
   git checkout -- . 2>/dev/null
 }
 trap limpiar EXIT INT TERM
+
+# Dónde queda el error de un sabotaje que no se aplica (ver `probar()`). Se crea
+# DESPUÉS del trap: si la guarda del árbol sucio corta antes, no deja huérfano un
+# temporal que nadie va a borrar.
+SALIDA_SABOTAJE="$(mktemp)"
 
 # ── utilidades ──────────────────────────────────────────────────────────────
 titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }
@@ -79,16 +87,37 @@ titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 #   volviera a pasar, el sabotaje habría dejado residuo y el siguiente test
 #   mediría otra cosa.
 probar() {
+  # $5 (opcional) es un sabotaje que vive en el ENTORNO, no en un fichero: se
+  # antepone sólo a la ejecución saboteada. Hace falta para las condiciones que
+  # no se pueden escribir en el disco —una sesión que no arranca, por ejemplo—
+  # y que son justo las que producen el verde vacío: una sonda que no llega a
+  # ejercitar lo que mide no encuentra fallos, y sin esto pasaría por buena.
   local nombre="$1" comando="$2" sabotaje="$3" restaurar="${4:-git checkout -- .}"
+  local entorno="${5:-}"
 
   if ! eval "$comando" >/dev/null 2>&1; then
     echo "  ⚠️  $nombre: no pasa ni ANTES de sabotear — hay algo roto de verdad"
     FALLOS=$((FALLOS + 1)); return
   fi
 
-  eval "$sabotaje" >/dev/null 2>&1
+  # El sabotaje TIENE que aplicarse, y hay que comprobarlo.
+  #
+  # Estaba con la salida descartada y el código de salida ignorado, y eso hace
+  # indistinguibles dos cosas muy distintas: un verificador que no verifica, y un
+  # sabotaje que no llegó a tocar nada. Las dos imprimen «SOBREVIVE». Ha pasado
+  # dos veces: ocho heredocs con el cuerpo indentado que morían con
+  # `IndentationError` (BUG-078), y un ancla que el código había dejado atrás
+  # —el `replace` no encontraba su texto, escribía el fichero igual y salía con
+  # 0—. Ahora un sabotaje que falla se dice, con su error, y cuenta como fallo
+  # del propio test: es un problema de la prueba, no del producto.
+  if ! eval "$sabotaje" > "$SALIDA_SABOTAJE" 2>&1; then
+    echo "  ⚠️  $nombre: el SABOTAJE no se aplicó — $(tail -1 "$SALIDA_SABOTAJE")"
+    FALLOS=$((FALLOS + 1))
+    eval "$restaurar" >/dev/null 2>&1
+    return
+  fi
 
-  if eval "$comando" >/dev/null 2>&1; then
+  if eval "$entorno $comando" >/dev/null 2>&1; then
     echo "  ❌ $nombre: SOBREVIVE al sabotaje — no está verificando nada"
     FALLOS=$((FALLOS + 1))
   else
@@ -119,7 +148,14 @@ probar_inverso() {
     FALLOS=$((FALLOS + 1)); return
   fi
 
-  eval "$cebo" >/dev/null 2>&1
+  # Mismo motivo que en `probar()`: un cebo que no se aplica deja pasar el test
+  # sin haber probado nada, y con el ✅ puesto.
+  if ! eval "$cebo" > "$SALIDA_SABOTAJE" 2>&1; then
+    echo "  ⚠️  $nombre: el CEBO no se aplicó — $(tail -1 "$SALIDA_SABOTAJE")"
+    FALLOS=$((FALLOS + 1))
+    eval "$restaurar" >/dev/null 2>&1
+    return
+  fi
 
   if eval "$comando" >/dev/null 2>&1; then
     echo "  ✅ $nombre: no salta con un falso positivo"
@@ -300,6 +336,35 @@ if m: p.write_text(t[:m.end()] + '  ' + m.group(1) + '\n' + t[m.end():])\""
 import pathlib, re
 p = pathlib.Path('frontend/src/lib/siteFacts.js'); t = p.read_text()
 p.write_text(re.sub(r'assets: \\d+', 'assets: 999', t, count=1))\""
+
+  # ── El <noscript> del shell: la portada que ve un bot sin JavaScript ──────
+  # `#root` llega vacío, así que ese bloque ES `/`, `/pricing` y `/about` para
+  # GPTBot, ClaudeBot o PerplexityBot. Estuvo tratado como un aviso de «activa
+  # JavaScript» y decía «27 patrones de vela» sobre 30 —la cifra exacta que el
+  # candado de arriba ya perseguía en las claves i18n— y enlazaba /dashboard,
+  # que es premium y está en Disallow, como primer destino.
+  probar "el <noscript> del shell diciendo una cifra que ya no es la del catálogo" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('42 patrones chartistas y 30 patrones',
+                       '42 patrones chartistas y 27 patrones', 1), encoding='utf-8')\""
+
+  probar "el <noscript> del shell enlazando una ruta que robots.txt prohíbe" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(t.replace('<li><a href=\\\"/education\\\">Academia de trading</a></li>',
+                       '<li><a href=\\\"/dashboard\\\">Dashboard</a></li>', 1), encoding='utf-8')\""
+
+  probar "el <noscript> del shell desapareciendo del todo" \
+    "(cd frontend && node scripts/engine-check.js)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'<noscript>\\s*<h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\""
 
   # ── Margen cruzado: los cuatro fallos reales del borrador ─────────────────
   # Las cifras del curso de la Academia (?topic=cross-margin) salen de este
@@ -670,6 +735,20 @@ import pathlib, re
 p = pathlib.Path('frontend/src/lib/i18n/ja.js'); t = p.read_text()
 p.write_text(re.sub(r'(\\\"planInvalidationHint\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"入る前に書くこと。\\\"', t, count=1))\""
 
+# El diccionario de cada idioma vive en DOS ficheros, y `lee()` sólo abría el
+# primero. Con los 2.308 claves de la academia fuera de su alcance, el
+# verificador imprimía ✅ con 103 claves en inglés literal en pantalla — el
+# mismo fallo que dice cerrar, una carpeta más allá. Este sabotaje va contra
+# `.edu.js` a propósito: es el fichero que no miraba.
+probar "una clave con el texto inglés literal en el .edu.js de japonés" \
+  "(cd frontend && node scripts/i18n-traducido.js)" \
+  "python -c \"
+import pathlib, re
+en = pathlib.Path('frontend/src/lib/i18n/en.edu.js').read_text()
+v = re.search(r'\\\"wyckoffVolumeTitle\\\": \\\"([^\\\"]*)\\\"', en).group(1)
+p = pathlib.Path('frontend/src/lib/i18n/ja.edu.js'); t = p.read_text()
+p.write_text(re.sub(r'(\\\"wyckoffVolumeTitle\\\": )\\\"[^\\\"]*\\\"', lambda m: m.group(1) + '\\\"' + v + '\\\"', t, count=1))\""
+
 # ── El precio anunciado es el que se cobra ──────────────────────────────────
 # Las dos direcciones: que un idioma se desvíe, y que suba el precio en el
 # backend sin que nadie toque los textos. La segunda es la que pasa de verdad.
@@ -722,7 +801,13 @@ fi
 # ── El presupuesto de peso caza una pantalla que engorda ────────────────────
 # Necesita el build compilado y el servidor en pie, así que sólo se prueba si
 # están; si no, se dice que se salta en vez de figurar como aprobado.
-if [ -d frontend/build ] && curl -s -o /dev/null --max-time 3 "http://localhost:3100/Tradingcalculatorpro.com/"; then
+# ⚠️ La comprobación va con `curl -f` y contra la RAÍZ. Estaba sin `-f` y contra
+# `/Tradingcalculatorpro.com/`, la base de GitHub Pages de antes del cutover
+# (2026-08-28): sin `-f`, curl sale 0 también con un 404, así que la guarda decía
+# «el servidor está en pie» ante cualquier cosa que escuchara en el puerto, y la
+# ruta que preguntaba ya no existía. Misma familia que los anclas obsoletos de
+# BUG-078: una constante copiada que no siguió al dominio.
+if [ -d frontend/build ] && curl -sf -o /dev/null --max-time 3 "http://localhost:3100/"; then
   titulo "Presupuesto de peso (peso.js)"
   probar "un presupuesto por debajo de lo que pesa la pantalla" \
     "node tests/e2e/navegador/peso.js" \
@@ -733,6 +818,105 @@ r = d['rutas']['portada']; r['js'] //= 2; r['total'] //= 2
 p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
     "git checkout -- tests/e2e/presupuesto-peso.json"
 
+  # ⚠️ Los tres recompilados de aquí abajo (RECOMPILA, RECOMPILA_ADMIN y
+  # RECOMPILA_CSS) llaman a `craco build`, que es SÓLO el paso de webpack: no
+  # ejecuta el `postbuild`, y el postbuild es quien genera las 1.640 páginas
+  # estáticas. `craco build` empieza vaciando `build/`, así que cada uno de
+  # estos sabotajes se llevaba por delante `build/learn/`, `build/tools/`,
+  # `build/markets/` y `build/estrategias/`.
+  #
+  # Consecuencia, y este script existe precisamente para que no pase: el bloque
+  # de check-seo viene DESPUÉS, no encontraba páginas, y sus diez casos salían
+  # como «no pasa ni ANTES de sabotear». Diez sabotajes que llevaban tiempo sin
+  # probar nada, degradados a avisos que se leen como ruido. Por eso los tres
+  # recompilan ahora también las páginas.
+
+  # ── La CSP no puede romper la web ─────────────────────────────────────────
+  # El `meta` NO admite report-only: no hay ensayo posible. Si esta sonda no
+  # discriminara, una directiva de menos llegaría a producción bloqueando
+  # TradingView o el botón de Google, y ningún test offline lo notaría porque
+  # ninguno abre un navegador.
+  #
+  # Se sabotea el ARTEFACTO (build/index.html) y no la fuente: recompilar aquí
+  # costaría minutos y lo que se prueba —que la sonda ve una violación— no
+  # depende de por dónde entró la directiva.
+  # `frontend/build/` está en .gitignore, así que `git checkout --` NO lo
+  # restaura: la copia de seguridad se hace y se deshace a mano.
+  CSP_COPIA="$(mktemp)"
+  TEMPORALES+=("$CSP_COPIA")
+  cp frontend/build/index.html "$CSP_COPIA"
+
+  titulo "Content-Security-Policy (csp.js)"
+  probar "una directiva de menos bloquea un script que la web necesita" \
+    "node tests/e2e/navegador/csp.js" \
+    "sed -i 's|https://www.googletagmanager.com|https://zz-sabotaje.invalid|' frontend/build/index.html" \
+    "cp '$CSP_COPIA' frontend/build/index.html"
+
+  # El WebSocket va aparte porque su fallo tiene otra forma: no es un origen
+  # de menos, es un ESQUEMA de menos. En CSP3 una fuente `https://host` no
+  # autoriza `wss://host` —la relajación va de `ws` a `http`/`https`, nunca al
+  # revés—, así que la política podía listar el backend entero y aun así dejar
+  # las alertas mudas. La primera versión de esta sonda lo pasó por alto un mes
+  # entero: recorría `/dashboard` sin sesión, y sin token el hook no abre nada.
+  probar "el esquema wss:// de menos deja el WebSocket de alertas bloqueado" \
+    "node tests/e2e/navegador/csp.js" \
+    "sed -i 's| ws://127.0.0.1:8080||' frontend/build/index.html" \
+    "cp '$CSP_COPIA' frontend/build/index.html"
+
+  # Y la guarda contra el verde vacío: sin sesión no hay WebSocket que bloquear,
+  # así que «ninguna violación» no significaría nada. La sonda tiene que
+  # distinguir «autorizado» de «nunca se intentó».
+  probar "una sesión rota NO puede pasar por «no hubo violaciones»" \
+    "node tests/e2e/navegador/csp.js" \
+    "true" \
+    "true" \
+    "QA_PASSWORD=contrasena-que-no-es"
+
+  # Y la otra mitad: que NO grite con la política correcta. Sin esto, una sonda
+  # que diera error siempre pasaría igual el sabotaje de arriba.
+  probar_inverso "la política real no produce ninguna violación" \
+    "node tests/e2e/navegador/csp.js" \
+    "true"
+
+  # ── Lo indefinido se pinta como raya ──────────────────────────────────────
+  # La primera regla de honestidad del proyecto convirtió varias métricas de `0`
+  # a `None`. El otro extremo del cambio se olvidó: la pantalla que las
+  # interpolaba a pelo pasó a pintar «nullR» y «Sharpe: null», que es peor que
+  # el cero que se quería evitar — el cero parece un número, «null» parece una
+  # web rota, y en la pantalla con la que alguien dimensiona una posición eso
+  # se lleva por delante la confianza en el resto de las cifras.
+  #
+  # Se sabotea el ARTEFACTO: se quita la guarda `null==avg_r?"—"` del bundle
+  # servido, que es exactamente la regresión que la sonda vigila.
+  NULOS_COPIA="$(mktemp -d)"
+  TEMPORALES+=("$NULOS_COPIA")
+  cp frontend/build/static/js/*.js "$NULOS_COPIA/"
+
+  titulo "Lo indefinido es una raya (nulos.js)"
+  probar "una métrica indefinida vuelve a pintarse cruda" \
+    "node tests/e2e/navegador/nulos.js" \
+    "python -c \"
+import glob, io, re
+# La guarda se localiza por FORMA, no por el nombre que el minificador
+# asigne: era 'V.avg_r' hoy y puede ser otra letra en la proxima
+# compilacion. Atarlo a la letra hizo que el sabotaje no se aplicara y
+# el verificador 'sobreviviera' sin que nadie hubiera roto nada.
+patron = re.compile(r'null==([A-Za-z_\$]+)\\.avg_r\\?')
+tocados = 0
+for f in glob.glob('frontend/build/static/js/*.js'):
+    t = io.open(f, encoding='utf-8').read()
+    t2, n = patron.subn(lambda m: 'null==%s.avg_r&&!1?' % m.group(1), t)
+    if n:
+        io.open(f, 'w', encoding='utf-8').write(t2); tocados += n
+assert tocados, 'el sabotaje de nulos no encontro la guarda de la raya'\"" \
+    "cp '$NULOS_COPIA'/*.js frontend/build/static/js/"
+
+  # Y la otra mitad: con la guarda puesta NO grita. Sin esto, una sonda que
+  # diera error siempre pasaría igual el sabotaje de arriba.
+  probar_inverso "con las guardas puestas no encuentra ninguna cifra cruda" \
+    "node tests/e2e/navegador/nulos.js" \
+    "true"
+
   # ── El arranque del idioma ────────────────────────────────────────────────
   # Se sabotea en la FUENTE y se recompila, que tarda unos minutos. Es el
   # precio de probar de verdad: el fallo que vigila —el diccionario que no
@@ -740,7 +924,7 @@ p.write_text(json.dumps(d, indent=2) + chr(10))\"" \
   # código fuente, sólo en el artefacto compilado. Parchear el build a mano
   # probaría que la sonda sabe contar, no que caza la regresión.
   titulo "Arranque del idioma (idioma-arranque.js)"
-  RECOMPILA="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+  RECOMPILA="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
 
   probar "el español vuelve a viajar incrustado en main.js" \
     "node tests/e2e/navegador/idioma-arranque.js" \
@@ -784,7 +968,7 @@ fi
 # ni Postgres, porque lo que se prueba es cómo REACCIONA la interfaz.
 if [ -d frontend/build ] && [ -d tests/e2e/lib/playwright-core ]; then
   titulo "Panel de admin ante respuestas de error (panel-admin.js)"
-  RECOMPILA_ADMIN="(cd frontend && PUBLIC_URL=/ REACT_APP_BACKEND_URL=https://backend.example CI=false npx craco build >/dev/null 2>&1)"
+  RECOMPILA_ADMIN="(cd frontend && PUBLIC_URL=/ REACT_APP_BACKEND_URL=https://backend.example CI=false npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   probar "el panel se traga un 428 y deja las tablas en blanco" \
     "node tests/e2e/navegador/panel-admin.js" \
     "python -c \"import pathlib; p=pathlib.Path('frontend/src/pages/AdminPage.jsx'); s=p.read_text(encoding='utf-8'); i=s.find('      if (mRes.status === 428'); j=s.find('        return;', i)+len('        return;\\n      }\\n'); p.write_text(s[:i]+s[j:], encoding='utf-8')\" && $RECOMPILA_ADMIN" \
@@ -799,14 +983,21 @@ fi
 # textos por debajo de la WCAG. Un umbral escrito y nunca roto no prueba nada.
 if [ -d frontend/build ]; then
   titulo "Contraste WCAG (contraste.js)"
-  RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1)"
+  RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   probar "el verde del tema claro vuelve a un tono que no contrasta" \
     "node tests/e2e/navegador/contraste.js" \
     "python -c \"
 import pathlib
 p = pathlib.Path('frontend/src/index.css'); t = p.read_text()
 i = t.index('.light {'); j = t.index('}', i)
-p.write_text(t[:i] + t[i:j].replace('145 70% 26%', '145 70% 35%') + t[j:])\" \
+import re
+# Se ACLARA el verde primario del tema claro sea cual sea su valor: atarlo
+# al literal '145 70% 26%' hizo que el sabotaje dejara de aplicarse el dia
+# que ese 26% bajo a 22% por accesibilidad, y el verificador paso sin que
+# nadie hubiera roto nada.
+trozo = re.sub(r'--primary:\\s*145 70% \\d+%', '--primary: 145 70% 35%', t[i:j])
+assert trozo != t[i:j], 'el sabotaje de contraste no encontro --primary en .light'
+p.write_text(t[:i] + trozo + t[j:])\" \
      && $RECOMPILA_CSS" \
     "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
 else
@@ -935,11 +1126,11 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "el dominio de un tercero devuelto a la lista de CORS" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k lookalike_third_party -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('    \"https://tradingcalculator.pro\",\n', '    \"https://tradingcalculator.pro\",\n    \"https://tradingcalculatorpro.com\",\n', 1), encoding='utf-8')
+EOF"
 
   # ── El correo no puede distinguir mayúsculas ────────────────────────────────
   # BUG-070: el registro guardaba el correo tal como se tecleaba y el login lo
@@ -948,23 +1139,32 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   # contraseña correcta, y el 401 es idéntico al de una contraseña mala: no había
   # ninguna pista ni en pantalla ni en los logs.
   titulo "Correo insensible a mayúsculas (test_security_unit.py)"
+  # ⚠️ El ancla de este sabotaje se quedó obsoleta y nadie se enteró: buscaba
+  # `{"email": {"$ieq": credentials.email}}`, que BUG-070 sustituyó por
+  # `_buscar_usuario_por_correo()`. El `replace` no encontraba nada, escribía el
+  # fichero igual, salía con 0 y el informe decía «SOBREVIVE» — indistinguible de
+  # un verificador roto. De ahí el `assert count == 1`: si el login se vuelve a
+  # reescribir, esto grita en vez de mentir.
   probar "el login vuelve a buscar el correo con igualdad exacta" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k login_looks_the_user_up -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s.replace('{\"email\": {\"\$ieq\": credentials.email}}', '{\"email\": credentials.email}', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'user = await _buscar_usuario_por_correo(credentials.email)'
+assert s.count(viejo) == 1, 'ancla de la busqueda del login no encontrada'
+nuevo = 'user = await db.users.find_one({\"email\": credentials.email})'
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
 
   probar "el registro deja de normalizar el correo al guardarlo" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k register_stores -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s.replace('\"email\": email_norm,', '\"email\": user_data.email,', 1), encoding='utf-8')
+EOF"
 
   # La otra mitad, y es la que de verdad importa: el arreglo NO puede degradar a
   # un regex sin anclar. `~*` haría substring, y un correo es un regex válido, así
@@ -972,14 +1172,14 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "el operador insensible degrada a un regex sin anclar" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k ieq_is_not_an_unanchored -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
-  nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
-  assert s.count(viejo) == 1
-  p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'parts.append(f\"LOWER((data->>\'{ key }\')) = LOWER(\${param_idx})\")'
+nuevo = 'parts.append(f\"(data->>\'{ key }\') ~* \${param_idx}\")'
+assert s.count(viejo) == 1
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
 
   # ── Con duplicados, la cuenta elegida no puede cambiar ──────────────────────
   # El daño colateral de BUG-070: la comprobación de duplicados del registro
@@ -992,24 +1192,24 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "el buscador deja de preferir la coincidencia exacta" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k exact_match_wins -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = '        if (u.get(\"email\") or \"\") == correo:'
-  assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
-  p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '        if (u.get(\"email\") or \"\") == correo:'
+assert s.count(viejo) == 1, 'ancla del desempate no encontrada'
+p.write_text(s.replace(viejo, '        if False:', 1), encoding='utf-8')
+EOF"
 
   probar "el buscador deja de ordenar y vuelve a elegir al azar" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k row_order -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = '.sort(\"created_at\", 1).to_list(None)'
-  assert s.count(viejo) == 1, 'ancla del orden no encontrada'
-  p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '.sort(\"created_at\", 1).to_list(None)'
+assert s.count(viejo) == 1, 'ancla del orden no encontrada'
+p.write_text(s.replace(viejo, '.to_list(None)', 1), encoding='utf-8')
+EOF"
 
   # ── Toda respuesta de auth describe al usuario igual ────────────────────────
   # BUG-072: cuatro respuestas —login, refresh, magic link y Google— mandaban
@@ -1021,13 +1221,13 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar "una respuesta de auth que se deja el 2FA" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
-  assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
-  p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '            \"two_factor_enabled\": bool(user.get(\"totp_enabled\", False)),'
+assert s.count(viejo) == 4, 'ancla del 2FA no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
 
   # Y el otro sentido: la regla mira los objetos `user` de RESPUESTA, no las filas
   # de base de datos ni las tablas del panel, que no tienen por qué llevar el
@@ -1035,11 +1235,208 @@ if python -c 'import pytest, fastapi' >/dev/null 2>&1 && [ -f backend/server.py 
   probar_inverso "una fila de base de datos con is_admin y sin 2FA" \
     "(cd backend && python -m pytest tests/test_security_unit.py -q -k describes_the_user -p no:cacheprovider)" \
     "python - <<'EOF'
-  import pathlib
-  p = pathlib.Path('backend/server.py')
-  s = p.read_text(encoding='utf-8')
-  p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
-  EOF"
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+p.write_text(s + '\n_ZZ_FILA = {\"email\": \"x@y.z\", \"is_admin\": False, \"created_at\": \"\"}\n', encoding='utf-8')
+EOF"
+
+  # ── Qué rutas llevan límite de tasa, y cuáles no ────────────────────────────
+  # El alta se quedó sin límite a propósito (2026-09-01). Es justo el cambio que
+  # alguien deshace al ver un endpoint público sin limitar, y el que se lleva por
+  # delante los otros tres de una pasada.
+  titulo "Límites de tasa (test_rate_limit_key_unit.py)"
+
+  probar "vuelve a ponerse un límite en el alta" \
+    "(cd backend && python -m pytest tests/test_rate_limit_key_unit.py -q -k alta_no_lleva -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@api_router.post(\"/auth/register\", response_model=dict)'
+assert s.count(viejo) == 1, 'ancla del registro no encontrada'
+p.write_text(s.replace(viejo, viejo + chr(10) + '@limiter.limit(\"3/hour\")', 1), encoding='utf-8')
+EOF"
+
+  probar "se quitan también los límites que protegen al dueño de la cuenta" \
+    "(cd backend && python -m pytest tests/test_rate_limit_key_unit.py -q -k protegen_al_dueno -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@limiter.limit(\"3/hour\")' + chr(10)
+assert s.count(viejo) == 3, f'se esperaban 3 limites de 3/hora, hay {s.count(viejo)}'
+p.write_text(s.replace(viejo, '', 3), encoding='utf-8')
+EOF"
+
+  # ── Ajustes y alta: guardar de verdad, y que lo guardado vuelva ─────────────
+  # El botón «Guardar» de Ajustes daba 405 desde siempre, y el alta descartaba
+  # el país que su propio formulario obliga a rellenar.
+  titulo "Perfil y ajustes (test_perfil_ajustes_unit.py / test_security_unit.py)"
+
+  probar "el perfil vuelve a aceptar un solo método (405 en el otro)" \
+    "(cd backend && python -m pytest tests/test_perfil_ajustes_unit.py -q -k los_dos_metodos -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '@api_router.put(\"/auth/profile\")' + chr(10)
+assert s.count(viejo) == 1, 'ancla del PUT no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "el alta vuelve a descartar el país en silencio" \
+    "(cd backend && python -m pytest tests/test_perfil_ajustes_unit.py -q -k acepta_el_pais -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+ini = s.find('class UserCreate(BaseModel):')
+fin = s.find('class UserLogin(BaseModel):')
+assert -1 < ini < fin, 'UserCreate no encontrado'
+cuerpo = s[ini:fin]
+viejo = '    country: Optional[str] = None' + chr(10)
+assert cuerpo.count(viejo) == 1, 'ancla del pais en UserCreate no encontrada'
+p.write_text(s[:ini] + cuerpo.replace(viejo, '', 1) + s[fin:], encoding='utf-8')
+EOF"
+
+  probar "una respuesta de auth deja de devolver lo que el usuario guardó" \
+    "(cd backend && python -m pytest tests/test_security_unit.py -q -k devuelven_lo_que -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '            \"country\": user.get(\"country\"),' + chr(10)
+assert s.count(viejo) >= 1, 'ancla de country no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  probar "Ajustes deja de resincronizar el formulario (los datos saltan)" \
+    "(cd backend && python -m pytest tests/test_perfil_ajustes_unit.py -q -k resincroniza -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/pages/SettingsPage.jsx')
+s = p.read_text(encoding='utf-8')
+viejo = '  useEffect(() => { setProfileName(nombreServidor); }, [nombreServidor]);' + chr(10)
+assert s.count(viejo) == 1, 'ancla del efecto no encontrada'
+p.write_text(s.replace(viejo, '', 1), encoding='utf-8')
+EOF"
+
+  # ── La palanca de emergencia y el diagnóstico (2026-09-01) ──────────────────
+  # Son la salida cuando el margen de alta ya está gastado. Si la palanca deja de
+  # caducar, o el diagnóstico empieza a escribir, dejan de ser lo que prometen.
+  titulo "Palanca de 2FA y diagnóstico (test_admin_2fa_unit.py)"
+
+  probar "la palanca deja de caducar (se vuelve un interruptor)" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k una_fecha_no_un_interruptor -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = 'return limite if datetime.now(timezone.utc) < limite else None'
+assert s.count(viejo) == 1, 'ancla de la caducidad no encontrada'
+p.write_text(s.replace(viejo, 'return limite', 1), encoding='utf-8')
+EOF"
+
+  probar "una fecha ilegible deja de tratarse (revienta en vez de cerrar)" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k fecha_ilegible -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+ini = s.find('def _bypass_2fa_vigente')
+assert ini > -1, 'ayudante de la palanca no encontrado'
+fin = s.find(chr(10) + chr(10) + chr(10), ini)
+cuerpo = s[ini:fin]
+assert cuerpo.count('    except ValueError:') == 1, 'ancla del except no encontrada'
+p.write_text(s[:ini] + cuerpo.replace('    except ValueError:', '    except KeyError:', 1) + s[fin:], encoding='utf-8')
+EOF"
+
+  probar "preguntar por el diagnóstico gasta el margen de alta" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k no_abre_el_margen -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    email = (user.get(\"email\") or \"\").lower()'
+assert s.count(viejo) == 1, 'ancla del diagnostico no encontrada'
+p.write_text(s.replace(viejo, '    await _abrir_o_comprobar_margen_2fa(user)' + chr(10) + viejo, 1), encoding='utf-8')
+EOF"
+
+  # ── El encierro del admin y la sesión que se cerraba sola (BUG-076) ─────────
+  # Cuatro maneras distintas de volver a encerrar a alguien:
+  #   · esconder la tarjeta de 2FA a las cuentas que no son de contraseña,
+  #   · devolverle al frontend una decisión que sólo el backend puede tomar,
+  #   · reabrir el margen de alta en cada petición (margen infinito),
+  #   · perdonar por la ventana de rotación un token revocado al cerrar sesión.
+  titulo "Admin 2FA y sesión (test_admin_2fa_unit.py / test_refresh_rotation_unit.py)"
+
+  probar "la tarjeta de 2FA vuelve a esconderse a las cuentas de Google" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k todas_las_cuentas -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/pages/SettingsPage.jsx')
+s = p.read_text(encoding='utf-8')
+viejo = '          <TwoFactorCard />'
+assert s.count(viejo) == 1, 'ancla de la tarjeta no encontrada'
+p.write_text(s.replace(viejo, \"          {user?.auth_provider === 'password' && <TwoFactorCard />}\", 1), encoding='utf-8')
+EOF"
+
+  probar "la guarda del frontend vuelve a adelantar la decisión del 2FA" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k no_vuelve_a_adelantar -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/components/common/ProtectedRoute.jsx')
+s = p.read_text(encoding='utf-8')
+viejo = '  if (adminOnly && !user?.is_admin) {'
+assert s.count(viejo) == 1, 'ancla de la guarda no encontrada'
+nuevo = '  if (adminOnly && user?.two_factor_enabled === false) { return null; }\n\n' + viejo
+p.write_text(s.replace(viejo, nuevo, 1), encoding='utf-8')
+EOF"
+
+  probar "el margen de alta se reabre en cada petición (sería infinito)" \
+    "(cd backend && python -m pytest tests/test_admin_2fa_unit.py -q -k un_solo_uso -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    if marca:'
+assert s.count(viejo) == 1, 'ancla de la rama de lectura no encontrada'
+p.write_text(s.replace(viejo, '    if False:', 1), encoding='utf-8')
+EOF"
+
+  probar "la ventana de rotación deja de mirar POR QUÉ se revocó el token" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k solo_perdona -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    if not doc or doc.get(\"reason\") != \"rotation\":'
+assert s.count(viejo) == 1, 'ancla del motivo no encontrada'
+p.write_text(s.replace(viejo, '    if not doc:', 1), encoding='utf-8')
+EOF"
+
+  probar "cerrar sesión deja vivo el refresh token" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k revoca_tambien -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('backend/server.py')
+s = p.read_text(encoding='utf-8')
+viejo = '    crudo_refresh = request.cookies.get(\"refresh_token\")'
+assert s.count(viejo) == 1, 'ancla del refresh del logout no encontrada'
+p.write_text(s.replace(viejo, '    crudo_refresh = None', 1), encoding='utf-8')
+EOF"
+
+  probar "un arranque en frío vuelve a cerrar la sesión al recargar" \
+    "(cd backend && python -m pytest tests/test_refresh_rotation_unit.py -q -k solo_cierra -p no:cacheprovider)" \
+    "python - <<'EOF'
+import pathlib
+p = pathlib.Path('frontend/src/lib/store.js')
+s = p.read_text(encoding='utf-8')
+viejo = 'if (res.status === 401 || res.status === 403) {'
+assert s.count(viejo) == 1, 'ancla del 401 no encontrada'
+p.write_text(s.replace(viejo, 'if (!res.ok) {', 1), encoding='utf-8')
+EOF"
 
 else
   titulo "Sabotajes sobre test_security_unit.py"
@@ -1072,6 +1469,31 @@ probar "una afirmación viva de que la web tiene 8 idiomas" \
   "$CONTRADICE" \
   "printf '# Zz sabotaje\n\n## Idiomas\n\nLa interfaz está en 8 idiomas.\n' > $DOC_SABOTAJE" \
   "rm -f $DOC_SABOTAJE"
+
+# ── Prosa NO es código vivo ─────────────────────────────────────────────────
+# `es_comentario()` sólo miraba el primer carácter de la línea, así que
+# etiquetaba «⚠️ CÓDIGO» cualquier prosa que no empezara por su marcador: una
+# línea en medio de un docstring, un comentario al final de una línea, la
+# continuación de un bloque {/* … */}. Los diez rastros del informe estaban los
+# diez en prosa y escalaban a «🔴 2 bloqueantes».
+#
+# Van los DOS sentidos porque el fallo no era no-detectar, era no-distinguir:
+# metiendo una asignación real recibía exactamente la misma marca que un
+# docstring. Con una sola dirección, un clasificador que dijera «CÓDIGO» a todo
+# seguiría pasando.
+VIVO_PY="backend/zz_sabotaje_resto.py"
+TEMPORALES+=("$VIVO_PY")
+EN_CODIGO="python scripts/auditar.py > $INFORME 2>/dev/null; ! grep -q 'en código vivo' $INFORME"
+
+probar "una asignación real a una pasarela retirada" \
+  "$EN_CODIGO" \
+  "printf 'OXAPAY_API_KEY = \"zz\"\n' > $VIVO_PY" \
+  "rm -f $VIVO_PY"
+
+probar_inverso "un docstring que sólo NOMBRA la pasarela retirada" \
+  "$EN_CODIGO" \
+  "printf '\"\"\"Sustituye al flujo de OxaPay.\n\nSegunda linea del docstring, que tambien dice OxaPay.\n\"\"\"\n' > $VIVO_PY" \
+  "rm -f $VIVO_PY"
 
 # El cebo es la forma EXACTA que se coló hasta el 2026-08-24: encabezado con la
 # fecha entre paréntesis en vez de al principio. `_ENCABEZADO_FECHADO` exigía
@@ -1151,10 +1573,14 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"
 
   SEO_PAG=$(find frontend/build -path '*/learn/*' -name index.html | head -1)
-  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp)
-  TEMPORALES+=("$SEO_BAK" "$SEO_MAP")
+  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp)
+  TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL")
   cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
-  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml"
+  # El shell también, que ahora hay sabotajes que lo tocan y `build/` está en
+  # .gitignore: sin esta copia el sabotaje se quedaría puesto y los casos
+  # siguientes medirían una portada ya rota.
+  cp frontend/build/index.html "$SEO_SHELL"
+  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml; cp $SEO_SHELL frontend/build/index.html"
 
   # El canonical cruzado es el fallo más caro y el menos visible: la página se
   # ve perfecta y le está diciendo a Google que indexe otra.
@@ -1185,6 +1611,15 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
     "sed -i 's|<script type=\"application/ld+json\">|<script type=\"application/ld+json\">,,,|' $SEO_PAG" \
     "$SEO_REST"
 
+  # Las calculadoras publican `@graph` (SoftwareApplication + HowTo) en vez de
+  # `@type` en la raíz: el check tiene que aceptar eso, pero sin dejar pasar
+  # un `@graph` con una entrada sin tipo — un JSON-LD parseable no es lo
+  # mismo que un JSON-LD que describe algo.
+  probar "un JSON-LD sin @type ni @graph válido" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|\"@type\":\"LearningResource\"|\"@typeSABOTAJE\":\"LearningResource\"|' $SEO_PAG" \
+    "$SEO_REST"
+
   # El canonical secuestrado hacia un SUBDOMINIO que empieza igual. La primera
   # versión comparaba con `url.startsWith(DOMINIO)` y esto pasaba por bueno:
   # `https://tradingcalculator.pro.evil.com/x` empieza por
@@ -1198,6 +1633,42 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   probar "el sitemap anunciando una URL que no existe" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
     "sed -i 's|</urlset>|<url><loc>https://abcde-rgb.github.io/Tradingcalculatorpro.com/no/existe/</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
+  # El sitemap anunciando una ruta que robots.txt prohíbe. Pasó de verdad:
+  # `/performance` es premium y robots la bloqueaba, pero el sitemap la anunciaba
+  # porque el arreglo estaba escrito en `gen-sitemap.js` —que el build no ejecuta—
+  # y no en `gen-seo-pages.js`, que es el que corre en `postbuild`.
+  probar "el sitemap anunciando una ruta que robots.txt prohíbe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/performance</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "$SEO_REST"
+
+  # Un enlace plausible y muerto en el <noscript> del shell. Es el único camino
+  # que tiene un rastreador sin JavaScript hacia las 1.640 páginas estáticas, así
+  # que ahí un 404 no es un 404 más: es el callejón sin salida de la portada.
+  # Pasó al escribir el bloque: `/learn/gestion-del-riesgo/`, cuando el módulo se
+  # llama `gestion-del-capital`.
+  probar "el <noscript> del shell enlazando una página que no existe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|/learn/gestion-del-capital/|/learn/gestion-del-riesgo/|' frontend/build/index.html" \
+    "$SEO_REST"
+
+  # Un sitemap en public/. Había uno de verdad: 8 URLs con lastmod congelado en
+  # 2026-08-11, que CRA copia a build/ y el postbuild pisa — salvo cuando el
+  # postbuild no corre, y entonces se publica ése. Search Console vería el sitio
+  # encoger de 1.648 URLs a 8.
+  probar "un sitemap en public/ que pisaría al generado" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "printf '<?xml version=\"1.0\"?><urlset></urlset>' > frontend/public/sitemap.xml" \
+    "rm -f frontend/public/sitemap.xml; $SEO_REST"
+
+  probar "el <noscript> del shell borrado del build" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "python -c \"
+import pathlib, re
+p = pathlib.Path('frontend/build/index.html'); t = p.read_text(encoding='utf-8')
+p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\"" \
     "$SEO_REST"
 
   # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)

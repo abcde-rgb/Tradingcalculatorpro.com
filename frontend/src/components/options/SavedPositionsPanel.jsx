@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Save, Trash2, Briefcase, Loader2, X, Plus } from 'lucide-react';
+import { Save, Trash2, Briefcase, X, Plus } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -127,9 +128,9 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
             <button
               onClick={savePosition}
               disabled={saving || !saveName.trim()}
-              className="px-2.5 py-1.5 rounded-md bg-primary text-black text-[10px] font-bold disabled:opacity-50"
+              className="px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-[10px] font-bold disabled:opacity-50"
             >
-              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Guardar'}
+              {saving ? <CargaVelas className="w-3 h-3" /> : 'Guardar'}
             </button>
             <button onClick={() => { setShowSaveDialog(false); setSaveName(''); }} className="p-1.5 rounded-md hover:bg-muted">
               <X className="w-3 h-3 text-muted-foreground" />
@@ -139,7 +140,7 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
       )}
 
       {loading ? (
-        <div className="flex justify-center py-3"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-3"><CargaVelas className="w-4 h-4 text-muted-foreground" /></div>
       ) : positions.length === 0 ? (
         <div className="text-[11px] text-muted-foreground text-center py-2">
           Sin posiciones guardadas todavía.
@@ -160,10 +161,10 @@ const SavedPositionsPanel = ({ currentLegs, currentSymbol, currentExpiration, on
               </button>
               <button
                 onClick={() => deletePosition(p.id)}
-                className="p-1 rounded hover:bg-[#ef4444]/15 transition-colors opacity-0 group-hover:opacity-100"
+                className="p-1 rounded hover:bg-short/15 transition-colors opacity-0 group-hover:opacity-100"
                 title="Eliminar"
               >
-                <Trash2 className="w-3 h-3 text-[#f87171]" />
+                <Trash2 className="w-3 h-3 text-short" />
               </button>
             </li>
           ))}

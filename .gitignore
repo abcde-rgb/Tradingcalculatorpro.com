@@ -111,3 +111,10 @@ tests/e2e/package-lock.json
 # Capturas del smoke visual rápido (scripts/capturas.js): son de una tanda
 # concreta, no artefactos del repositorio.
 .capturas/
+
+# Grafo de conocimiento de graphify (`/graphify .`): 14 MB de salida generada,
+# con un graph.json de 8 MB. Se reconstruye con `graphify --update` y depende
+# del estado del árbol, así que versionarlo sería guardar una foto que caduca
+# en el siguiente commit. Igual que `.capturas/`: artefacto de una tanda, no
+# del repositorio.
+graphify-out/

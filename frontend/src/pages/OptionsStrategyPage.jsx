@@ -73,7 +73,7 @@ export default function OptionsStrategyPage() {
           <h1 className="text-3xl font-bold">{t(strategy.name)}</h1>
           <p className="text-lg text-muted-foreground">{t(strategy.description)}</p>
           {multiExpiry && (
-            <p className="flex items-center gap-2 text-sm text-[#a78bfa]" data-testid="multi-expiry-badge">
+            <p className="flex items-center gap-2 text-sm text-compare" data-testid="multi-expiry-badge">
               <CalendarClock className="h-4 w-4" />
               {t('optStrategyMultiExpiry')}
             </p>

@@ -39,6 +39,28 @@ mitad de trabajo — por eso está escrito así.
 
 Para una sonda suelta: `tests/e2e/correr.sh analitica autorizacion`.
 
+Dos sondas viven fuera del examen porque necesitan otro montaje:
+
+```bash
+node tests/e2e/navegador/panel-admin.js        # la interfaz ante 428/403/formas raras
+                                               # (no necesita backend: responde ella misma)
+
+# El camino del admin con el 2FA exigido como en producción. Hace falta un
+# backend con ADMIN_2FA_OPTIONAL=false y una cuenta en ADMIN_EMAILS:
+ENVIRONMENT=development ADMIN_2FA_OPTIONAL=false JWT_SECRET=devonly \
+  ADMIN_EMAILS=jefe@example.com CORS_ORIGINS=http://127.0.0.1:3100 \
+  DATABASE_URL='postgresql://…' uvicorn server:app --port 8090 --app-dir backend &
+QA_API=http://127.0.0.1:8090 node tests/e2e/navegador/admin-2fa.js
+```
+
+> Encontró BUG-076 y lo demostró: contra el código anterior falla en el paso 2
+> —«Ajustes ofrece ACTIVAR el 2FA»— porque a un admin de Google se le exigía el
+> segundo factor y se le escondía el botón para activarlo. **Y su primera
+> versión pasaba con el código roto**: buscaba el texto «dos pasos» en cualquier
+> parte, y el aviso ámbar de «activa el 2FA» lo lleva, así que casaba justo en
+> la pantalla donde la tarjeta no estaba. Ahora busca el BOTÓN. Un ✅ que no
+> prueba nada es peor que un ❌.
+
 ## Mirar una pantalla mientras la diseñas
 
 El examen entero es lo correcto antes de mergear y demasiado caro mientras
@@ -69,12 +91,17 @@ Los recursos externos bloqueados por la política de red del sandbox se cuentan
 > depende de la cantidad, que es lo que se estaba calculando) y el aviso de
 > email tapaba el campo de capital.
 
-La de accesibilidad va aparte porque necesita `axe-core`:
+La de accesibilidad necesita `axe-core`, y **ya lo instala `arriba.sh`**:
 
 ```bash
-cd tests/e2e && npm install --no-save axe-core
-node navegador/accesibilidad.js escritorio   # y `movil`
+node tests/e2e/navegador/accesibilidad.js escritorio   # y `movil`
 ```
+
+> ⚠️ No lo instales a mano con `npm install --no-save axe-core`. Aquí no hay
+> `package.json`, así que esa orden **poda todo lo que no nombres**: se lleva
+> `playwright-core` por delante y deja `tests/e2e/lib/playwright-core` como un
+> enlace roto. Reinstalar Playwright se lleva entonces axe, y así
+> indefinidamente. `arriba.sh` las instala en la misma orden por eso.
 
 ## Qué hay dentro
 
@@ -90,6 +117,7 @@ node navegador/accesibilidad.js escritorio   # y `movil`
 | `navegador/accesibilidad.js` | WCAG 2.1 AA con axe-core sobre 4 páginas: nombres accesibles, contraste y ARIA. Sólo reporta lo `critical`/`serious` — los avisos menores esconden lo que de verdad bloquea a alguien |
 | `api/pasarelas.py` | Los raíles de cobro: que **apagar una pasarela en admin cierra el checkout en el servidor** (no sólo esconde el botón), que Kunfupay cobra **suscripción y pago único**, y que el alta manual concede premium, es idempotente por referencia y **apila** el periodo. 22 comprobaciones |
 | `api/persistencia.py` | Que la cifra que la pantalla enseña antes de guardar es **exactamente** la que queda almacenada (hay dos copias de la matemática: navegador y backend) |
+| `navegador/admin-2fa.js` | El camino completo del administrador con el **2FA exigido como en producción**: que el panel abre por el margen de alta, que Ajustes ofrece activar el segundo factor **aunque la cuenta sea de Google**, que al vencer el margen el backend lo echa, y que activarlo de verdad —código TOTP calculado en la sonda— devuelve el panel. Fuera de `correr.sh` porque necesita el backend con `ADMIN_2FA_OPTIONAL=false` |
 
 `entorno.js` y `entorno.py` tienen lo compartido: dónde está Chromium, cómo se
 entra, cómo se consulta la base de datos, cómo se consigue una cuenta de prueba.

@@ -38,13 +38,13 @@ export default function StructureEvents({ events, limit = 8 }) {
             key={`${e.date}-${e.index}-${i}`}
             className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs"
           >
-            <span className={`font-semibold ${isChoch ? 'text-[#f59e0b]' : 'text-primary'}`}>
+            <span className={`font-semibold ${isChoch ? 'text-warn' : 'text-primary'}`}>
               {t(isChoch ? 'structChoch' : 'structBos')}
             </span>
             <span className={`font-mono ${dir.color}`}>{dir.icon} {t(`structDir_${e.direction}`)}</span>
             {e.times > 1 && (
               <span
-                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#f59e0b]/15 text-[#fbbf24]"
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-warn/15 text-warn"
                 title={t('structRepeatTip').replace('{n}', String(e.times))}
                 data-testid="struct-event-repeat"
               >
@@ -56,7 +56,7 @@ export default function StructureEvents({ events, limit = 8 }) {
                 cuál exactamente. */}
             <span
               className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                conf.confirmed ? 'bg-[#22c55e]/15 text-[#4ade80]' : 'bg-muted text-muted-foreground'
+                conf.confirmed ? 'bg-long/15 text-long' : 'bg-muted text-muted-foreground'
               }`}
               title={`${t('structEvidence')}: ${conf.score ?? 0}/100${conf.reasons?.length ? ` — ${reasonList(conf.reasons)}` : ''}`}
             >

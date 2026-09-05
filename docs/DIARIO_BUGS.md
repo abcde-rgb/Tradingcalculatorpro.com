@@ -10,6 +10,137 @@
 
 ---
 
+### Endurecimiento asociado (2026-08-28) — qué significan los 43 avisos de `npm audit`
+
+`npm audit` sobre `frontend/` reportaba **44 vulnerabilidades**, y ese número
+por sí solo no dice nada útil: CRA declara `react-scripts` como dependencia de
+producción, así que **todo su árbol de compilación** —webpack, jest, eslint,
+babel, svgo, workbox— cuenta como «producción» aunque no llegue nunca al
+navegador. Repetir «44 vulnerabilidades» en cada sesión sin separarlas es
+ruido que acaba tapando lo que sí importa.
+
+Separadas, sólo cinco paquetes podían acabar en el bundle publicado. De ésos:
+
+| Paquete | Qué se hizo |
+|---|---|
+| `react-router` / `-dom` 7.18.1 | **Alta** (CSRF en modo RSC). Subido a 7.18.2, que es un parche. La SPA no usa RSC, pero no hay razón para cargar con el aviso cuando el arreglo es una versión de parche |
+| `dompurify` (10 avisos) | Entraba por `jspdf`, y **`jspdf` no se importa en ningún sitio**: ni en `src/`, ni en `scripts/`, ni por importación dinámica, ni aparece en el bundle. Retirada, junto a `html2canvas`, por la misma razón |
+| `nanoid`, `uuid`, `qs` | Entran por `postcss` y el árbol de webpack: compilación, no navegador |
+
+Resultado: **0 avisos que lleguen al navegador**. Los 43 restantes son del árbol
+de `react-scripts` y sólo se cierran migrando de CRA a Vite —que está en el
+backlog como P3, no como problema de seguridad—.
+
+Se comprueba así, y conviene rehacerlo antes de creerse un número:
+
+```bash
+cd frontend && npm audit --json | python3 -c "…"   # separar build de runtime
+grep -rl "jspdf\|dompurify" src/ scripts/          # ¿se usa de verdad?
+grep -l "<paquete>" build/static/js/*.js            # ¿está en el artefacto?
+```
+
+### BUG-025 — El CSP no autorizaba `wss://`: las alertas en vivo quedaban mudas en producción
+**Severidad:** 🟠 ALTA · **Archivo:** `frontend/public/index.html`, `frontend/craco.config.js` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+La Content-Security-Policy que cerró G-10 listaba el backend como
+`connect-src https://api…`, y `useWebSocketAlerts` abre `wss://api…`. En CSP3
+eso es **otro esquema**: la relajación va de `ws` a `http`/`https`, nunca al
+revés. El navegador bloqueaba la conexión con `Refused to connect to
+'ws://…/api/ws/alerts'` y las alertas de precio no llegaban nunca — en
+producción, sin aviso, porque el `meta` no admite `report-only`.
+**Causa raíz:** al medir los orígenes con Playwright para escribir la política,
+se recorrió `/dashboard` **sin sesión**. Sin token el hook devuelve `null` y no
+abre nada: el WebSocket nunca apareció en la medición.
+**Solución:** `craco.config.js` deriva `REACT_APP_BACKEND_WS_URL` del backend
+(no un secreto nuevo: así no puede divergir) y `connect-src` lo incluye.
+**Verificado:** `pre-despliegue.js` en verde; `csp.js` gana un bloque
+autenticado que exige que el WebSocket **se intente** —sin esa guarda, un
+dashboard que dejara de montar `PriceAlerts` volvería a dar verde sin probar
+nada— y dos sabotajes en `probar-verificadores.sh`.
+
+### BUG-026 — Los colores de señal salían del tema oscuro: el P&L era ilegible sobre papel
+**Severidad:** 🟠 ALTA · **Archivo:** `frontend/src/index.css`, 151 ficheros de `frontend/src/` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+Con el tema claro, las cifras de P&L de `/performance` medían **2,09:1** (verde)
+y **3,60:1** (rojo) contra el mínimo de 4,5:1 de WCAG AA. axe encontraba 77
+incumplimientos graves en esa sola pantalla con el tema claro y **1** con el
+oscuro. Son los números con los que alguien dimensiona una posición real.
+**Causa raíz doble:** (1) 1.499 clases llevaban el color escrito a mano —760 en
+hexadecimal (`text-[#22c55e]`) y 742 de la paleta de Tailwind
+(`text-red-500`)—, todas elegidas mirando el fondo oscuro; `#22c55e` resultó ser
+exactamente `--long` del tema oscuro y `#ef4444` exactamente `--short`, o sea
+los tokens del sistema congelados en el valor de un tema. (2) La sonda de
+accesibilidad medía **un solo tema y cuatro páginas**, así que el tema claro no
+existía para ella.
+**Solución:** cuatro tokens nuevos (`--warn`, `--caution`, `--info`,
+`--compare`) junto a `--long`/`--short`, cada uno medido para pasar 4,5:1 sobre
+la tarjeta **y** como texto sobre su propio tinte al 15 %, que es el patrón de
+las insignias. 1.479 clases pasan a los tokens; en oscuro el cambio es
+imperceptible (7,61 → 7,54), en claro 2,19 → 4,65. Ajustados también
+`--primary`, `--accent` y `--destructive` del tema claro.
+**Verificado:** `accesibilidad.js` recorre ahora **2 temas × 8 páginas** — 0
+incumplimientos graves en escritorio y en móvil, frente a 53 al ampliar la
+cobertura.
+
+### BUG-027 — Tres botones sin nombre accesible, y uno inalcanzable con teclado
+**Severidad:** 🔴 CRÍTICA (accesibilidad) · **Archivo:** `frontend/src/pages/SettingsPage.jsx`, `frontend/src/components/education/EduAssistant.jsx` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+Los tres botones de ver/ocultar contraseña de Ajustes eran icono suelto sin
+`aria-label` **y** llevaban `tabIndex={-1}`: quien navega con teclado o lector
+de pantalla no podía usarlos en absoluto. El botón de preguntar de la academia
+esconde su etiqueta en un `hidden sm:inline`, así que **en móvil** se quedaba
+con el icono solo y sin nombre — un incumplimiento que sólo existe por debajo
+del punto de ruptura, y que por eso hacía falta medir accesibilidad también en
+móvil.
+**Causa raíz:** iconos como única etiqueta, y `tabIndex={-1}` puesto para que el
+botón no interrumpiera el tabulado del formulario.
+**Solución:** `aria-label` traducido en los cuatro (claves nuevas
+`showPassword`/`hidePassword` en los 10 idiomas) y `tabIndex={-1}` retirado. La
+tabla comparativa de brókers gana `tabIndex={0}` + `role="region"`.
+**Verificado:** `accesibilidad.js` en verde en escritorio y móvil.
+
+### BUG-028 — La R media indefinida se pintaba «nullR»
+**Severidad:** 🟡 MEDIA · **Archivo:** `frontend/src/components/performance/AnalyticsDashboard.jsx` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+Al aplicar la regla de honestidad nº 2 —lo que no se puede calcular es `None`,
+no `0`— `avg_r` y el Sharpe pasaron a ser opcionales en el backend. La pantalla
+seguía interpolándolos a pelo, así que pintaba `nullR` y `Sharpe: null`. Es
+**peor** que el cero que se quería evitar: el cero parece un número, «null»
+parece una web rota, y en la pantalla con la que alguien dimensiona una posición
+se lleva por delante la confianza en el resto de las cifras.
+**Causa raíz:** la regla se aplicó en el productor y no en el consumidor.
+`fmtNum` ya existía en el mismo fichero para esto; esas tres cifras no lo usaban.
+**Solución:** `fmtNum` en las tres. Sonda nueva `nulos.js`, que **fuerza** el
+caso interceptando la respuesta de `/performance/analytics` y anulando cada
+métrica que el contrato permite anular (sólo ésas: la primera versión anulaba
+también `win_rate` y `expectancy`, que `_safe_div(..., 0)` nunca deja nulas, y
+«encontraba» fallos de un escenario imposible).
+**Verificado:** sabotaje registrado en `probar-verificadores.sh` — quitar la
+guarda del bundle reproduce «AVG R nullR» y pone la sonda en rojo.
+
+### BUG-029 — El JWT del WebSocket viajaba en la cadena de consulta
+**Severidad:** 🟡 MEDIA · **Archivo:** `backend/realtime_alerts.py`, `frontend/src/hooks/useWebSocketAlerts.js` · **Estado:** ✅ RESUELTO (2026-08-28)
+
+`useWebSocketAlerts` abría `wss://…/api/ws/alerts?token=<JWT>`. Cloud Run
+registra la URL completa de cada petición, así que el token de acceso quedaba
+escrito en los registros y sobrevivía allí mucho más que la hora que dura.
+**Causa raíz:** el navegador no deja poner cabeceras en un WebSocket, y la URL
+era el camino corto.
+**Solución:** el backend prefiere la cookie `access_token` (que viaja en una
+cabecera que no se registra) y conserva `?token=` como respaldo —hace falta:
+la cookie es `secure` y sobre `http://localhost` el navegador no la guarda, que
+es como corre el banco E2E—. El frontend intenta primero **sin** token y sólo
+recurre a la URL si el servidor cierra con 4401.
+⚠️ **La trampa que había que cerrar a la vez:** el apretón de manos de un
+WebSocket **no pasa por CORS**. Cualquier página puede abrir uno contra el
+backend y el navegador adjuntará las cookies de quien la visite. Autenticar por
+cookie sin comprobar `Origin` habría abierto un secuestro de sesión entre
+sitios (CSWSH) peor que el problema que se cerraba.
+**Verificado:** 9 tests en `tests/test_ws_credencial_unit.py`, incluidos el
+origen ajeno con la cookie de la víctima y el caso sin cabecera `Origin`. La
+vía de la cookie no se puede probar en el banco E2E precisamente porque corre
+sobre `http://localhost`.
+
 ### BUG-021 — Host-header injection en enlaces de email (reset de contraseña / verificación)
 **Severidad:** 🔴 CRÍTICA · **Archivo:** `backend/missing_apis.py` (`forgot_password`, `send_verification_email`) · **Estado:** ✅ RESUELTO (2026-07-14)
 
@@ -637,6 +768,20 @@ a `round(plan["price"], 2)` con comentario explicativo.
 | BUG-072 | **El panel de administración funcionaba en incógnito y no en el navegador de siempre.** El 2FA es **obligatorio** para administradores: `require_admin` devuelve **428** a todo `/admin/*` si la cuenta no tiene TOTP, y en producción no se puede desactivar (`ADMIN_2FA_OPTIONAL` ignora la variable de entorno fuera de desarrollo, a propósito). `ProtectedRoute` lo refleja con `user?.two_factor_enabled === false → /settings`, para no meter al admin en una pantalla que va a fallar entera. Pero de las ocho respuestas que construyen el objeto `user`, **sólo tres mandaban ese campo** (`/auth/me`, verificación TOTP y passkey): login, `/auth/refresh`, magic link, Google y el registro lo omitían. Con el campo ausente vale `undefined`, y **`undefined === false` es falso**, así que la guarda no saltaba. De ahí los dos comportamientos: en **incógnito** se entra con `/auth/login` —sin el campo— y la guarda deja pasar; en el navegador **de siempre** el `user` guardado en `localStorage` venía de un `/auth/me` anterior, que sí lo manda, así que valía `false` y expulsaba a Ajustes. El mismo usuario, la misma cuenta, dos resultados según por dónde hubiera entrado. Y el «funciona» de incógnito era falso: el panel se pintaba y cada llamada devolvía 428. Fix: el campo viaja en las ocho respuestas. **La regla que lo fija** no comprueba los cuatro sitios conocidos —eso dejaría pasar el siguiente endpoint que se escriba— sino que recorre con `ast` **todo** objeto `user` de respuesta y exige que quien mande `is_admin` mande también `two_factor_enabled`. Los identifica por posición (el valor de la clave `"user"`, más el `return` de `/auth/me`), no por sus claves: un heurístico por claves marcaba también las filas de base de datos y las tablas del panel, que no tienen por qué llevarlo, y un verificador que grita con código correcto se desactiva en una semana. Saboteada en las dos direcciones. | 🟠 | ✅ Resuelto (2026-08-28) — **requiere desplegar** |
 
 | BUG-073 | **El panel de administración no explicaba por qué no funcionaba: o salía vacío, o se caía entero.** Reproducido en navegador real (sonda `tests/e2e/navegador/panel-admin.js`), son dos fallos distintos y ninguno decía nada. (a) **428**: `require_admin` devuelve `428 Precondition Required` con el motivo en `detail` cuando el administrador no tiene 2FA —obligatorio en producción—, pero `loadAll()` sólo contemplaba **401 y 403**, así que el 428 caía al `catch` genérico: `metrics` se quedaba en `null`, el panel se pintaba **vacío** y el motivo se quedaba en la consola del navegador. El 428 existe precisamente para distinguir «no puedes» de «te falta un paso», y se estaba desperdiciando. (b) **Una respuesta 200 con otra forma** —un backend más antiguo, un error envuelto distinto— hacía que `metrics.by_locale.length` lanzara `TypeError: Cannot read properties of undefined`, lo recogía el `ErrorBoundary` y se llevaba la **página entera** por delante: «Algo salió mal», que no dice nada de lo que pasa. Es la misma forma que el `history.map is not a function` del panel (BUG del 2026-08-13): una respuesta que no es la esperada guardada tal cual en un estado que luego se recorre. Fix: rama explícita para el 428 que muestra el `detail` del backend y lleva a **Ajustes**, que es donde se activa el 2FA; y `by_locale?.length ?? '—'`, porque una cifra que falta es un guion, no una página en blanco. **La sonda no necesita backend ni Postgres**: sirve el build y responde a `/api/**` ella misma, porque lo que se prueba es cómo reacciona la interfaz — montar la base de datos para esto lo habría hecho tan caro que no se ejecutaría. Saboteada en los dos sentidos. | 🟠 | ✅ Resuelto (2026-08-28) |
+
+| BUG-074 | **Sin `SECRET_ENCRYPTION_KEY`, las claves de Stripe/SendGrid/PayPal/Google caían a texto plano en Postgres, en silencio.** `_encrypt_setting()` sólo cifra si esa variable está en el entorno; si no, devuelve el valor tal cual, sin loguear nada. Y la variable **no aparece en ningún workflow ni en `DEPLOY_CHECKLIST.md`** —sólo en `.env.example`, vacía—, así que era fácil que nunca se hubiera puesto en Cloud Run. El panel de Ajustes/Conectores no daba ninguna señal: un admin tecleaba la clave secreta de Stripe y no tenía forma de saber si quedaba cifrada. (De paso, revisado el otro half del hallazgo original —`POST /admin/settings` de `admin_routes.py` saltándose el cifrado y comparando contra la máscara `"***"`—: **ya no aplica**, el `PUT /admin/settings` de `server.py`, que es el que de verdad llama el panel, ya cifraba correctamente y rechazaba un valor con el carácter de máscara dentro). Fix: `cifrado_activo()` nuevo junto a `_get_fernet()`, un aviso una sola vez al arrancar si la clave falta (antes no había ni log), `GET /admin/settings` la expone como `encryption_active`, y el panel pinta un aviso ámbar cuando es `false` en vez de dejarlo en silencio. No se aborta el guardado: dejar al admin sin poder configurar la pasarela sería peor que el riesgo que evita. **No rota nada retroactivamente**: un secreto ya guardado en claro sigue en claro hasta que se vuelva a guardar con la clave puesta. 7 tests nuevos en `test_secret_encryption_unit.py`. **Sigue pendiente, y es operativo, no de código**: generar la clave y ponerla en Cloud Run — ver `DEPLOY_CHECKLIST.md` §C. | 🟠 | ✅ Resuelto en el repo (2026-08-31) — **requiere generar y desplegar `SECRET_ENCRYPTION_KEY`** |
+
+| BUG-075 | **Reportado por el dueño: "el envío de correos no funciona ni magic link".** Dos causas, una de código y una operativa, ya documentada pero sin marcar como bloqueante en la práctica. **(a) Código — fallo silencioso de verdad**: `_send_magic_link_email()` y `_send_email_verification()` mandan el correo con `httpx` en crudo (`POST` directo a la API de SendGrid) y **nunca miran el código de respuesta**. `httpx` no lanza excepción por un 4xx/5xx —sólo por fallos de red—, así que una clave inválida, un dominio remitente sin verificar o un 429 de SendGrid fallaban **sin excepción, sin log, sin rastro**: el `except` nunca se disparaba porque no había nada que capturar. El tercer camino de envío, `_send_email()` (reset de contraseña, bienvenida, confirmación de suscripción), sí usa el SDK oficial de SendGrid, que **sí** lanza y **sí** queda logueado — por eso "ni magic link" es la pista: es justo el camino que no dejaba huella. **(b) Operativo, no de código, y ya estaba escrito**: `docs/MIGRACION_DOMINIO.md` § «Lo que falta» punto 6 y `DEPLOY_CHECKLIST.md` §H llevan sin marcar desde el cutover del dominio (2026-08-28) — *"Dominio remitente verificado para `alerts@tradingcalculator.pro`. Hasta entonces los correos transaccionales no salen."* Sin esa verificación en el panel de SendGrid, **cualquiera** de los tres caminos de envío es rechazado, y sólo dos de los tres lo habrían dicho en los logs. El punto 2 del mismo documento (`FRONTEND_URL` en el propio servicio de Cloud Run, que sobrevive al despliegue y le gana al valor por defecto del código) es la otra mitad: si sigue con el dominio viejo, aunque el correo llegue, el enlace de dentro apunta a la URL antigua. Fix de código: ambas funciones ahora miran `resp.status_code` y loguean el cuerpo de la respuesta de SendGrid en un `>= 300` — no cambia si el correo sale o no, sólo hace que el fallo real (sea cual sea) quede escrito en los logs de Cloud Run en vez de desaparecer. 3 tests nuevos en `test_email_send_status_unit.py`. **Lo que de verdad lo arregla es operativo, no está en este commit**: verificar el dominio remitente en SendGrid y confirmar `FRONTEND_URL` en el servicio — `MIGRACION_DOMINIO.md` puntos 2 y 6. | 🟠 | 🟡 Código resuelto (2026-08-31) — **requiere verificar el dominio en SendGrid y `FRONTEND_URL` en Cloud Run** |
+
+| BUG-076 | **Reportado por el dueño: «hay que arreglar el admin de inmediato». El administrador estaba ENCERRADO: se le exigía el 2FA y se le escondía dónde activarlo.** `SettingsPage.jsx` pintaba `<TwoFactorCard />` sólo si `user?.auth_provider === 'password'`. La cuenta del dueño entra con **Google**, así que la secuencia completa era: `/admin` → `ProtectedRoute` ve `two_factor_enabled === false` → **te manda a `/settings` a activar el 2FA** → en `/settings` **no hay ninguna tarjeta de 2FA**. Sin salida, sin mensaje y sin manera de deducirlo desde la pantalla. Y el backend **nunca** puso esa condición: `/auth/2fa/setup`, `/enable` y `/disable` van por `require_user` y no miran el proveedor — la restricción existía sólo en esa línea del frontend. Verificado en navegador contra el backend real: con `auth_provider='google'` la tarjeta no se pintaba, y con el arreglo se pinta, `setup` responde, un código TOTP real la activa y el panel vuelve. **Se cierra con tres piezas más.** (a) **Margen de alta de 10 minutos**, pedido por el dueño: `require_admin` abre una ventana de un solo uso la primera vez que un admin sin TOTP toca el panel (`ADMIN_2FA_GRACE_MINUTES`, `admin_2fa_grace_started_at` en la fila). Se abre **al usarla**, no al crear la cuenta —un admin de hace seis meses conserva el suyo, un atacante sólo lo encuentra si el dueño nunca ha pisado el panel—, **no se reescribe nunca** —ni al vencer, ni al activar y desactivar el 2FA— y deja aviso en el log y entrada en `admin_audit_log`. A `0` se apaga entera. El panel enseña mientras tanto una banda ámbar con el enlace a Ajustes. (b) **`ProtectedRoute` deja de decidir sobre el 2FA de admin** — es el hueco **G-39**: el frontend no conoce ni `ADMIN_2FA_OPTIONAL` ni el margen, así que expulsaba también a admins que el servidor sí iba a dejar entrar (y obligaba a fabricar un TOTP real para mirar el panel en local). Manda el **428**, que `AdminPage` ya traduce desde BUG-073. (c) **El registro decía `is_admin: False` fijo** mientras las otras siete respuestas de auth lo calculaban con `ADMIN_EMAILS`: el dueño que se registrara por primera vez con su propio correo de admin salía a una sesión sin panel hasta recargar. 8 tests nuevos y 6 sabotajes. | 🔴 | ✅ Resuelto (2026-08-31) — **requiere desplegar backend y frontend** |
+
+| BUG-077 | **Recargar la pestaña cerraba la sesión, y cerrar sesión no cerraba nada.** Dos fallos opuestos en el mismo par de tokens. **(a) La recarga te echaba.** `/auth/refresh` **rota** el token: revoca el que le llega y emite otro. Y el frontend lo llama en **cada arranque**, porque el de acceso vive sólo en memoria. Un segundo canje del mismo token —una pestaña que arranca detrás, una petición reintentada, una respuesta cuyo `Set-Cookie` no llegó a guardarse— recibía **401**, y `silentRefresh` trataba el 401 como «el servidor dice que esta sesión no vale» y la cerraba. Medido: con el código anterior, reusar el token recién rotado da 401; con `REFRESH_ROTATION_GRACE_SECONDS` (30 s, sólo para lo revocado **por rotación**) da 200. **Y la mitad más gorda**: `silentRefresh` cerraba la sesión ante **cualquier** respuesta no-OK. El backend vive en Cloud Run **sin instancias calientes**, así que la primera petición tras un rato de silencio —que es literalmente ésta— arranca un contenedor: un 502 o un timeout de arranque en frío se leía como «tu sesión ha caducado». Ahora sólo el **401/403** cierra la sesión, y antes de rendirse se reintenta una vez con 45 s de margen. **(b) Cerrar sesión dejaba vivo el refresh token.** `/auth/logout` revocaba el de **acceso** —una hora— y borraba las cookies, pero el de **refresco** —siete días, y es el que abre la puerta— no se tocaba: borrar la cookie limpia un navegador, no invalida el token. Medido contra el backend real: tras pulsar «cerrar sesión», `POST /auth/refresh` con ese token devolvía **200** y una sesión nueva. Ahora se revocan los dos, marcados como `logout`, que es el motivo que la ventana de rotación **no** perdona. 7 tests nuevos y 3 sabotajes. | 🔴 | ✅ Resuelto (2026-08-31) — **requiere desplegar** |
+
+| BUG-078 | **`probar-verificadores.sh` decía «SOBREVIVE al sabotaje» sobre verificadores que estaban perfectos: el guardián de los guardianes tenía el fallo que existe para cazar.** Dos causas distintas, el mismo síntoma. **(a)** Los ocho bloques `python - <<'EOF'` llevaban el cuerpo indentado dos espacios para alinearlo con el resto del script, y Python leído por `stdin` **no admite indentación a nivel de módulo**: los ocho morían con `IndentationError`. **(b)** El sabotaje del login buscaba `{"email": {"$ieq": credentials.email}}`, texto que **BUG-070 había sustituido** por `_buscar_usuario_por_correo()`: el `replace` no encontraba nada, escribía el fichero igual y salía con 0. En los dos casos el fichero quedaba **intacto**, el verificador seguía pasando —correctamente— y el informe lo acusaba de no verificar nada. Reproducido en una copia limpia de `main`. **La causa de fondo, que era G-41 y se cierra aquí**: `probar()` ejecutaba `eval "$sabotaje" >/dev/null 2>&1` y **descartaba el código de salida**, así que «el verificador no verifica» y «el sabotaje no llegó a tocar nada» imprimían exactamente lo mismo. Ahora un sabotaje que falla se reporta con su error y cuenta como fallo **del propio test**, no del producto; igual en `probar_inverso()` con su cebo. Y el sabotaje del login lleva `assert count == 1` sobre su ancla, para que la próxima reescritura grite en vez de mentir. | 🟠 | ✅ Resuelto (2026-08-31) — cierra también G-41 |
+
+| BUG-079 | **El botón «Guardar» de Ajustes daba 405 desde siempre: nunca guardó nada.** `SettingsPage` manda `PUT /api/auth/profile` con `{name, picture}`. El backend sólo tenía `POST`, y su `ProfileUpdateRequest` sólo aceptaba `country` y `preferred_locale`. Método equivocado **y** campos equivocados: el usuario cambiaba su nombre, pulsaba Guardar y no pasaba nada. Las dos mitades se escribieron por separado y no se encontraron nunca — el docstring del endpoint decía *«lo que sigue faltando es la pantalla»* cuando la pantalla llevaba tiempo hecha. **Y hay una segunda mitad, la que hace que los ajustes «salten»**: `country` y `preferred_locale` se guardaban en la fila pero **no viajaban en ninguna de las ocho respuestas de auth**. El store hace `set({ user: data.user })`, así que cada login, cada refresco y cada `/auth/me` machacaba el objeto y los borraba: el idioma nunca seguía a la cuenta entre dispositivos, y `ProfileCompletionPrompt` —que decide con `!user.country`— volvía a salir en cada carga aunque ya se hubiera rellenado. **Y una tercera**: `useState(user?.name)` sólo corre en el primer render, y al recargar el `user` llega DESPUÉS de montar la pantalla (`SessionBoot` → `silentRefresh`), así que los campos se quedaban con lo que hubiera. Fix: el endpoint acepta `POST` **y** `PUT` y guarda también `name` y `picture` (nombre en blanco se ignora en vez de borrar el que había; foto sólo `http(s)`, porque acaba en el `src` de un `<img>`); `country` y `preferred_locale` viajan en las ocho respuestas; y Ajustes resincroniza el formulario con un efecto. Medido: `PUT` pasa de **405 a 200** y el nombre cambia de verdad; el login y `/auth/me` devuelven `ES`/`fr`; en navegador real el campo no salta tras guardar ni tras recargar. 6 tests nuevos, 4 sabotajes, y la regla de BUG-072 extendida para cubrir estos dos campos. | 🔴 | ✅ Resuelto (2026-09-01) — **requiere desplegar** |
+
+| BUG-080 | **El registro descartaba en silencio el país y el idioma que su propio formulario obliga a rellenar.** El `<select>` de país es `required` en `AuthPages.jsx` —no se puede completar el alta sin elegirlo— y `register()` los envía, igual que `loginWithGoogle()`. Pero `UserCreate` y `GoogleAuthRequest` no los declaraban, y **Pydantic descarta los campos no declarados sin error**: la cuenta nacía con `country: None` y `preferred_locale: None`. Nadie volvía a preguntárselo, porque `ProfileCompletionPrompt` sólo rescata a los usuarios de Google —su propio comentario dice *«email users used the form»*, que es justo la premisa que el backend rompía—. Consecuencias: la columna de país del panel de admin vacía para todo el que se registró por correo, el export RGPD sin ese dato, y el idioma sin seguir a la cuenta. Obligar a rellenar algo que se tira es peor que no preguntarlo. Fix: los dos modelos los aceptan y el alta los guarda normalizados con `_norm_country`/`_norm_locale` —un país que no es ISO-3166 alfa-2 o un idioma que ninguna pantalla sabe pintar se guardan como `None`, no tal cual—. Medido contra Postgres: alta con `ES`/`fr` → quedan en la fila y vuelven en la respuesta. | 🔴 | ✅ Resuelto (2026-09-01) — **requiere desplegar** |
 
 ---
 

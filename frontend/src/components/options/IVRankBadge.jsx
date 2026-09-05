@@ -50,10 +50,10 @@ const IVRankBadge = ({ symbol }) => {
   const isLow = rank <= 30;
   const Icon = isHigh ? Flame : isLow ? Snowflake : Minus;
   const palette = isHigh
-    ? 'bg-[#22c55e]/15 border-[#22c55e]/40 text-[#4ade80]'
+    ? 'bg-long/15 border-long/40 text-long'
     : isLow
-      ? 'bg-[#ef4444]/15 border-[#ef4444]/40 text-[#f87171]'
-      : 'bg-[#eab308]/15 border-[#eab308]/40 text-[#fbbf24]';
+      ? 'bg-short/15 border-short/40 text-short'
+      : 'bg-caution/15 border-caution/40 text-warn';
 
   return (
     <div

@@ -231,7 +231,7 @@ export default function RollCalculator() {
         <ul className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
           {r.daysBought <= 0 ? (
             <li className="flex gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-warn" />
               <span>{L.vNoTime}</span>
             </li>
           ) : (
@@ -241,7 +241,7 @@ export default function RollCalculator() {
             </li>
           )}
           <li className="flex gap-2">
-            <Info className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${r.thetaBetter ? 'text-emerald-500' : 'text-amber-500'}`} />
+            <Info className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${r.thetaBetter ? 'text-long' : 'text-warn'}`} />
             <span>
               {r.thetaBetter ? L.vThetaBetter : L.vThetaWorse}{' '}
               <span className="font-mono">
@@ -253,7 +253,7 @@ export default function RollCalculator() {
       </div>
 
       <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 flex gap-2.5">
-        <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+        <AlertTriangle className="w-4 h-4 text-short shrink-0 mt-0.5" />
         <p className="text-xs text-muted-foreground leading-relaxed">{L.warn}</p>
       </div>
     </section>

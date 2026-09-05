@@ -68,7 +68,7 @@ const RECOVERY_ROWS = [
   { loss: 90, gain: 900 },
 ];
 
-const pctColor = (v) => (v >= 50 ? 'text-[#ef4444]' : v >= 15 ? 'text-[#f59e0b]' : 'text-[#22c55e]');
+const pctColor = (v) => (v >= 50 ? 'text-short' : v >= 15 ? 'text-warn' : 'text-long');
 
 const SliderRow = ({ label, value, setValue, min, max, step, unit, testId }) => (
   <div>
@@ -80,7 +80,7 @@ const SliderRow = ({ label, value, setValue, min, max, step, unit, testId }) => 
       type="range"
       min={min} max={max} step={step} value={value}
       onChange={(e) => setValue(Number(e.target.value))}
-      className="w-full accent-[#22c55e]"
+      className="w-full accent-long"
       data-testid={testId}
     />
   </div>
@@ -100,15 +100,15 @@ const RiskOfRuinCalculator = () => {
   const expectancy = (winRate / 100) * rRatio - (1 - winRate / 100);
 
   const verdict = expectancy <= 0
-    ? { key: 'rorVerdictNegative', Icon: AlertCircle, cls: 'border-[#ef4444]/40 bg-[#ef4444]/10 text-[#f87171]' }
+    ? { key: 'rorVerdictNegative', Icon: AlertCircle, cls: 'border-short/40 bg-short/10 text-short' }
     : res.probDD50 >= 15
-      ? { key: 'rorVerdictHigh', Icon: AlertTriangle, cls: 'border-[#f59e0b]/40 bg-[#f59e0b]/10 text-[#fbbf24]' }
-      : { key: 'rorVerdictOk', Icon: CheckCircle2, cls: 'border-[#22c55e]/40 bg-[#22c55e]/10 text-[#4ade80]' };
+      ? { key: 'rorVerdictHigh', Icon: AlertTriangle, cls: 'border-warn/40 bg-warn/10 text-warn' }
+      : { key: 'rorVerdictOk', Icon: CheckCircle2, cls: 'border-long/40 bg-long/10 text-long' };
   const VIcon = verdict.Icon;
   const fmtX = (v) => `${v >= 10 ? v.toFixed(0) : v.toFixed(2)}x`;
 
   return (
-    <Card className="bg-gradient-to-br from-[#ef4444]/5 to-primary/5 border-border" data-testid="ror-calculator">
+    <Card className="bg-gradient-to-br from-short/5 to-primary/5 border-border" data-testid="ror-calculator">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-unbounded text-lg">
           <Dices className="w-5 h-5 text-primary" />
@@ -155,7 +155,7 @@ const RiskOfRuinCalculator = () => {
 
         {/* Expectancy line */}
         <p className="text-xs text-muted-foreground font-mono">
-          {t('rorExpectancy')}: <span className={expectancy > 0 ? 'text-[#22c55e] font-bold' : 'text-[#ef4444] font-bold'}>
+          {t('rorExpectancy')}: <span className={expectancy > 0 ? 'text-long font-bold' : 'text-short font-bold'}>
             {expectancy >= 0 ? '+' : ''}{expectancy.toFixed(2)}R
           </span>
           <span className="opacity-60"> · {t('rorSimBasis').replace('{n}', String(SIMULATIONS))}</span>
@@ -164,14 +164,14 @@ const RiskOfRuinCalculator = () => {
         {/* Recovery math table */}
         <div>
           <p className="text-xs font-semibold mb-2 flex items-center gap-1.5">
-            <TrendingDown className="w-3.5 h-3.5 text-[#ef4444]" /> {t('rorRecoveryTitle')}
+            <TrendingDown className="w-3.5 h-3.5 text-short" /> {t('rorRecoveryTitle')}
           </p>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {RECOVERY_ROWS.map(r => (
               <div key={r.loss} className="rounded-lg bg-card border border-border p-2 text-center">
-                <p className="text-sm font-mono font-bold text-[#ef4444]">−{r.loss}%</p>
+                <p className="text-sm font-mono font-bold text-short">−{r.loss}%</p>
                 <Activity className="w-3 h-3 text-muted-foreground mx-auto my-1 rotate-90" />
-                <p className="text-sm font-mono font-bold text-[#22c55e]">+{r.gain}%</p>
+                <p className="text-sm font-mono font-bold text-long">+{r.gain}%</p>
               </div>
             ))}
           </div>

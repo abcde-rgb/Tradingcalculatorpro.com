@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dices, AlertTriangle, Loader2 } from 'lucide-react';
+import { Dices, AlertTriangle } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { useTranslation } from '@/lib/i18n';
 import { runMonteCarlo, DEFAULT_MC_ITERATIONS } from './simulatorEngine';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const fmt = (n, d = 0) => Number(n).toLocaleString(undefined, {
   minimumFractionDigits: d, maximumFractionDigits: d,
@@ -59,7 +60,7 @@ export default function MonteCarloPanel({ config, onResult }) {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <Dices className="w-4 h-4 text-indigo-500" />
+            <Dices className="w-4 h-4 text-compare" />
           </div>
           {t('mcsimTitle')}
         </CardTitle>
@@ -80,21 +81,21 @@ export default function MonteCarloPanel({ config, onResult }) {
               value={ddLimit} onChange={(e) => setDdLimit(e.target.value)} />
           </label>
           <Button onClick={run} disabled={busy} data-testid="mc-run">
-            {busy ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> {t('mcsimRunning')}</> : t('mcsimRun')}
+            {busy ? <><CargaVelas className="w-4 h-4 mr-1.5" /> {t('mcsimRunning')}</> : t('mcsimRun')}
           </Button>
         </div>
 
         {mc && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="mc-results">
-              <Stat label={t('mcsimP5')} value={fmt(mc.finalBalance.p5)} tone="text-[#ef4444]" />
+              <Stat label={t('mcsimP5')} value={fmt(mc.finalBalance.p5)} tone="text-short" />
               <Stat label={t('mcsimP50')} value={fmt(mc.finalBalance.p50)} />
-              <Stat label={t('mcsimP95')} value={fmt(mc.finalBalance.p95)} tone="text-[#22c55e]" />
+              <Stat label={t('mcsimP95')} value={fmt(mc.finalBalance.p95)} tone="text-long" />
               <Stat label={t('mcsimProbProfit')} value={`${fmt(mc.probabilityOfProfit, 1)}%`} />
-              <Stat label={t('mcsimRoiP5')} value={`${fmt(mc.roi.p5, 1)}%`} tone="text-[#ef4444]" />
+              <Stat label={t('mcsimRoiP5')} value={`${fmt(mc.roi.p5, 1)}%`} tone="text-short" />
               <Stat label={t('mcsimRoiP50')} value={`${fmt(mc.roi.p50, 1)}%`} />
               <Stat label={t('mcsimDdP50')} value={`${fmt(mc.maxDrawdown.p50, 1)}%`} />
-              <Stat label={t('mcsimDdP95')} value={`${fmt(mc.maxDrawdown.p95, 1)}%`} tone="text-[#ef4444]" />
+              <Stat label={t('mcsimDdP95')} value={`${fmt(mc.maxDrawdown.p95, 1)}%`} tone="text-short" />
             </div>
 
             {/* The two numbers that actually decide whether the system is
@@ -103,7 +104,7 @@ export default function MonteCarloPanel({ config, onResult }) {
               <div className={`rounded-lg border p-4 ${mc.probabilityOfRuin > 1
                 ? 'border-red-500/50 bg-red-500/10' : 'border-border bg-card'}`}>
                 <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
-                  {mc.probabilityOfRuin > 1 && <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
+                  {mc.probabilityOfRuin > 1 && <AlertTriangle className="w-3.5 h-3.5 text-short" />}
                   {t('mcsimRuin', { pct: mc.ruinThresholdPct })}
                 </p>
                 <p className="text-2xl font-bold">{fmt(mc.probabilityOfRuin, 2)}%</p>

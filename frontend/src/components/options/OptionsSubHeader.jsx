@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Activity, ArrowUpRight, ArrowDownRight, BarChart2, BookOpen,
-  HelpCircle, LayoutGrid, Loader2, Target, Sigma,
+  HelpCircle, LayoutGrid, Target, Sigma
 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -10,6 +10,7 @@ import {
 import SearchBar from './SearchBar';
 import IVRankBadge from './IVRankBadge';
 import EstadoPrecio from '@/components/common/EstadoPrecio';
+import { CintaCarga } from '@/components/common/BrandLoading';
 
 // Seven tabs in one flat row overflowed every screen below ~1280px and forced
 // horizontal scrolling. Grouping them into three intents (trade / analyse /
@@ -70,6 +71,15 @@ const OptionsSubHeader = ({
     // (65px header + 102px here). Below 520px of height the toolbar scrolls
     // away instead of pinning, giving the content the screen back.
     <header className="sticky top-16 [@media(max-height:520px)]:static bg-card border-b border-border z-30">
+      {/* El refresco de la cadena es de FONDO: la pantalla sigue siendo usable
+          con los datos anteriores mientras llegan los nuevos. Por eso lo
+          anuncia la cinta de 2 px del borde superior y no un indicador metido
+          en la fila: el que estaba junto al precio empujaba la cifra 20 px
+          cada vez que el ticker refrescaba. El envoltorio `h-0` es lo que
+          impide que la cinta, al aparecer, mueva nada. */}
+      <div className="relative h-0">
+        <CintaCarga activa={loading} etiqueta={t('loading')} />
+      </div>
       {/* Row 1 — instrument: search, live price, IV rank. Tabular numerals so
           the price doesn't shift the row every time it ticks. */}
       <div className="h-14 min-h-[56px] flex items-center px-4 md:px-5 gap-3 overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
@@ -77,7 +87,6 @@ const OptionsSubHeader = ({
 
         {stock && (
           <div className="flex items-center gap-2.5 ml-1 shrink-0">
-            {loading && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
             {/* El aviso de «sin actualizar» vive en la esquina opuesta, que es
                 donde estaba el LIVE. Ahí solo no basta: lo que el usuario mira
                 para dimensionar es ESTE número, y a 1.300 px de distancia las
@@ -85,7 +94,7 @@ const OptionsSubHeader = ({
                 precio lo dice. */}
             <span
               className={`text-xl font-bold font-mono tabular-nums ${
-                stock.stale ? 'text-amber-500' : 'text-foreground'
+                stock.stale ? 'text-warn' : 'text-foreground'
               }`}
               title={stock.stale ? t('precioDesfasadoAviso') : undefined}
               data-testid="live-price"
@@ -94,7 +103,7 @@ const OptionsSubHeader = ({
               ${stock.price.toFixed(2)}
             </span>
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums ${
-              stock.change >= 0 ? 'bg-[#22c55e]/10 text-[#4ade80]' : 'bg-[#ef4444]/10 text-[#f87171]'
+              stock.change >= 0 ? 'bg-long/10 text-long' : 'bg-short/10 text-short'
             }`}>
               {stock.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
               {stock.change >= 0 ? '+' : ''}{stock.change} ({stock.changePercent}%)
@@ -123,7 +132,7 @@ const OptionsSubHeader = ({
             title={t('optQuickGuide')}
             aria-label={t('optQuickGuide')}
           >
-            <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-[#eab308]" />
+            <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-caution" />
           </button>
         </div>
       </div>

@@ -29,6 +29,7 @@ router = APIRouter()
 # Injected at register() time
 db = None  # type: ignore[assignment]
 decode_token = None  # type: ignore[assignment]
+_origenes_permitidos: List[str] = []
 # Envío de correo del servidor principal. Se inyecta porque SendGrid y su
 # remitente viven allí; si no llega, el canal de correo simplemente no sale.
 _send_email = None  # type: ignore[assignment]
@@ -280,14 +281,47 @@ def stop_poller() -> None:
 # WebSocket endpoint
 # ---------------------------------------------------------------------------
 
+def _credencial(websocket: WebSocket, token: str) -> tuple[str, str]:
+    """De dónde sale el JWT del WebSocket, y con qué garantías.
+
+    Devuelve `(jwt, via)` con `via` en {"cookie", "query", ""}.
+
+    La cookie va PRIMERO a propósito. Un JWT en la cadena de consulta acaba
+    escrito tal cual en los registros de acceso —Cloud Run guarda la URL
+    completa—, y ahí sobrevive a la sesión que lo emitió. La cookie viaja en
+    una cabecera que no se registra.
+
+    El parámetro se conserva como respaldo porque hay entornos donde la cookie
+    no llega: es `secure`, así que sobre `http://localhost` el navegador no la
+    guarda, y el banco de pruebas E2E corre justo así.
+
+    ⚠️ Por cookie hay que comprobar `Origin`. El apretón de manos de un
+    WebSocket NO pasa por CORS: cualquier página puede abrir uno contra este
+    backend y el navegador adjuntará las cookies de quien la visite. Con el
+    token en la URL eso no aplica —una página ajena no puede leerlo— pero con
+    la cookie sería un secuestro de sesión en toda regla.
+    """
+    de_cookie = websocket.cookies.get("access_token") or ""
+    if de_cookie:
+        origen = websocket.headers.get("origin") or ""
+        if _origenes_permitidos and origen not in _origenes_permitidos:
+            logging.warning("[ws-alerts] origen no permitido: %s", log_safe(origen))
+            return "", ""
+        return de_cookie, "cookie"
+    return (token, "query") if token else ("", "")
+
+
 @router.websocket("/ws/alerts")
 async def ws_alerts(websocket: WebSocket, token: str = Query("")):
     """WebSocket endpoint for real-time alert pushes.
-    Frontend connects: new WebSocket(`${wsUrl}/api/ws/alerts?token=${jwt}`)
+
+    Credencial: cookie `access_token` (preferida) o `?token=` (respaldo).
+    Ver `_credencial()` para por qué ese orden y qué comprueba cada vía.
     """
     user_id: Optional[str] = None
     user_email: Optional[str] = None
     try:
+        token, via = _credencial(websocket, token)
         if not token:
             await websocket.close(code=4401, reason="missing_token")
             return
@@ -377,8 +411,14 @@ async def alert_channels():
 
 
 def register(app_router, database, helpers: Dict[str, Any]) -> None:
-    global db, decode_token, _send_email
+    global db, decode_token, _send_email, _origenes_permitidos
     db = database
     decode_token = helpers["decode_token"]
     _send_email = helpers.get("send_email")
+    # Los mismos que CORS. Hacen falta aquí porque el apretón de manos de un
+    # WebSocket NO pasa por CORS: el navegador lo abre contra cualquier origen
+    # y adjunta las cookies igual. Sin comprobar `Origin`, autenticar por
+    # cookie abriría la puerta a que una página ajena leyera las alertas de
+    # quien la visite (Cross-Site WebSocket Hijacking).
+    _origenes_permitidos = list(helpers.get("cors_origins") or [])
     app_router.include_router(router)

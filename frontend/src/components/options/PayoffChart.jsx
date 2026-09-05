@@ -20,7 +20,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             <div className="w-2.5 h-0.5 rounded" style={{ backgroundColor: entry.stroke || entry.color }} />
             <span className="text-[10px] text-muted-foreground">{entry.dataKey === 'pnl' ? 'Current' : 'At Expiry'}</span>
           </div>
-          <span className={`text-xs font-bold font-mono ${entry.value >= 0 ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+          <span className={`text-xs font-bold font-mono ${entry.value >= 0 ? 'text-long' : 'text-short'}`}>
             {entry.value >= 0 ? '+' : ''}${Number(entry.value).toFixed(2)}
           </span>
         </div>
@@ -175,12 +175,12 @@ const PayoffChart = ({
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
         <div className="flex items-center gap-4 text-[10px] flex-wrap">
           <div className="flex items-center gap-1.5">
-            <div className="w-4 h-[2px] rounded bg-[#22c55e]"></div>
+            <div className="w-4 h-[2px] rounded bg-long"></div>
             <span className="text-muted-foreground">{dataB ? `A · ${labelA}` : 'Current'}</span>
           </div>
           {dataB && (
             <div className="flex items-center gap-1.5">
-              <div className="w-4 h-[2px] rounded bg-[#a855f7]"></div>
+              <div className="w-4 h-[2px] rounded bg-compare"></div>
               <span className="text-muted-foreground">B · {labelB}</span>
             </div>
           )}
@@ -189,24 +189,24 @@ const PayoffChart = ({
             <span className="text-muted-foreground">At Expiry</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-[#22c55e]/20"></div>
+            <div className="w-3 h-3 rounded-sm bg-long/20"></div>
             <span className="text-muted-foreground">Profit</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-[#ef4444]/20"></div>
+            <div className="w-3 h-3 rounded-sm bg-short/20"></div>
             <span className="text-muted-foreground">Loss</span>
           </div>
           <span className="text-muted-foreground">|</span>
           <div className="flex items-center gap-1.5" title="In-The-Money zone (Call: S>K, Put: S<K)">
-            <div className="w-3 h-3 rounded-sm bg-[#4ade80]/25 border border-[#4ade80]/40"></div>
+            <div className="w-3 h-3 rounded-sm bg-long/25 border border-long/40"></div>
             <span className="text-muted-foreground">ITM</span>
           </div>
           <div className="flex items-center gap-1.5" title="At-The-Money (Spot ≈ Strike)">
-            <div className="w-3 h-3 rounded-sm bg-[#eab308]/25 border border-[#eab308]/40"></div>
+            <div className="w-3 h-3 rounded-sm bg-caution/25 border border-caution/40"></div>
             <span className="text-muted-foreground">ATM</span>
           </div>
           <div className="flex items-center gap-1.5" title="Out-of-The-Money zone (Call: S<K, Put: S>K)">
-            <div className="w-3 h-3 rounded-sm bg-[#f87171]/25 border border-[#f87171]/40"></div>
+            <div className="w-3 h-3 rounded-sm bg-short/25 border border-short/40"></div>
             <span className="text-muted-foreground">OTM</span>
           </div>
         </div>

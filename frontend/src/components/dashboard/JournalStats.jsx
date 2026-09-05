@@ -49,14 +49,14 @@ export function JournalStats() {
       label: t('winRate'),
       value: `${stats.winRate.toFixed(1)}%`,
       icon: Percent,
-      color: stats.winRate >= 50 ? 'text-green-500' : 'text-red-500',
+      color: stats.winRate >= 50 ? 'text-long' : 'text-short',
       bgColor: stats.winRate >= 50 ? 'bg-green-500/10' : 'bg-red-500/10'
     },
     {
       label: t('pnlTotal'),
       value: `$${stats.totalPnl.toLocaleString()}`,
       icon: stats.totalPnl >= 0 ? TrendingUp : TrendingDown,
-      color: stats.totalPnl >= 0 ? 'text-green-500' : 'text-red-500',
+      color: stats.totalPnl >= 0 ? 'text-long' : 'text-short',
       bgColor: stats.totalPnl >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'
     },
     // profitFactor is null when there are no losses yet — gross profit over a
@@ -67,21 +67,21 @@ export function JournalStats() {
       label: t('profitFactor'),
       value: stats.profitFactor == null ? '∞' : stats.profitFactor.toFixed(2),
       icon: BarChart3,
-      color: stats.profitFactor == null || stats.profitFactor >= 1.5 ? 'text-green-500' : stats.profitFactor >= 1 ? 'text-yellow-500' : 'text-red-500',
+      color: stats.profitFactor == null || stats.profitFactor >= 1.5 ? 'text-long' : stats.profitFactor >= 1 ? 'text-caution' : 'text-short',
       bgColor: stats.profitFactor == null || stats.profitFactor >= 1.5 ? 'bg-green-500/10' : stats.profitFactor >= 1 ? 'bg-yellow-500/10' : 'bg-red-500/10'
     },
     {
       label: t('expectancy'),
       value: `$${stats.expectancy.toFixed(2)}`,
       icon: Target,
-      color: stats.expectancy > 0 ? 'text-green-500' : 'text-red-500',
+      color: stats.expectancy > 0 ? 'text-long' : 'text-short',
       bgColor: stats.expectancy > 0 ? 'bg-green-500/10' : 'bg-red-500/10'
     },
     {
       label: t('maxDrawdown'),
       value: `$${stats.maxDrawdown.toFixed(0)}`,
       icon: AlertTriangle,
-      color: 'text-orange-500',
+      color: 'text-warn',
       bgColor: 'bg-orange-500/10'
     },
     {
@@ -93,7 +93,7 @@ export function JournalStats() {
       sublabel: `${stats.wins}W / ${stats.losses}L`
         + (stats.breakeven ? ` / ${stats.breakeven}BE` : ''),
       icon: BarChart3,
-      color: 'text-blue-500',
+      color: 'text-info',
       bgColor: 'bg-blue-500/10'
     },
   ];
