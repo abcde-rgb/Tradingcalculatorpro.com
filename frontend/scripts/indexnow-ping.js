@@ -40,9 +40,14 @@ const SITEMAP = path.join(__dirname, '..', 'build', 'sitemap.xml');
 
   const xml = fs.readFileSync(SITEMAP, 'utf8');
   const hoy = new Date().toISOString().slice(0, 10);
+  // El segundo filtro no es redundante con el primero: acota qué puede viajar
+  // en el cuerpo de la petición a datos que de verdad son "nuestra URL", no
+  // lo que sea que haya en el fichero. Si `sitemap.xml` llegara a tener una
+  // fila corrupta o un origen distinto, no se reenvía a un tercero sin más.
   const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc><lastmod>([^<]+)<\/lastmod>/g)]
     .filter(([, , fecha]) => fecha === hoy)
-    .map(([, url]) => url);
+    .map(([, url]) => url)
+    .filter((url) => url.startsWith(`${DOMAIN}/`));
 
   if (!urls.length) {
     console.log('IndexNow: ninguna URL con lastmod de hoy — nada que avisar.');
