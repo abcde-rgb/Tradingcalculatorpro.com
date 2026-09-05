@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Briefcase, RefreshCw, Loader2 } from 'lucide-react';
+import { Briefcase, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -67,7 +68,7 @@ const PortfolioGreeks = () => {
           className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted border border-border text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
           data-testid="refresh-portfolio-greeks"
         >
-          {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+          {loading ? <CargaVelas className="w-3 h-3" /> : <RefreshCw className="w-3 h-3" />}
           Actualizar
         </button>
       </div>

@@ -6272,3 +6272,157 @@ con `-f` y contra la raíz.
 eslint 0 errores, i18n 7.379 claves × 10 idiomas a la par, engine-check 535/535,
 catálogo en paridad, mapa y asistente al día, enlaces de doc OK, build de
 producción, y la sonda de navegador contra el backend real en sus dos versiones.
+
+## 2026-09-02 — Los indicadores de espera pasan a llevar la marca
+
+Ejecución del artefacto «Cargando con la marca» **excepto su pieza `CargaArco`**,
+excluida expresamente por el usuario. Lo demás entra entero.
+
+**El punto de partida.** 85 `<Loader2 className="animate-spin" />` repartidos por
+24 ficheros: el círculo genérico que trae shadcn. Es de lo que más veces se mira
+en una sesión —cada consulta a la cadena, cada refresco del escáner— y no llevaba
+nada del producto. No se ha dibujado ningún logotipo nuevo: se anima el que ya
+existe, con las coordenadas exactas de `public/tcpro-icono-512.svg`.
+
+**Una sola copia de la geometría.** `BrandMark.jsx` pasa a exportar `VELAS`,
+`Velas`, `Monograma`, `ARCO` y sus *viewBox*; `BrandLoading.jsx` los importa en
+vez de repetirlos. Dos copias de un logotipo divergen a la primera corrección, y
+aquí la corrección ya llegó una vez (el cutover de dominio del 2026-08-28).
+
+**Las cinco piezas y dónde han caído:**
+
+| Pieza | Dónde |
+|---|---|
+| `CargaVelas` | 58 sitios: dentro de botones y junto a etiquetas. Sustituye al `Loader2` |
+| `CargaMarca` | `PageLoader` de `App.js`, `PaymentPages`, `AuthPages`, `VerifyEmailPage` |
+| `CargaProgreso` | disponible; **sin usar a propósito** — ver abajo |
+| `CintaCarga` | borde superior de `OptionsSubHeader`: el refresco de fondo de la cadena |
+| `EsqueletoVelas` | vía `FilasEsqueleto`, en las 7 tablas de `AdminPage` que cargaban |
+
+**`CargaProgreso` no se ha cableado en ningún sitio, y es la decisión, no un
+olvido.** Sólo vale cuando el avance se mide de verdad; hoy ninguna espera de la
+web conoce su porcentaje. Fingirlo sería la versión visual de inventarse un dato,
+que es justo lo que las reglas de honestidad numérica prohíben con los números.
+Queda lista para la primera subida de fichero o backtest por lotes que sí lo mida.
+
+**Dos cosas que NO se han tocado**, ambas a conciencia:
+
+- `PaymentPages.jsx:104`, el `Loader2` del estado `pending`, **no lleva
+  `animate-spin`**: es un icono de estado («tu pago se está procesando», con un
+  botón para irse), no una espera viva. Animarlo diría que algo ocurre en esa
+  pantalla ahora mismo, y no ocurre. Sigue siendo el único `Loader2` del repo.
+- Los `RefreshCw` que giran mientras recargan: ahí el icono que da vueltas *es*
+  el botón de refrescar, un gesto distinto del «estoy esperando».
+
+**El indicador que empujaba el precio.** En `OptionsSubHeader` el `Loader2` vivía
+en la misma fila que la cotización, así que cada refresco metía 20 px y movía la
+cifra que el usuario está mirando para dimensionar. Ahora lo anuncia la cinta de
+2 px del borde superior, dentro de un envoltorio `h-0` para que al aparecer no
+mueva nada.
+
+**Movimiento reducido.** La regla global del proyecto deja toda animación en
+0,01 ms; sobre estas velas eso las congelaría a media impresión —dos casi
+transparentes— con pinta de adorno roto. Por eso `index.css` les **quita** la
+animación en vez de acelerarla, igual que ya se hacía con `.marquesina`. Quien
+pide menos movimiento se entera por `role="status"`, no por el movimiento.
+
+**Verificado**: eslint 0 errores (los avisos bajan de 115 a 108 al desaparecer
+los `Loader2` sin usar), build de producción + 1.648 URLs de sitemap, i18n 7.404
+claves × 10 idiomas sin claves nuevas (`CargaVelas` recibe el texto por prop, no
+llama a `t()`), engine-check 535/535, catálogo en paridad, mapa y asistente al
+día, enlaces de doc OK, `capturas.js` con las 36 pantallas públicas renderizando
+y sin errores de consola nuevos, y las seis piezas renderizadas de verdad con
+React + el CSS compilado y fotografiadas en claro y oscuro. Comprobado además que
+`tc-arco`/`tcpro-arco` **no aparecen en el CSS compilado**: la sección excluida
+no ha entrado por la puerta de atrás.
+
+
+## 2026-09-03 — Seis paneles de ajustes para elegir uno
+
+`/settings` son 673 líneas y **ocho tarjetas apiladas** en una columna de 672 px, todas
+con el mismo peso: la seguridad está partida en tres tarjetas seguidas que no se leen
+como un bloque, y la zona de peligro va detrás de «Acciones» con el mismo aspecto. Antes
+de rediseñar a ciegas, seis propuestas completas para que el propietario elija:
+[`docs/maquetas/panel-cliente.html`](./maquetas/panel-cliente.html) — consola con rail,
+cabecera con pestañas, hoja de datos sin tarjetas, panel con estado de la cuenta, cajón
+con buscador y rejilla de módulos. Cada una con lo que gana, lo que pierde y lo que
+cuesta escrito en la propia página.
+
+**No toca código de producción.** Es un fichero estático en `docs/maquetas/`, con los
+tokens reales de `index.css`, las tres familias del producto y las reglas de
+`identidad-visual` (un acento, filete de 1 px, dos radios, cero degradados,
+`tabular-nums`).
+
+Tres cosas que se anotaron por el camino:
+
+- **Tema e idioma no están en Ajustes** (viven en la cabecera) y la cuenta de la mesa
+  tampoco (vive en el dashboard). En las maquetas van marcados `propuesta`: decidir eso
+  es aparte de decidir el diseño.
+- **El ancla `#v5` dejaba la página desplazada al final** y las capturas salían en
+  blanco sin que nada fallara —el mismo modo de fallo que el smoke visual de agosto—. Se
+  cambió a `#/v5`, que no coincide con ningún `id` y no provoca salto.
+- **`#v1{display:grid}` ganaba por especificidad a `.screen{display:none}`**, así que
+  dos maquetas se pintaban a la vez, una encima de otra. Sólo se vio al mirar la captura;
+  el fichero cargaba «bien».
+
+La vista móvil del previsualizador usa **container queries**, no media queries: al
+estrechar el escenario a 390 px la maqueta reflow-ea de verdad en vez de encogerse.
+
+
+## 2026-09-03 (2) — El panel de ajustes pasa a ser una consola
+
+Elegida la maqueta 1 de las seis e implementada en `SettingsPage.jsx`. De ocho
+tarjetas apiladas en una columna de 672 px a **rail de seis secciones + panel**.
+
+**Lo que cambia para quien usa la web**
+
+- El rail dice el estado sin entrar: punto ámbar en Seguridad si falta el 2FA, el
+  plan en Suscripción, el capital en Mesa y riesgo.
+- **Cada sección tiene URL** (`/settings?s=seguridad`). `AdminPage` ya manda ahí al
+  administrador sin 2FA, en vez de a la página entera para que la busque.
+- **Tema e idioma** entran en Ajustes. Viajaban con la cuenta desde agosto pero sólo
+  se podían cambiar desde el menú de la cabecera, que es donde nadie los busca.
+- **Mesa y riesgo** entra en Ajustes: capital, riesgo por operación (% o dinero) y
+  vista de inicio.
+
+**Lo que NO se ha duplicado, y es lo que importa**
+
+- La sección de riesgo escribe en `deskAccount` —la MISMA preferencia de la mesa— y
+  calcula con `riskBudget()` de `deskMath.js` —la MISMA función—. El tope duro del
+  10 % no se reimplementa: si algún día cambia, cambia en un sitio.
+- `PREMIUM_THEMES` sube de `Header.jsx` a `lib/theme.js`. Ya son tres los que la
+  consumen (menú de escritorio, de móvil y Ajustes) y la tercera copia no llegó a
+  existir.
+
+**Una trampa que el rediseño podía haber colado.** La prueba
+`tests/e2e/navegador/admin-2fa.js` busca el botón «Activar 2FA» nada más abrir
+`/settings`, y con secciones eso deja de ser cierto: la tarjeta vive en Seguridad.
+Al administrador de Google le habría vuelto a pasar lo de BUG-076 —se le exige el
+2FA y no se le enseña dónde activarlo—, esta vez por la puerta del rediseño. Se
+arregla en los dos lados: `need2fa` abre Seguridad, y la prueba ahora **pulsa en el
+rail** en vez de ir por `?s=`, porque lo que hay que probar es que se puede
+ENCONTRAR, no que la URL existe.
+
+**Verificado**: `py_compile` de todo el backend, ESLint **0 errores** (y 0 avisos en
+los ficheros tocados), `i18n-check` 0 huecos en los 10 idiomas con las 24 claves
+nuevas, `engine-check` 535/535, catálogo en paridad, `gen-mapa --check`,
+`check-rutas-muertas`, `check-doc-links`, y `npm run build` en verde. Además la
+pantalla se ha **renderizado de verdad** desde el build compilado con la sesión
+sembrada y la API simulada: perfil, seguridad, mesa, preferencias y datos, en
+oscuro y claro, escritorio y 390 px, sin desbordamiento horizontal y sin errores de
+consola de la aplicación.
+
+La suite de backend: **1220 passed, 114 skipped, 1 failed**. El fallo es
+`test_shim_collection_unit.py::test_verify_full_rechaza_un_nombre_que_no_casa`, y
+**no es de este cambio** —el diff no toca un solo fichero de `backend/`—: pide un
+PostgreSQL en `127.0.0.1:5432` y aquí no lo hay, así que devuelve
+`ConnectionRefusedError`. Su guarda de *skip* sólo contempla
+`InvalidPasswordError`/`InvalidAuthorizationSpecificationError`, no «conexión
+rechazada», de modo que en un entorno sin Postgres **falla en vez de saltarse**. Es
+un hueco de la prueba, no del código; queda anotado sin tocarlo, porque arreglar
+una guarda de test dentro de un rediseño de interfaz es justo cómo se cuelan los
+cambios que nadie revisa.
+
+**Lo que NO se ha podido probar aquí**: el banco E2E con backend vivo. Sin
+PostgreSQL, `admin-2fa.js` —incluida la comprobación nueva del rail— no se ha
+ejecutado. Hay que correrlo con el skill `qa` antes de fiarse de él.

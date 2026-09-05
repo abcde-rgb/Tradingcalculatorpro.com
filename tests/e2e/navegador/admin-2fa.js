@@ -137,6 +137,16 @@ async function entra(page) {
     await page.goto(`${WEB}/settings`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(2500);
     await descartaModales(page);
+    // Ajustes es un panel con secciones desde el rediseño de septiembre: la
+    // tarjeta de 2FA vive en «Seguridad». Se llega PULSANDO en el rail, no por
+    // `?s=seguridad`, porque lo que hay que probar es que un administrador al
+    // que se le exige el 2FA puede ENCONTRARLO, no que la URL directa existe.
+    const railSeguridad = page.locator('[data-testid="settings-nav-seguridad"]');
+    ok('   · el panel de Ajustes ofrece la seccion de Seguridad',
+       await railSeguridad.isVisible().catch(() => false),
+       'sin entrada en el rail no hay forma de llegar a la tarjeta de 2FA');
+    await railSeguridad.click().catch(() => {});
+    await page.waitForTimeout(800);
     const proveedor = sql(`SELECT data->>'auth_provider' FROM users WHERE data->>'email'='${CORREO}'`);
     // El BOTÓN, no el texto de la página.
     //

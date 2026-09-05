@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Globe, Loader2, TrendingUp, TrendingDown, ArrowRight, Info } from 'lucide-react';
+import { Globe, TrendingUp, TrendingDown, ArrowRight, Info } from 'lucide-react';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -55,7 +56,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-compare/15 border border-compare/40 text-compare text-xs font-bold hover:bg-compare/25 disabled:opacity-40"
             data-testid="market-scan-btn"
           >
-            {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('escaneandoMercado_ba90ca')}</> : <><Globe className="w-3.5 h-3.5" /> {t('escanearMercado_d2e533')}</>}
+            {loading ? <><CargaVelas className="w-3.5 h-3.5" /> {t('escaneandoMercado_ba90ca')}</> : <><Globe className="w-3.5 h-3.5" /> {t('escanearMercado_d2e533')}</>}
           </button>
         </div>
       </div>
@@ -73,7 +74,7 @@ const MarketFlow = ({ onSelectSymbol }) => {
 
       {loading && !data && (
         <div className="flex items-center justify-center py-8 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin mr-2" /> {t('scanning24_mf003')}
+          <CargaVelas className="w-4 h-4 mr-2" /> {t('scanning24_mf003')}
         </div>
       )}
 

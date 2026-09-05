@@ -3,12 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users, Crown, DollarSign, TrendingUp, Search, Download,
   Shield, ShieldOff, RefreshCw, Mail, Globe2, Calendar,
-  Plug, Check, X, Plus, Pencil, Trash2, KeyRound, Save, Loader2,
-  Eye, EyeOff, History, FileText, Tag, Activity, UserCheck,
+  Plug, Check, X, Plus, Pencil, Trash2, KeyRound, Save, Eye, EyeOff, History, FileText, Tag, Activity, UserCheck,
   Zap, TrendingDown, Percent, AlertCircle, ChevronDown, ChevronUp,
   Send, Languages, CreditCard, UserMinus, Share2, Package,
   Construction, Bug, Gauge, Lock, Settings, Database, ToggleLeft,
-  Layers, Gift, Wallet, AlertTriangle, Coins,
+  Layers, Gift, Wallet, AlertTriangle, Coins
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -31,6 +30,7 @@ import { countryFlag, countryName } from '@/lib/countries';
 import { useSEO } from '@/hooks/useSEO';
 import { Header } from '@/components/layout/Header';
 import { toast } from 'sonner';
+import { CargaVelas, FilasEsqueleto } from '@/components/common/BrandLoading';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = BACKEND_URL ? `${BACKEND_URL}/api` : null;
@@ -241,7 +241,7 @@ export default function AdminPage() {
         try { motivo = (await mRes.clone().json()).detail || ''; } catch { /* sin cuerpo */ }
         toast.error(motivo || 'Los administradores deben activar la verificación en dos pasos.',
                     { duration: 9000 });
-        navigate('/settings', { state: { need2fa: true } });
+        navigate('/settings?s=seguridad', { state: { need2fa: true } });
         return;
       }
       if (!mRes.ok || !uRes.ok) {
@@ -1102,7 +1102,7 @@ function IntegrationsEditor({ headers, t }) {
         ))}
         <div className="flex justify-end pt-2 border-t border-border">
           <Button onClick={save} disabled={saving} className="gap-2" data-testid="settings-save">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? <CargaVelas className="w-4 h-4" /> : <Save className="w-4 h-4" />}
             Guardar todas las APIs
           </Button>
         </div>
@@ -1202,7 +1202,7 @@ function CreateUserDialog({ open, onClose, headers, onCreated }) {
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={submit} disabled={busy} data-testid="create-submit">
-            {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+            {busy ? <CargaVelas className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
             Crear
           </Button>
         </DialogFooter>
@@ -1326,7 +1326,7 @@ function EditUserDialog({ user, onClose, headers, onSaved }) {
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={submit} disabled={busy} data-testid="edit-submit">
-            {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            {busy ? <CargaVelas className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
             Guardar
           </Button>
         </DialogFooter>
@@ -1385,7 +1385,7 @@ function ResetPasswordDialog({ user, onClose, headers }) {
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={submit} disabled={busy} data-testid="reset-submit">
-            {busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
+            {busy ? <CargaVelas className="w-4 h-4 mr-2" /> : <KeyRound className="w-4 h-4 mr-2" />}
             Resetear
           </Button>
         </DialogFooter>
@@ -2239,7 +2239,7 @@ function CouponManagerCard({ headers }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-            <Button onClick={create} disabled={busy}>{busy ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}Crear</Button>
+            <Button onClick={create} disabled={busy}>{busy ? <CargaVelas className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}Crear</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2598,7 +2598,7 @@ function MaintenanceModeCard({ headers }) {
           </div>
         )}
         <Button onClick={save} disabled={saving} size="sm" className={enabled ? 'bg-warn hover:bg-warn/90' : ''}>
-          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+          {saving ? <CargaVelas className="w-3 h-3" /> : <Save className="w-3 h-3" />}
           &nbsp;Guardar
         </Button>
       </CardContent>
@@ -2697,7 +2697,7 @@ function EmailCampaignsCard({ headers }) {
                 <td className="px-3 py-2">
                   {c.status === 'draft' && (
                     <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" disabled={!!sending} onClick={() => sendCampaign(c.id)}>
-                      {sending === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />} Enviar
+                      {sending === c.id ? <CargaVelas className="w-3 h-3" /> : <Send className="w-3 h-3" />} Enviar
                     </Button>
                   )}
                 </td>
@@ -2731,7 +2731,7 @@ function EmailCampaignsCard({ headers }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
             <Button onClick={createCampaign} disabled={!form.name || !form.subject || saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar campaña'}
+              {saving ? <CargaVelas className="w-4 h-4" /> : 'Guardar campaña'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2790,7 +2790,7 @@ function PaymentHistoryCard({ headers }) {
         <div className="flex gap-2">
           <Input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchUser()} placeholder="Buscar por email o nombre..." className="flex-1" />
           <Button onClick={searchUser} disabled={searching} size="sm" variant="outline" className="gap-1">
-            {searching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />} Buscar
+            {searching ? <CargaVelas className="w-3 h-3" /> : <Search className="w-3 h-3" />} Buscar
           </Button>
         </div>
 
@@ -2823,7 +2823,7 @@ function PaymentHistoryCard({ headers }) {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={5} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+                    <FilasEsqueleto columnas={5} />
                   ) : payments.length === 0 ? (
                     <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Sin transacciones registradas</td></tr>
                   ) : payments.map(p => (
@@ -2965,7 +2965,7 @@ function ChurnSurveyCard({ headers }) {
           <textarea className="w-full h-24 px-3 py-2 text-sm border border-border rounded-md bg-background resize-none" value={note} onChange={e => setNote(e.target.value)} placeholder="Acción tomada, resolución..." />
           <DialogFooter>
             <Button variant="outline" onClick={() => setFollowUp(null)}>Cancelar</Button>
-            <Button onClick={saveFollowUp} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar nota'}</Button>
+            <Button onClick={saveFollowUp} disabled={saving}>{saving ? <CargaVelas className="w-4 h-4" /> : 'Guardar nota'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -2999,7 +2999,7 @@ function CohortAnalysisCard({ headers }) {
         <p className="text-[11px] text-muted-foreground">Tasa de conversión free→premium por mes de registro.</p>
       </CardHeader>
       <CardContent>
-        {loading ? <div className="py-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /></div> : (
+        {loading ? <div className="py-8 text-center"><CargaVelas className="w-5 h-5 mx-auto text-muted-foreground" /></div> : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
@@ -3095,7 +3095,7 @@ function ReferralManagerCard({ headers }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground" /></td></tr>
+              <FilasEsqueleto columnas={4} />
             ) : leaderboard.length === 0 ? (
               <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">Sistema de referidos no configurado aún</td></tr>
             ) : leaderboard.map((r, i) => (
@@ -3379,7 +3379,7 @@ function AffiliatesAdminCard({ headers }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-muted-foreground" /></td></tr>
+                <FilasEsqueleto columnas={8} />
               ) : rows.length === 0 ? (
                 <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">Aún no hay afiliados.</td></tr>
               ) : rows.map(r => (
@@ -3410,7 +3410,7 @@ function AffiliatesAdminCard({ headers }) {
                   {expanded === r.id && (
                     <tr className="bg-muted/20">
                       <td colSpan={8} className="px-3 py-3">
-                        {!detail ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /> : (
+                        {!detail ? <CargaVelas className="w-4 h-4 text-muted-foreground" /> : (
                           <div>
                             <p className="text-xs text-muted-foreground mb-2">
                               Código <span className="font-mono">{detail.affiliate.code}</span> · Cobro: {detail.affiliate.payout_method || '—'} {detail.affiliate.payout_details ? `(${detail.affiliate.payout_details})` : ''}
@@ -3639,7 +3639,7 @@ function PlansEditorCard({ headers }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+              <FilasEsqueleto columnas={6} />
             ) : plans.map(p => {
               const edit = edits[p.id] || {};
               return (
@@ -3661,7 +3661,7 @@ function PlansEditorCard({ headers }) {
                   <td className="px-3 py-2">
                     {edits[p.id] && (
                       <Button size="sm" className="h-7 text-xs gap-1" disabled={saving === p.id} onClick={() => savePlan(p.id)}>
-                        {saving === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Guardar
+                        {saving === p.id ? <CargaVelas className="w-3 h-3" /> : <Save className="w-3 h-3" />} Guardar
                       </Button>
                     )}
                   </td>
@@ -3736,7 +3736,7 @@ function I18nManagerCard({ headers }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+                <FilasEsqueleto columnas={4} />
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={4} className="px-3 py-8 text-center text-muted-foreground">{filter ? 'Sin resultados' : 'No hay sobreescrituras activas'}</td></tr>
               ) : filtered.map(k => {
@@ -3749,7 +3749,7 @@ function I18nManagerCard({ headers }) {
                     <td className="px-3 py-2 align-top pt-2">
                       {edits[k.key] && (
                         <Button size="sm" className="h-7 text-xs" disabled={saving === k.key} onClick={() => saveKey(k.key)}>
-                          {saving === k.key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                          {saving === k.key ? <CargaVelas className="w-3 h-3" /> : <Save className="w-3 h-3" />}
                         </Button>
                       )}
                     </td>
@@ -3835,7 +3835,7 @@ function ErrorMonitorCard({ headers }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+              <FilasEsqueleto columnas={7} />
             ) : errors.length === 0 ? (
               <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">{filter === 'unresolved' ? '✓ Sin errores pendientes' : 'Sin errores registrados'}</td></tr>
             ) : errors.map(e => {
@@ -3866,7 +3866,7 @@ function ErrorMonitorCard({ headers }) {
           <textarea className="w-full h-20 px-3 py-2 text-sm border border-border rounded-md bg-background resize-none" value={resolveNote} onChange={e => setResolveNote(e.target.value)} placeholder="Descripción de la solución aplicada..." />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNote(null)}>Cancelar</Button>
-            <Button onClick={() => resolve(showNote?.id)} disabled={!!resolving}>{resolving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Marcar resuelto'}</Button>
+            <Button onClick={() => resolve(showNote?.id)} disabled={!!resolving}>{resolving ? <CargaVelas className="w-4 h-4" /> : 'Marcar resuelto'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3898,7 +3898,7 @@ function RateLimitingCard({ headers }) {
         <p className="text-[11px] text-muted-foreground">Configuración de límites y violaciones recientes.</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {loading ? <div className="py-8 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div> : (
+        {loading ? <div className="py-8 text-center"><CargaVelas className="w-4 h-4 mx-auto" /></div> : (
           <>
             <div>
               <p className="text-xs font-semibold text-muted-foreground mb-2">Límites configurados</p>
@@ -3996,7 +3996,7 @@ function GDPRExportCard({ headers }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-3 py-6 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></td></tr>
+              <FilasEsqueleto columnas={5} />
             ) : exports.length === 0 ? (
               <tr><td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">Sin solicitudes de export</td></tr>
             ) : exports.map(ex => (
@@ -4007,7 +4007,7 @@ function GDPRExportCard({ headers }) {
                 <td className="px-3 py-2 text-xs text-muted-foreground">{ex.delivered_at?.slice(0, 16).replace('T', ' ') || '—'}</td>
                 <td className="px-3 py-2">
                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1" disabled={delivering === ex.id} onClick={() => deliver(ex.id)}>
-                    {delivering === ex.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />} Entregar
+                    {delivering === ex.id ? <CargaVelas className="w-3 h-3" /> : <Download className="w-3 h-3" />} Entregar
                   </Button>
                 </td>
               </tr>

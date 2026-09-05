@@ -3,11 +3,12 @@ import { useTranslation } from '@/lib/i18n';
 import { useAuthStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Fingerprint, Loader2, Trash2 } from 'lucide-react';
+import { Fingerprint, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   isPasskeySupported, registerPasskey, listPasskeys, deletePasskey, isCancellation,
 } from '@/lib/passkeys';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -103,7 +104,7 @@ export default function PasskeysCard() {
           </div>
         ))}
         <Button onClick={add} disabled={busy} className="w-full" data-testid="passkey-add">
-          {busy ? <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+          {busy ? <CargaVelas className="mr-2 w-4 h-4" />
                 : <Fingerprint className="mr-2 w-4 h-4" />}
           {t('passkeyAdd')}
         </Button>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Sparkles, RefreshCw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -74,7 +75,7 @@ const AITradeCoach = ({ symbol, stock, legs, stats, greeks, daysToExpiry, ivRank
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-compare/15 border border-compare/40 text-compare text-xs font-bold hover:bg-compare/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           data-testid="ai-analyze-btn"
         >
-          {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('aiCoachAnalyzing_91e0e9')}</> : analysis ? <><RefreshCw className="w-3.5 h-3.5" /> {t('aiCoachReanalyze_91e0ea')}</> : <><Sparkles className="w-3.5 h-3.5" /> {t('analizarEstaOperacion_804981')}</>}
+          {loading ? <><CargaVelas className="w-3.5 h-3.5" /> {t('aiCoachAnalyzing_91e0e9')}</> : analysis ? <><RefreshCw className="w-3.5 h-3.5" /> {t('aiCoachReanalyze_91e0ea')}</> : <><Sparkles className="w-3.5 h-3.5" /> {t('analizarEstaOperacion_804981')}</>}
         </button>
       </div>
 

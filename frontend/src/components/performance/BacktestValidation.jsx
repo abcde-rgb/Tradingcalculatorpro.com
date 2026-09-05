@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlaskConical, Loader2, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { FlaskConical, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { listarEstrategias, validar } from '@/services/backtestApi';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 /**
  * La interfaz que le faltaba a `backend/backtest.py`.
@@ -142,7 +143,7 @@ export default function BacktestValidation() {
             <div className="flex items-end">
               <Button onClick={lanzar} disabled={cargando || !cfg.strategy}
                       className="w-full bg-primary text-black hover:bg-primary/90" data-testid="btv-run">
-                {cargando ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('btvRunning')}</> : t('btvRun')}
+                {cargando ? <><CargaVelas className="w-4 h-4 mr-2" />{t('btvRunning')}</> : t('btvRun')}
               </Button>
             </div>
           </div>

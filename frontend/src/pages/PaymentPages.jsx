@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
+import { CargaMarca } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -81,7 +82,7 @@ export const PaymentSuccessPage = () => {
         <CardContent className="p-8 text-center">
           {status === 'checking' && (
             <>
-              <Loader2 className="w-16 h-16 mx-auto mb-4 text-primary animate-spin" />
+              <CargaMarca className="w-16 h-16 mx-auto mb-4" />
               <h2 className="text-xl font-bold mb-2">Verificando pago...</h2>
               <p className="text-muted-foreground">{t('porFavorEsperaMientrasConfirmamos_b1b193')}</p>
             </>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { Zap, RefreshCw, Loader2, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { Zap, RefreshCw, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { CargaVelas } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -54,7 +55,7 @@ const UnusualActivity = ({ symbol }) => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-foreground disabled:opacity-40"
             data-testid="refresh-unusual"
           >
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {loading ? <CargaVelas className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
             {t('refresh_ua003')}
           </button>
         </div>
@@ -126,7 +127,7 @@ const UnusualActivity = ({ symbol }) => {
       {/* Table */}
       {loading && !data ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Escaneando chain...
+          <CargaVelas className="w-5 h-5 mr-2" /> Escaneando chain...
         </div>
       ) : results.length === 0 ? (
         <div className="bg-muted/40 border border-border rounded-xl p-8 text-center">

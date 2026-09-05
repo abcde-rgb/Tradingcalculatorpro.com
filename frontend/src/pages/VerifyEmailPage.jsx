@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Bitcoin, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Bitcoin, CheckCircle, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
+import { CargaMarca } from '@/components/common/BrandLoading';
 
 const API = process.env.REACT_APP_BACKEND_URL
   ? `${process.env.REACT_APP_BACKEND_URL}/api`
@@ -52,7 +53,7 @@ export default function VerifyEmailPage() {
       <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-primary/10 flex items-center justify-center">
-            {status === 'verifying' && <Loader2 className="w-9 h-9 text-primary animate-spin" />}
+            {status === 'verifying' && <CargaMarca className="w-16 h-16" />}
             {status === 'success' && <CheckCircle className="w-9 h-9 text-long" />}
             {status === 'error' && <XCircle className="w-9 h-9 text-destructive" />}
           </div>

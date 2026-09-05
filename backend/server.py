@@ -1540,6 +1540,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     name: str
+    # El formulario de registro los MANDA —y el país es un `<select required>`,
+    # así que no se puede completar sin elegirlo—. Al no estar declarados aquí,
+    # Pydantic los descartaba EN SILENCIO: la cuenta nacía sin país ni idioma y
+    # nadie volvía a preguntárselo, porque el modal de recuperación sólo mira a
+    # los usuarios de Google. Obligar a rellenar algo que se tira es peor que
+    # no preguntarlo.
+    country: Optional[str] = None
+    preferred_locale: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -2380,6 +2388,11 @@ async def register(request: Request, response: Response, user_data: UserCreate):
         "is_admin": False,
         "auth_provider": "password",
         "email_verified": False,
+        # Normalizados por las mismas funciones que usa `/auth/profile`: un país
+        # que no es ISO-3166 alfa-2 o un idioma que ninguna pantalla sabe pintar
+        # se guardan como None, no tal cual.
+        "country": _norm_country(user_data.country),
+        "preferred_locale": _norm_locale(user_data.preferred_locale),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user)
@@ -2418,6 +2431,8 @@ async def register(request: Request, response: Response, user_data: UserCreate):
             # todas las respuestas de auth tengan la misma forma (ver BUG-072).
             "two_factor_enabled": False,
             "auth_provider": "password",
+            "country": user["country"],
+            "preferred_locale": user["preferred_locale"],
             "email_verified": False,
         }
     }
@@ -2469,6 +2484,8 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
             "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
             "last_seen": now_iso,
             "login_count": (user.get("login_count") or 0) + 1,
@@ -2571,6 +2588,8 @@ async def get_me(user: dict = Depends(require_user)):
         "is_premium": is_premium,
         "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
         "auth_provider": user.get("auth_provider", "password"),
+        "country": user.get("country"),
+        "preferred_locale": user.get("preferred_locale"),
         "email_verified": bool(user.get("email_verified", False)),
         "two_factor_enabled": bool(user.get("totp_enabled", False)),
         "picture": user.get("picture"),
@@ -2696,6 +2715,8 @@ async def refresh_access_token(request: Request, response: Response, body: Token
             # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
             "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
         },
     }
@@ -2825,6 +2846,8 @@ async def verify_magic_link(request: Request, response: Response, body: MagicLin
             "is_premium": check_premium(user),
             "subscription_plan": user.get("subscription_plan"),
             "auth_provider": user.get("auth_provider", "magic_link"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
         },
     }
 
@@ -3128,6 +3151,8 @@ async def totp_verify(request: Request, response: Response, body: TotpVerifyRequ
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
             "two_factor_enabled": True,
         },
@@ -3304,6 +3329,8 @@ async def passkey_login_complete(
             "is_premium": check_premium(user),
             "is_admin": bool(user.get("is_admin")) or user.get("email", "").lower() in _ADMIN_EMAILS,
             "auth_provider": user.get("auth_provider", "password"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
             "email_verified": bool(user.get("email_verified", False)),
             "two_factor_enabled": bool(user.get("totp_enabled")),
         },
@@ -3460,6 +3487,10 @@ GOOGLE_CLIENT_ID = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
 class GoogleAuthRequest(BaseModel):
     """Payload sent by the SPA after Google's button returns an ID token."""
     credential: str  # the Google-issued ID token (JWT signed by Google)
+    # `loginWithGoogle` los manda desde la página de registro, y se perdían por
+    # lo mismo que en `UserCreate`. Google no da ninguno de los dos.
+    country: Optional[str] = None
+    preferred_locale: Optional[str] = None
 
 
 @api_router.post("/auth/google")
@@ -3515,6 +3546,8 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             "is_premium": False,
             "is_admin": False,
             "auth_provider": "google",
+            "country": _norm_country(payload.country),
+            "preferred_locale": _norm_locale(payload.preferred_locale),
             "google_sub": info.get("sub"),     # stable Google user id
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -3601,12 +3634,24 @@ async def google_auth(request: Request, response: Response, payload: GoogleAuthR
             # se comporta distinto según por dónde hayas entrado. Ver BUG-072.
             "two_factor_enabled": bool(user.get("totp_enabled", False)),
             "auth_provider": user.get("auth_provider", "google"),
+            "country": user.get("country"),
+            "preferred_locale": user.get("preferred_locale"),
         },
     }
 
 class ProfileUpdateRequest(BaseModel):
+    """Lo que Ajustes puede cambiar de la propia cuenta.
+
+    `name` y `picture` NO estaban, y la pantalla los mandaba: el botón
+    «Guardar» de Ajustes devolvía 405 (además pedía PUT, que tampoco existía).
+    Las dos mitades —pantalla y endpoint— se escribieron por separado y nunca
+    se encontraron; el propio docstring del endpoint decía «lo que sigue
+    faltando es la pantalla» cuando la pantalla llevaba tiempo hecha.
+    """
     country: Optional[str] = None
     preferred_locale: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=80)
+    picture: Optional[str] = Field(None, max_length=500)
 
 
 @api_router.get("/auth/admin-status")
@@ -3679,7 +3724,11 @@ async def admin_status(user: dict = Depends(require_user)):
     }
 
 
+# Las dos, y no es indecisión: el store del frontend llama con POST y la
+# pantalla de Ajustes con PUT. Registrar sólo una dejaba a la otra en 405,
+# que es exactamente lo que pasaba.
 @api_router.post("/auth/profile")
+@api_router.put("/auth/profile")
 async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends(require_user)):
     """El usuario fija su propio pais e idioma de interfaz.
 
@@ -3696,6 +3745,19 @@ async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends
         updates["country"] = _norm_country(payload.country)
     if payload.preferred_locale is not None:
         updates["preferred_locale"] = _norm_locale(payload.preferred_locale)
+    if payload.name is not None:
+        nombre = payload.name.strip()
+        # Un nombre vacío no se guarda: dejaría la cuenta sin cómo llamarla en
+        # los correos y en la cabecera. Se ignora, no se rechaza.
+        if nombre:
+            updates["name"] = nombre
+    if payload.picture is not None:
+        foto = payload.picture.strip()
+        # Cadena vacía = quitar la foto, que es una acción legítima. Cualquier
+        # otra cosa tiene que ser una URL http(s): un `javascript:` aquí acaba
+        # en el `src` de un <img> de la cabecera.
+        if not foto or foto.startswith(("https://", "http://")):
+            updates["picture"] = foto or None
     if updates:
         await db.users.update_one({"id": user["id"]}, {"$set": updates})
     fresh = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or user
@@ -3703,6 +3765,8 @@ async def update_own_profile(payload: ProfileUpdateRequest, user: dict = Depends
         "ok": True,
         "country": fresh.get("country"),
         "preferred_locale": fresh.get("preferred_locale"),
+        "name": fresh.get("name"),
+        "picture": fresh.get("picture"),
     }
 
 
