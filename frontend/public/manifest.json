@@ -2,9 +2,9 @@
   "name": "Trading Calculator PRO",
   "short_name": "TradeCalc PRO",
   "description": "Calculadoras profesionales de trading: apalancamiento, posición, opciones Black-Scholes, Fibonacci, Monte Carlo y más.",
-  "id": "%PUBLIC_URL%/",
-  "start_url": "%PUBLIC_URL%/?source=pwa",
-  "scope": "%PUBLIC_URL%/",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
   "display_override": [
     "window-controls-overlay",
@@ -25,35 +25,35 @@
   ],
   "icons": [
     {
-      "src": "%PUBLIC_URL%/favicon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     },
     {
-      "src": "%PUBLIC_URL%/icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "%PUBLIC_URL%/icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "%PUBLIC_URL%/icon-512-maskable.png",
+      "src": "/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "%PUBLIC_URL%/apple-touch-icon.png",
+      "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png"
     }
   ],
   "screenshots": [
     {
-      "src": "%PUBLIC_URL%/og-image.png",
+      "src": "/og-image.png",
       "sizes": "1200x630",
       "type": "image/png",
       "form_factor": "wide",
@@ -63,17 +63,17 @@
   "shortcuts": [
     {
       "name": "Dashboard",
-      "url": "%PUBLIC_URL%/dashboard",
+      "url": "/dashboard",
       "description": "Ir al dashboard de calculadoras"
     },
     {
       "name": "Opciones",
-      "url": "%PUBLIC_URL%/options",
+      "url": "/options",
       "description": "Suite de opciones con Black-Scholes"
     },
     {
       "name": "Precios",
-      "url": "%PUBLIC_URL%/pricing",
+      "url": "/pricing",
       "description": "Ver planes y precios"
     }
   ]

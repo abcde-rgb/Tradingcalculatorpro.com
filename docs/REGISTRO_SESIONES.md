@@ -6478,3 +6478,51 @@ sabotaje y vuelven a verde al restaurar.
   `/tools/`, `/learn/` o `/markets/` en `src/`. Google llega por el sitemap y por el
   `<noscript>` del shell, y nada más.
 - **No hay `pytest`** instalado en este entorno; el backend no se ha tocado.
+
+## 2026-09-05 (2) — Cuatro auditorías externas, verificadas una por una
+
+Se recibieron cuatro informes (tres de visibilidad/SEO, uno integral de Manus AI).
+**Los cuatro auditaron `578d246`**, el commit anterior al arreglo de esta misma
+mañana, así que su P0 compartido —las siete rutas del sitemap con 404— ya estaba
+cerrado antes de leerlos. Que tres auditorías independientes y esta sesión
+encontraran el mismo fallo es confirmación, no trabajo pendiente. Lo mismo con el
+hreflang `?lang=` (su P1-08 = BUG-083) y el muestreo de 25 URLs del verificador en
+vivo.
+
+**Lo que los informes decían mal**, comprobado en el build:
+
+- Tres afirman que `public/index.html` sirve `%PUBLIC_URL%` literal y una llegó a
+  «arreglarlo». **Es falso**: el build lo sustituye y emite `/favicon.svg`. Pero
+  vieron un síntoma real, y el fichero era otro — `public/manifest.json`, con doce
+  marcadores (BUG-085). Ninguna de las tres miró ahí.
+- Uno concluye que el `google-site-verification` vacío «dificulta enviar el
+  sitemap». No aplica: el dominio está verificado por DNS (`TXT` en la zona de
+  GoDaddy), que es la propiedad de dominio. La meta vacía es ruido, no un bloqueo.
+- Uno presenta los 179 rótulos sin traducir como hallazgo; el verificador sale ✅
+  con techo 179 y decisión escrita en `docs/PENDIENTES.md`. Es deuda acotada.
+
+**Lo que sí era cierto y se ha cerrado**: BUG-085 (manifiesto), BUG-086 (auth 404 e
+indexable a la vez) y BUG-087 (el despliegue publicaba sin verificadores — pasó ese
+mismo día con BUG-081).
+
+**Triaje de `npm audit`**, que un informe daba como 46 vulnerabilidades a resolver:
+las cifras son exactas (13 low, 10 moderate, 21 high, 2 critical) pero las dos
+críticas son `shell-quote` y `websocket-driver`, transitivas de `react-dev-utils` y
+`webpack-dev-server`. **Cero apariciones en el bundle publicado**: no llegan al
+navegador de nadie. Y la mayoría de las «high» ofrecen como único arreglo bajar
+`react-scripts` a 0.x, que es justo por lo que no se corre `npm audit fix --force`.
+No se tocó ninguna dependencia: el arreglo de fondo es salir de CRA (skill
+`reorganizar-frontend`), no un parche.
+
+**Lo que queda abierto y necesita una decisión que no es de código**
+
+- **El formulario de contacto es un decorado.** `ContactPage.jsx:59` hace
+  `setTimeout(800)` y enseña un toast de éxito; el mensaje no va a ninguna parte.
+  Con la zona DNS sin `MX`, `contact@tradingcalculator.pro` además rebota: hoy no
+  existe **ninguna** vía para que un cliente contacte, mientras la página promete
+  respuesta en 48 h. El endpoint no existe (`grep` en `server.py`, `missing_apis.py`
+  y `admin_routes.py`: nada), el destino natural sería `ADMIN_EMAILS` vía SendGrid,
+  y **el backend se despliega a mano** —no hay workflow—, así que montarlo aquí
+  dejaría el frontend llamando a algo no desplegado. Es lo primero de la lista.
+- **Proteger `main` en GitHub.** BUG-087 cierra el camino del despliegue, pero un
+  push que no toque `frontend/**` sigue sin pasar por nada.

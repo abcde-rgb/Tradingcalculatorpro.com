@@ -344,6 +344,27 @@ if (!fs.existsSync(SITEMAP)) {
       'lo escribe gen-sitemap.js, que el build no ejecuta; el bueno lo genera gen-seo-pages.js');
   }
 
+  // Ningún `%PUBLIC_URL%` puede sobrevivir al build.
+  //
+  // CRA interpola ese marcador SÓLO en `index.html`; el resto de `public/` lo
+  // copia tal cual. Por eso `public/manifest.json` llegaba a producción con los
+  // doce marcadores literales: `"start_url": "%PUBLIC_URL%/?source=pwa"`,
+  // `"scope"`, `"id"`, los seis iconos y los tres accesos directos. Un manifiesto
+  // así no es un manifiesto degradado, es un manifiesto inválido: la PWA no se
+  // instala y no tiene iconos. No rompe ninguna pantalla —de ahí que llevara
+  // tiempo puesto— y no se ve más que abriendo el fichero servido.
+  //
+  // Se comprueba sólo `%PUBLIC_URL%` y no `%REACT_APP_*%`: el primero lo resuelve
+  // siempre el build, mientras que un `REACT_APP_` sin secreto en local queda
+  // literal a propósito y daría un falso positivo en cada build de desarrollo.
+  for (const f of paginas(BUILD).concat(
+        ['manifest.json', 'sw.js', 'offline.html', 'robots.txt', 'index.html']
+          .map((n) => path.join(BUILD, n)).filter((n) => fs.existsSync(n)))) {
+    if (fs.readFileSync(f, 'utf8').includes('%PUBLIC_URL%'))
+      anota('%PUBLIC_URL% sin sustituir en el build', path.relative(BUILD, f),
+            'CRA sólo interpola index.html; el resto de public/ se copia literal');
+  }
+
   const SHELL = path.join(BUILD, 'index.html');
   if (!fs.existsSync(SHELL)) {
     anota('falta el shell', 'build/index.html', '');

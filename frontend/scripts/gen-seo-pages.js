@@ -880,6 +880,15 @@ const APP = [
   ['/education',          null,   'seoEducationTitle',     'seoEducationDesc',       false],
   ['/options',            null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
   ['/options/strategies', null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
+  // Las tres de autenticación estaban en el peor de los dos mundos: devolvían
+  // 404 de Pages (un enlace de login compartido no abría) y a la vez eran
+  // indexables, porque `useSEO` no les pone `noindex` y robots.txt no las
+  // bloquea. Ahora responden 200 —el enlace funciona— y declaran `noindex` en el
+  // HTML crudo, sin pasar por robots: una ruta prohibida en robots nunca llega a
+  // leer su propio `noindex`, que es el error que ya costó el caso `/performance`.
+  ['/login',              null,   'seoLoginTitle',         'seoLoginDesc',           false],
+  ['/register',           null,   'seoRegisterTitle',      'seoRegisterDesc',        false],
+  ['/forgot-password',    null,   'seoForgotTitle',        'seoForgotDesc',          false],
 ];
 
 const SHELL = path.join(BUILD, 'index.html');

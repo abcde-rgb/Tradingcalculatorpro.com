@@ -1665,6 +1665,22 @@ if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
     "rm -f frontend/build/pricing/index.html frontend/build/pricing.html" \
     "cp $SEO_APP_DIR/dir.html frontend/build/pricing/index.html; cp $SEO_APP_DIR/plano.html frontend/build/pricing.html"
 
+  # Un `%PUBLIC_URL%` que sobrevive al build.
+  #
+  # Estuvo puesto en `public/manifest.json`, con los DOCE marcadores literales:
+  # `id`, `start_url`, `scope`, seis iconos y tres accesos directos. CRA sólo
+  # interpola `index.html`; el resto de `public/` lo copia tal cual. El resultado
+  # es un manifiesto inválido —la PWA no se instala ni tiene iconos— que no
+  # rompe ninguna pantalla y por eso llevaba tiempo publicado. Tres auditorías
+  # externas vieron el síntoma y las tres culparon a `index.html`, que estaba
+  # bien.
+  SEO_MANIF=$(mktemp); TEMPORALES+=("$SEO_MANIF")
+  cp frontend/build/manifest.json "$SEO_MANIF"
+  probar "un %PUBLIC_URL% sin sustituir en el build" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|\"/icon-192.png\"|\"%PUBLIC_URL%/icon-192.png\"|' frontend/build/manifest.json" \
+    "cp $SEO_MANIF frontend/build/manifest.json"
+
   # Y el shell de una ruta de app con el canonical de la portada: las siete
   # copias salen del MISMO `build/index.html`, así que olvidar reescribir el
   # canonical deja seis páginas diciendo que la buena es `/`.

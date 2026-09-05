@@ -67,6 +67,31 @@ jobs:
           CI: false
         run: npm run build
 
+      # ── La puerta que faltaba ────────────────────────────────────────
+      #
+      # `ci.yml` sólo se dispara con `pull_request`, y este workflow con `push` a
+      # main: un push directo publicaba **sin que ningún verificador corriera**.
+      # No es teórico — pasó el 2026-09-05 con el propio arreglo del SEO, que se
+      # fusionó a main y desplegó sin CI.
+      #
+      # Aquí van las comprobaciones que guardan lo que el usuario recibe. Las de
+      # higiene del repositorio (mapa, enlaces de doc, asistente) se quedan en
+      # `ci.yml`: bloquear un despliegue de producción porque MAPA.md está
+      # desfasado sería una puerta mal calibrada.
+      #
+      # Esto NO sustituye a proteger la rama en GitHub —un push que no toque
+      # `frontend/**` ni dispara este workflow—, pero cierra el camino por el que
+      # se publica de verdad.
+      - name: Verificadores de lo publicado
+        working-directory: frontend
+        run: |
+          set -e
+          npx eslint src scripts   # 0 errores; los avisos de símbolos muertos NO bloquean (CLAUDE.md)
+          node scripts/i18n-check.js
+          node scripts/engine-check.js
+          node scripts/check-seo.js
+          python3 ../scripts/check-precios.py
+
       # React Router SPA — direct URL loads return the app instead of 404
       - name: Copy index.html to 404.html
         run: cp frontend/build/index.html frontend/build/404.html
