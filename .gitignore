@@ -80,8 +80,12 @@ chainlit.md
 .cache/
 **/.cache/
 
-# Claude worktrees (local only)
+# Claude: ajustes y credenciales por máquina (docs/MCP.md)
+# `.claude/settings.local.json` lleva permisos locales y el bloque `env` donde
+# vive FIRECRAWL_API_KEY. Nunca al repo: `.mcp.json` la referencia como
+# ${FIRECRAWL_API_KEY} precisamente para no escribirla aquí.
 .claude/worktrees/
+.claude/settings.local.json
 
 # Empaquetado para tiendas (docs/PUBLICAR_EN_TIENDAS.md)
 # El keystore de firma NUNCA entra al repo: quien lo tenga puede publicar
