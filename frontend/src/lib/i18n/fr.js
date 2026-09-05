@@ -2451,7 +2451,7 @@ export default {
   "edu_longPutBuyPut_0125f4de": "LONG PUT (BUY PUT) → Vous payez la prime. Vous gagnez si ça baisse < Strike−Prima. Perte maximale = prime payée.",
   "edu_shortCallSellCall_46b9297a": "SHORT CALL (SELL CALL) → Vous encaissez la prime. Vous perdez si ça monte > Strike+Prima. Perte maximale = ILLIMITÉE (si naked).",
   "edu_shortPutSellPut_cc28336a": "SHORT PUT (SELL PUT) → Vous encaissez la prime. Vous perdez si ça baisse < Strike−Prima. Perte maximale = Strike−Prima si tombe à 0.",
-  "edu_regla802080_db62e282": "RÈGLE 80/20 → ~80% des options expirent sans valeur → statistiquement le vendeur de primes gagne souvent ; mais son ratio risque/bénéfice est mauvais.",
+  "edu_regla802080_db62e282": "DONNÉES RÉELLES (OCC) → environ 30-35% des options expirent sans valeur, et la plupart des autres sont clôturées avant l'échéance → le vendeur de primes gagne quand même plus souvent qu'il ne perd ; mais son ratio risque/bénéfice est mauvais.",
   "edu_deltaCambioEnPrima_0791393e": "Delta Δ → Changement de la prime par $1 de mouvement du sous-jacent. Calls : 0 à +1. Puts : 0 à -1.",
   "edu_thetaPerdidaDeValor_c24fe104": "Theta Θ → Perte de valeur temporelle pour chaque jour écoulé. Toujours négative pour Long, positive pour Short.",
   "edu_vegaSensibilidadAlCambio_49f4d565": "Vega ν → Sensibilité au changement de la volatilité implicite (IV). Positive pour Long, négative pour Short.",

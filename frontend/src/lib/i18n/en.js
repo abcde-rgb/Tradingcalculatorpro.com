@@ -2369,7 +2369,7 @@ export default {
   "edu_longPutBuyPut_0125f4de": "LONG PUT (BUY PUT) → You pay premium. You profit if it falls < Strike−Premium. Maximum loss = premium paid.",
   "edu_shortCallSellCall_46b9297a": "SHORT CALL (SELL CALL) → You collect premium. You lose if it rises > Strike+Premium. Maximum loss = UNLIMITED (if naked).",
   "edu_shortPutSellPut_cc28336a": "SHORT PUT (SELL PUT) → You collect premium. You lose if it falls < Strike−Premium. Maximum loss = Strike−Premium if it drops to 0.",
-  "edu_regla802080_db62e282": "80/20 RULE → ~80% of options expire worthless → statistically the premium seller usually wins; but their risk/reward ratio is poor.",
+  "edu_regla802080_db62e282": "REAL DATA (OCC) → ~30-35% of options expire worthless, and most of the rest close before expiration → the premium seller still wins more often than not; but their risk/reward ratio is poor.",
   "edu_deltaCambioEnPrima_0791393e": "Delta Δ → Change in premium per $1 move in the underlying. Calls: 0 to +1. Puts: 0 to -1.",
   "edu_thetaPerdidaDeValor_c24fe104": "Theta Θ → Loss of time value per day that passes. Always negative for Long, positive for Short.",
   "edu_vegaSensibilidadAlCambio_49f4d565": "Vega ν → Sensitivity to change in implied volatility (IV). Positive for Long, negative for Short.",

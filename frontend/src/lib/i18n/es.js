@@ -2613,7 +2613,7 @@ export default {
   "edu_longPutBuyPut_0125f4de": "LONG PUT (BUY PUT) → Pagas prima. Ganas si baja < Strike−Prima. Pérdida máxima = prima pagada.",
   "edu_shortCallSellCall_46b9297a": "SHORT CALL (SELL CALL) → Cobras prima. Pierdes si sube > Strike+Prima. Pérdida máxima = ILIMITADA (si naked).",
   "edu_shortPutSellPut_cc28336a": "SHORT PUT (SELL PUT) → Cobras prima. Pierdes si baja < Strike−Prima. Pérdida máxima = Strike−Prima si cae a 0.",
-  "edu_regla802080_db62e282": "REGLA 80/20 → ~80% de las opciones expiran sin valor → estadísticamente el vendedor de primas suele ganar; pero su ratio riesgo/beneficio es malo.",
+  "edu_regla802080_db62e282": "DATO REAL (OCC) → ~30-35% de las opciones expiran sin valor, y la mayoría de las demás se cierran antes del vencimiento → el vendedor de primas sigue ganando más a menudo que pierde; pero su ratio riesgo/beneficio es malo.",
   "edu_deltaCambioEnPrima_0791393e": "Delta Δ → Cambio en prima por $1 de movimiento del subyacente. Calls: 0 a +1. Puts: 0 a -1.",
   "edu_thetaPerdidaDeValor_c24fe104": "Theta Θ → Pérdida de valor temporal por cada día transcurrido. Siempre negativa para Long, positiva para Short.",
   "edu_vegaSensibilidadAlCambio_49f4d565": "Vega ν → Sensibilidad al cambio en la volatilidad implícita (IV). Positiva para Long, negativa para Short.",

@@ -2443,7 +2443,7 @@ export default {
   "edu_longPutBuyPut_0125f4de": "LONG PUT (BUY PUT) → プレミアムを支払います。Strike−プレミアムを下回れば利益。最大損失 = 支払ったプレミアム。",
   "edu_shortCallSellCall_46b9297a": "SHORT CALL (SELL CALL) → プレミアムを受け取ります。Strike+プレミアムを超えて上昇すれば損失。最大損失 = 無制限(nakedの場合)。",
   "edu_shortPutSellPut_cc28336a": "SHORT PUT (SELL PUT) → プレミアムを受け取ります。Strike−プレミアムを下回れば損失。最大損失 = 0まで下落した場合Strike−プレミアム。",
-  "edu_regla802080_db62e282": "80/20ルール → オプションの約80%は価値がないまま満期を迎える → 統計的にはプレミアム売り手が勝つことが多いが、リスク/リワード比率は悪い。",
+  "edu_regla802080_db62e282": "実際のデータ（OCC）→ オプションの約30〜35%は無価値のまま満期を迎え、残りの多くは満期前に決済される → プレミアム売り手はそれでも負けるより勝つことが多いが、リスク/リワード比率は悪い。",
   "edu_deltaCambioEnPrima_0791393e": "Delta Δ → 原資産が$1動いた時のプレミアムの変化。CALL: 0〜+1。PUT: 0〜-1。",
   "edu_thetaPerdidaDeValor_c24fe104": "Theta Θ → 1日経過するごとのタイムバリューの減少。Longでは常にマイナス、Shortではプラス。",
   "edu_vegaSensibilidadAlCambio_49f4d565": "Vega ν → インプライド・ボラティリティ(IV)の変化に対する感応度。Longではプラス、Shortではマイナス。",
