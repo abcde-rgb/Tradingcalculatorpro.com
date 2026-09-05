@@ -140,12 +140,17 @@
   página. *No* OxaPay ni MaxelPay: ambas se probaron y se retiraron; no queda código de
   ninguna.
 - **Auth**: Google OAuth + JWT con httpOnly cookies (store Zustand en memoria).
-- **Analítica/SEO**: GA4 + GTM + GSC/Bing/Yandex, `sitemap.xml` (1.687 URLs),
+- **Analítica/SEO**: GA4 + GTM + GSC/Bing/Yandex, `sitemap.xml` (2.475 URLs),
   `robots.txt`, `llms.txt`, `og-image`, `manifest.json` (PWA), hook `useSEO`.
-  **1.680 páginas estáticas** que genera el `postbuild` (13 calculadoras, 75 temas
-  de academia, 10 mercados y 66 estrategias × 10 idiomas) más **40 hubs** de
-  sección que las enlazan, y **6 rutas del SPA con fichero propio** — sin ese
-  fichero GitHub Pages les devolvía 404 a los buscadores (BUG-081).
+  **2.410 páginas estáticas** que genera el `postbuild` (13 calculadoras, 75 temas
+  de academia, 10 mercados, 66 estrategias, 42 patrones chartistas y 35 de vela ×
+  10 idiomas) más **60 hubs** de sección que las enlazan (`learn`, `tools`,
+  `markets`, `strategies`, `patterns`, `candles`), y **4 rutas del SPA con
+  fichero propio** (`pricing`, `about`, `contact`, `legal`) — sin ese fichero
+  GitHub Pages les devolvía 404 a los buscadores (BUG-081). `lastmod` sale de
+  `git log` por página, no de la fecha del build (BUG-085 corregido: un `--` de
+  más en la consulta hacía que cayera siempre en el commit más reciente del
+  repo entero).
 - **Todo el contenido es de pago.** No hay secciones abiertas dentro de la app:
   `/education`, `/options*`, `/news`, `/dashboard` y `/performance` exigen
   suscripción activa (`ProtectedRoute premiumOnly`). Fuera del muro sólo quedan
@@ -404,12 +409,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-09-05 | SEO: 77 patrones con página propia, un dato falso en 10 idiomas y BUG-085 |
 | 2026-09-03 | SEO: siete rutas devolvían 404, 1.680 páginas huérfanas y slugs traducidos (BUG-081…085) |
 | 2026-08-31 (cont. 7) | BUG-075: "el correo no funciona ni magic link" — causa doble |
 | 2026-08-31 (cont. 6) | Cinco patrones de vela más, investigados contra TrendSpider |
 | 2026-08-31 (cont. 5) | Panel admin: navegación por secciones + limpieza de colores |
-| 2026-08-31 (cont. 4) | BUG-074: el cifrado de secretos fallaba en silencio |
-| 2026-08-31 | SEO para buscadores de IA: robots por grupos, llms.txt y la contradicción del sitemap |
 
 ```bash
 # buscar una sesión por fecha o por tema
