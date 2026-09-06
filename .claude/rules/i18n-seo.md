@@ -80,6 +80,11 @@ rama que contiene páginas del sitemap, el `Allow` más largo es lo que las salv
 - **El slug sale del título traducido**, no del español. Cirílico transliterado; zh/ja/ar
   caen al inglés. **`es` no se deriva nunca**: es el único idioma con indexación
   consolidada y moverlo sería tirarla.
+  ⚠️ La caída al inglés se dispara cuando el slug del título nativo se queda en **menos
+  de 5 caracteres**, no sólo cuando queda vacío. `slugificar` no translitera CJK ni
+  árabe, así que de «COT 报告» sobrevive `cot` — no está vacío, pero tampoco dice nada.
+  Salían así 21 URLs (`/zh/learn/cot/`, `/ar/learn/ao/`, `/ja/learn/5/`). Si traduces un
+  título con una sigla latina dentro, esto es lo que decide su URL.
 - **Al cambiar un slug se publica una página puente** en la URL vieja (`canonical` +
   `meta refresh`). Pages no sirve cabeceras, así que un 301 de verdad es imposible. Los
   puentes **no van al sitemap** y no pueden pisar una página real: el generador aborta si

@@ -231,8 +231,27 @@ function slugPara(lang, base, titulos, usados) {
   // El español no se deriva, pero SÍ se registra: si no, un slug derivado de
   // otro idioma podría chocar con él sin que nadie se entere.
   if (lang === 'es') { usados.add(base); return base; }
+  // Un slug que no queda vacío, pero tampoco dice nada.
+  //
+  // `slugificar` translitera el cirílico entero (Метод Вайкоффа →
+  // metod-vaykoffa) pero NO el chino, el japonés ni el árabe: de esos títulos
+  // sólo sobrevive lo que ya estaba en alfabeto latino. Cuando el título
+  // traducido no lleva nada latino el slug sale vacío y cae al inglés, que es
+  // lo que se quería. El agujero está en medio: basta una sigla suelta —y en
+  // trading las hay a puñados: «COT 报告», «AO (تمساح بيل ويليامز)»— para que
+  // el slug NO quede vacío y se publique el resto. Salían así 27 URLs:
+  // `/zh/learn/cot/`, `/ar/learn/ao/`, `/ar/learn/opex/`.
+  //
+  // El umbral son 4 caracteres, y no es arbitrario: por debajo de eso lo que
+  // queda es una sigla, no un título. Las 15 URLs cuyo resto latino SÍ es
+  // legible (`elder-ray-force-index`) no se tocan — cambiarlas por el título
+  // inglés largo, a veces cortado a media frase, no mejora nada.
+  const RESTO_MINIMO = 5;
   let s = slugCorto(slugificar(titulos[lang] || ''));
-  if (!s) s = slugCorto(slugificar(titulos.en || ''));  // zh, ja, ar
+  if (s.replace(/-/g, '').length < RESTO_MINIMO) {
+    const ingles = slugCorto(slugificar(titulos.en || ''));
+    if (ingles.replace(/-/g, '').length >= RESTO_MINIMO) s = ingles;
+  }
   if (!s) s = base;                                     // último recurso
   // Dos temas distintos pueden dar el mismo slug al recortar. El sufijo es
   // determinista: depende sólo del orden del catálogo, así que la URL de una

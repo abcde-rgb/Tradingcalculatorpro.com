@@ -6897,3 +6897,68 @@ responda 200 está comprobado sobre el `build/` —los dos ficheros existen—, 
 el 404 era un comportamiento del servidor: la prueba definitiva sigue siendo el
 workflow `seo-en-vivo.yml` tras el despliegue.
 
+---
+
+### 2026-09-06 — Rescatar del PR 228 lo que seguía vivo, y un slug que no decía nada
+
+El PR 228 llevaba abierto desde el 2 de septiembre con dos mitades. La de
+**slugs nativos por idioma** quedó superada por el 229 —que ya está en
+producción— y además decide lo contrario sobre las MISMAS URLs: 228 mantiene el
+alfabeto nativo percent-codificado (`/ru/learn/торговля-на-новостях/`), 229
+translitera (`/ru/learn/torgovlya-na-novostyah/`). No es un conflicto de texto:
+es una decisión de producto ya tomada y desplegada. Su rama va 37 commits por
+detrás y su `gen-seo-pages.js` no conoce hubs, patrones, conceptos ni `APP`.
+
+La otra mitad seguía viva: **4 temas de academia sin traducir en 8 idiomas**
+(Wyckoff, Alternative Chart Types, COT Report y Smart Money/ICT). Se portan las
+**46 claves** una a una, comprobando que `main` no hubiera tocado ninguna por su
+cuenta desde la base del 228 — copiar los ficheros enteros habría revertido el
+arreglo de precios de BUG-082, que entró después.
+
+**Por qué importaba más que cuando se escribió**: con el 229 desplegado el slug
+se deriva del título, así que esos 4 temas publicaban 12 URLs con slug inglés
+bajo prefijo de otro idioma —`/ru/learn/wyckoff-method/` sirviendo
+`<html lang="ru">` con `<title>Wyckoff Method</title>`—. Exactamente el síntoma
+que abrió todo el hilo (`/ru/learn/operar-noticias/`), en inglés en vez de en
+castellano.
+
+#### El hallazgo: la caída al inglés se disparaba sólo con el slug VACÍO
+
+Al traducir «COT Report» a «COT 报告» el slug chino no queda vacío: `slugificar`
+tira el CJK y deja `cot`. O sea que la traducción habría EMPEORADO la URL china
+respecto a la que estaba viva. Mirando el sitio ya publicado, el agujero era más
+ancho de lo que parecía: **21 URLs** eran restos latinos de un título no latino
+—`/ar/learn/ao/`, `/ar/learn/opex/`, `/ar/learn/pfof/`, `/ar/learn/rrg/` y una
+literalmente `/ja/learn/5/`—.
+
+El arreglo cae al título inglés cuando el slug nativo se queda en **menos de 5
+caracteres**, no sólo cuando queda vacío. El umbral está acotado a propósito:
+las 15 URLs cuyo resto latino SÍ es legible (`elder-ray-force-index`) no se
+tocan. Cambiarlas por el título inglés largo —a veces cortado a media frase—
+no mejora nada, y era la alternativa que se descartó explícitamente.
+
+**Lo que se pierde, dicho claro**: 21 URLs publicadas esta misma mañana dejan de
+existir sin puente. El mecanismo de puentes cubre el slug español histórico, no
+un cambio de título posterior. Tenían cinco horas de vida, IndexNow no llegó a
+anunciarlas (ver la entrada anterior: el filtro «lastmod = hoy» no casó nada) y
+el sitemap no se ha reenviado, así que el coste hoy es ~cero — y crece cada día
+que se deje. Por eso se hace ahora y no «más adelante».
+
+**No se añade sabotaje al arnés**, y es deliberado: una guarda del tipo «ningún
+slug de menos de 5 caracteres» daría falso positivo en los slugs cortos
+legítimos (hay un tema cuyo slug español es `vs`). Un verificador que grita sin
+motivo se acaba apagando, y con él se va la comprobación que sí servía.
+
+**Verificado** sobre `npm run build` limpio: `check-seo` (3.428 páginas, 2.475
+URLs), `i18n-check` (7.431 claves × 10, 0 crudas), `engine-check` (535/535),
+`eslint` (0 errores), `check-precios`, `check-edu-index`,
+`check-enlaces-academia`, `check-fetch-credentials`, `check-i18n-identidad`,
+`check-quiz`, `gen-instruments-js --check`, `gen-mapa --check`,
+`gen-asistente --check`, `check-rutas-muertas`, `check-doc-links`.
+
+Un aviso ganado por el camino: la primera pasada de `check-seo` salió en ROJO
+con 72 problemas, y tenía razón — regenerar con `gen-seo-pages.js` suelto sobre
+un `build/` viejo deja las carpetas de la tanda anterior, que quedan huérfanas y
+fuera del sitemap. Para medir un cambio de slugs hace falta `rm -rf build` y
+`npm run build`, no el generador a secas.
+
