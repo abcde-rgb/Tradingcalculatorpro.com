@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>相対ローテーション・グラフ（RRG）：プロのローテーション地図 | TradingCalculator.Pro</title>
+<meta name="description" content="ユリウス・デ・ケンペナーが考案した相対ローテーション・グラフ（RRG）は、どの資産やセクターが基準指数に対して強くなっているか弱くなっているか、そしてどのくらいの速さかを視覚的に見る方法です。各資産を別々に見るのではなく、すべてを4象限の平面に置き、誰が先行し誰が遅れているかを一目で把握します。機関投資家のツール…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/graficos-rotacion-relativa-rrg-cuadrantes/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/relative-rotation-graphen-rrg-die-rotationskarte-der-profis/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/graphes-de-rotation-relative-rrg-la-carte-de-rotation-des/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/grafiki-otnositelnoy-rotatsii-rrg-karta-rotatsii/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/graficos-de-rotacao-relativa-rrg-o-mapa-de-rotacao-dos/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/relative-rotation-graphs-rrg-la-mappa-di-rotazione-dei/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/graficos-rotacion-relativa-rrg-cuadrantes/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="相対ローテーション・グラフ（RRG）：プロのローテーション地図 | TradingCalculator.Pro">
+<meta property="og:description" content="ユリウス・デ・ケンペナーが考案した相対ローテーション・グラフ（RRG）は、どの資産やセクターが基準指数に対して強くなっているか弱くなっているか、そしてどのくらいの速さかを視覚的に見る方法です。各資産を別々に見るのではなく、すべてを4象限の平面に置き、誰が先行し誰が遅れているかを一目で把握します。機関投資家のツール…">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"相対ローテーション・グラフ（RRG）：プロのローテーション地図","url":"https://tradingcalculator.pro/ja/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/","inLanguage":"ja","description":"ユリウス・デ・ケンペナーが考案した相対ローテーション・グラフ（RRG）は、どの資産やセクターが基準指数に対して強くなっているか弱くなっているか、そしてどのくらいの速さかを視覚的に見る方法です。各資産を別々に見るのではなく、すべてを4象限の平面に置き、誰が先行し誰が遅れているかを一目で把握します。機関投資家のツール…","teaches":["何か","二つの軸","4つの象限","ローテーション（時計回り）","テール（軌跡）","使い方","限界（正直に）"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"相対ローテーション・グラフ（RRG）：プロのローテーション地図","item":"https://tradingcalculator.pro/ja/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › 相対ローテーション・グラフ（RRG）：プロのローテーション地図</div>
+  <span class="free">7日間無料</span>
+  <h1>相対ローテーション・グラフ（RRG）：プロのローテーション地図</h1>
+  <p class="lead">ユリウス・デ・ケンペナーが考案した相対ローテーション・グラフ（RRG）は、どの資産やセクターが基準指数に対して強くなっているか弱くなっているか、そしてどのくらいの速さかを視覚的に見る方法です。各資産を別々に見るのではなく、すべてを4象限の平面に置き、誰が先行し誰が遅れているかを一目で把握します。機関投資家のツール（StockCharts、ブルームバーグ）で、個人はほとんど使いません。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=rrg">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>何か</h3><p>RRGは各資産を、4象限に分けた平面上の点として描きます。常に指数（例：S&amp;P500）に対して測ります。絶対的に上がっているかではなく、市場より良いか悪いか、そしてその優位が加速しているか薄れているかを示します。多くの資産を一度に比較し、どこに焦点を当てるかを決めるためのものです。</p><h3>二つの軸</h3><p>横軸はRS-Ratio：指数に対する相対的な強さ（右＝市場より強い、左＝弱い）。縦軸はRS-Momentum：その強さの「速さ」（上＝優位が加速、下＝薄れる）。中心は基準指数（値100）。中心にいることは、市場と同じ動きをしていることです。</p><h3>4つの象限</h3><p>右上、リーディング（強く加速中）：今の勝者。右下、ウィークニング（強いが勢いを失いつつある）。左下、ラギング（弱く下落中）：敗者。左上、インプルービング（まだ弱いが勢いを取り戻しつつある）：次のリーダー候補。各象限の色が、その健康状態を一目で要約します。</p><h3>ローテーション（時計回り）</h3><p>RRGの強力な点は、資産が象限の間を「時計回り」に回りやすいことです：インプルービング → リーディング → ウィークニング → ラギング → そしてインプルービングへ戻る。この循環が先読みを助けます。「インプルービング」に入るセクターはリーダーの局面を始めているかもしれず、「リーディング」から「ウィークニング」へ抜けるものは優位を使い果たしつつあるかもしれません。</p><h3>テール（軌跡）</h3><p>各点は「テール（尾）」を引きます。直近数週間の軌跡で、どこから来てどこへ向かうかを示します。長く方向が明確なテールは強く安定したローテーションを、短く絡んだテールは迷いを示します。テールは静止した写真を、ローテーションの傾向を映す動画に変えます。</p><h3>使い方</h3><p>古典的な用途はセクターローテーションです。リーディングまたはインプルービング象限のセクターでポートフォリオを固め、ラギング象限のものは避ける（または減らす）。株式、国、資産クラスを同じ指数に対して比較するのにも使えます。常に慎重に選んだベンチマークと、ノイズを濾すために週足で使います。</p><h3>限界（正直に）</h3><p>RRGは「相対的」な強さを測り、絶対ではありません。市場全体が下げれば、リーディング象限にある資産も価格は下がり得ます——下げ幅が小さいだけです。それ単体では入場シグナルではありません。どこを見るかを示すもので、いつ入るかではありません。それには自分の分析とリスク管理が要ります。そして平均に基づくもの同様、一歩遅れます。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>
