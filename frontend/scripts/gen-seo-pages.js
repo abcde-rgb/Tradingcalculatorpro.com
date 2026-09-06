@@ -177,7 +177,7 @@ const ogLocale = (lang) => OG_LOCALE[lang] || OG_LOCALE.es;
 // Relativas funcionan en los tres casos y son lo que ya hace `public/index.html`
 // (`%PUBLIC_URL%/favicon.ico` con `PUBLIC_URL: /`). El `og:image` sí sigue
 // siendo absoluto, y debe serlo: no lo carga la página, lo pide Facebook.
-const ICONOS = () => `<link rel="icon" href="/favicon.ico" sizes="32x32">
+const ICONOS = () => `<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">

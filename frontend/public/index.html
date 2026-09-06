@@ -49,8 +49,24 @@
             upgrade-insecure-requests
         " />
         <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="32x32" />
+        <!-- ─────────── Iconos ───────────
+             Esto es lo que el buscador pinta junto al resultado, y la portada
+             declaraba MENOS iconos que las 2.410 páginas generadas: `ICONOS()`
+             en `gen-seo-pages.js` ya ofrecía el de 192 px y aquí no estaba.
+             Importa porque cuando hay varios, Yandex se queda con el mayor y
+             Google pide un cuadrado múltiplo de 48 px — y los dos únicos rásters
+             que ofrecía esta página eran 32 (dentro del `.ico`) y 180 (el de
+             Apple, que no es múltiplo de 48). El `.ico` lleva ahora 16/32/48;
+             el de 48 sale de promediar `icon-192.png` en cajas exactas de 4×4,
+             no de estirar el de 32 (factor 1,5 = bordes sucios).
+
+             Rutas por `%PUBLIC_URL%`, que el build resuelve a `/`: absolutas
+             con el dominio dentro rompen la CSP en cuanto la página no se sirve
+             desde ese dominio exacto (banco de pruebas, URL de proyecto de
+             Pages, previsualizaciones). Ver el comentario de `ICONOS()`. -->
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="16x16 32x32 48x48" />
         <link rel="icon" href="%PUBLIC_URL%/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="%PUBLIC_URL%/icon-192.png" type="image/png" sizes="192x192" />
         <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
