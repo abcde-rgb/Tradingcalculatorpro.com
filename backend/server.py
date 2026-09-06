@@ -56,6 +56,7 @@ from stock_data import (
     get_ohlc_history,
 )
 from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
+from chart_patterns import detect_chart_patterns, get_chart_pattern_catalog
 from price_action import detect_structure, scan_levels, apply_confluence, strip_bars
 from level_odds import measure_level_odds
 import timeframes
@@ -7651,6 +7652,58 @@ async def education_pattern_scan(
         }
     except Exception as e:
         logging.error(f"Pattern scan error for {log_safe(sym)}: {log_safe(e)}")
+        return {"symbol": sym, "error": str(e), "detections": []}
+
+
+@api_router.get("/education/chart-pattern-catalog")
+async def education_chart_pattern_catalog() -> Dict[str, Any]:
+    """Classical chart patterns the scanner below can detect today — 13 of
+    the ~19-20 illustrated in the Academia. See chart_patterns.py's module
+    docstring for exactly which ones are missing and why (G-40). Names are
+    localized on the client from pattern_id."""
+    return {"patterns": get_chart_pattern_catalog()}
+
+
+@api_router.get("/education/chart-pattern-scan/{symbol}")
+@limiter.limit("30/minute")
+async def education_chart_pattern_scan(
+    request: Request, symbol: str, period: str = "6mo", interval: str = "1d",
+) -> Dict[str, Any]:
+    """Scan real OHLC for classical chart patterns: head & shoulders (+
+    inverse), double/triple top/bottom, and the rectangle/triangle/wedge/
+    broadening family — geometric detection over `detect_swings`, not a
+    learned model. See chart_patterns.py for the method and its honesty
+    limits (no invented Bulkowski stats, no un-implemented shapes).
+
+    Defaults to a longer lookback than `/pattern-scan` (6mo vs 3mo): a chart
+    pattern spans many more bars than a candle shape, and a 3-month window
+    barely fits one on daily bars.
+    """
+    sym = symbol.upper().strip()
+    win = _scan_window(interval, period)
+    tf, rng = win["tf"], win["range"]
+    try:
+        rows = await asyncio.to_thread(get_ohlc_history, sym, rng, tf.fetch_interval)
+        rows = timeframes.resample(rows, tf.bucket_minutes)
+        if not rows:
+            return {"symbol": sym, "period": rng, "interval": tf.interval,
+                    "adjustments": win["adjustments"],
+                    "rowsScanned": 0, "totalDetections": 0, "detections": []}
+        detections = detect_chart_patterns(rows, strength=tf.strength)
+        for det in detections:
+            det["interval"] = tf.interval
+        return {
+            "symbol": sym,
+            "period": rng,
+            "interval": tf.interval,
+            "intraday": tf.intraday,
+            "adjustments": win["adjustments"],
+            "rowsScanned": len(rows),
+            "totalDetections": len(detections),
+            "detections": detections,
+        }
+    except Exception as e:
+        logging.error(f"Chart pattern scan error for {log_safe(sym)}: {log_safe(e)}")
         return {"symbol": sym, "error": str(e), "detections": []}
 
 

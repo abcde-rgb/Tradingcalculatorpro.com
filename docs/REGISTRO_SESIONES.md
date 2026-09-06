@@ -6962,3 +6962,67 @@ un `build/` viejo deja las carpetas de la tanda anterior, que quedan huérfanas 
 fuera del sitemap. Para medir un cambio de slugs hace falta `rm -rf build` y
 `npm run build`, no el generador a secas.
 
+---
+
+### 2026-09-06 (cont.) — G-40: el escáner detecta 13 patrones chartistas geométricos, con backend y tests
+
+**Backend `chart_patterns.py` (nuevo)**: detección geométrica de patrones
+chartistas clásicos sobre `detect_swings` — aritmética sobre swings reales, no
+un modelo — siguiendo al pie de la letra `docs/DETALLE_TECNICAS_IMPLEMENTACION.md`
+Lote 5 §5.1-5.2. Dos familias, dos estrategias: los de picos (H-C-H ±inverso,
+doble/triple techo-suelo) son una secuencia fija de 3-5 swings alternos,
+recorrida entera como `candle_patterns.detect_all_patterns`; los de directriz
+(rectángulo, 3 triángulos, 2 cuñas, ensanche) ajustan una recta a los máximos
+recientes y otra a los mínimos y clasifican por pendiente (§5.1), informando
+sólo de la estructura ACTUAL — no un histórico — igual que `label_structure`
+con la tendencia.
+
+**13 de los ~19-20 patrones de la tabla, a propósito y no por olvido.** Cup&Handle,
+Rounding Bottom, banderas/gallardetes, High Tight Flag, Diamante, Bump-and-Run,
+V-spike, Scallop y Darvas Box **no** están: su geometría no es un ajuste de
+swings/directriz (curvas parabólicas, banderas por % de movimiento,
+confirmación por volumen), y forzarlos por este mismo camino habría dado un
+número con pinta de correcto y sin serlo. Quedan documentados como pendientes
+en el docstring del módulo.
+
+**`bulkowski` viaja `None` a propósito.** El diseño (§5.4) pide tasa de fallo,
+movimiento medio y throwback de Bulkowski junto a cada patrón. `candle_patterns.py`
+ya cita esas cifras para velas con su fuente; reproducirlas de memoria para 13
+patrones chartistas sin la tabla del libro delante habría sido el "dato
+inventado sin etiquetar" que este repositorio prohíbe — un número de manual
+mal recordado sigue siendo inventado en cuanto se imprime como hecho junto a
+un precio. Queda para cuando alguien transcriba las tablas reales.
+
+**Verificado contra el propio ejemplo de la doc**: hombro izq. 110, cabeza 120,
+hombro der. 111, neckline 100 → objetivo 80 (§5.3). `test_chart_patterns_unit.py`
+(9 tests) lo fija exacto, más el espejo invertido, doble/triple techo-suelo con
+altura y objetivo a mano, un caso de tops NO iguales que no debe disparar nada,
+y un triángulo ascendente con ruptura confirmada. Dos fallos al escribirlos —
+los dos en el TEST, no en el detector: una aritmética mal tecleada en la
+aserción del H-C-H invertido (80 en vez de 120) y un caso que colocaba el
+último swing dentro de los últimos `strength` bares, donde `detect_swings`
+nunca confirma nada. Ninguno se descartó sin entender la causa.
+
+**Endpoints**: `GET /education/chart-pattern-catalog` y
+`GET /education/chart-pattern-scan/{symbol}` (6 meses por defecto, más largo
+que los 3 de `/pattern-scan`: un patrón chartista no cabe en una ventana
+pensada para velas sueltas), mismo límite (30/min) y manejo de errores que el
+escáner de velas.
+
+**Sigue 🟠 y no 🟢: no hay pantalla.** Falta el overlay de las líneas sobre el
+gráfico y la tarjeta reutilizando `ChartPatternFigure` (§5.5, las 42 SVG ya
+existen) — sin eso el usuario sigue sin poder llegar a esto, que es justo lo
+que G-14 lleva 29 filas repitiendo: escribir el backend no es terminar.
+
+**Verificado**: `py_compile *.py` (37 módulos), `pytest tests/` → **1229
+passed, 114 skipped, 1 failed** (`test_verify_full_rechaza_un_nombre_que_no_casa`,
+preexistente y ajeno a este cambio — el Postgres de este sandbox no escucha
+por TCP, así que da `ConnectionRefusedError` en vez del error de certificado
+que el test espera). `check-rutas-muertas.py` verde con las dos rutas nuevas
+documentadas en `RUTAS_MUERTAS.md` (decisión CONSTRUIR). `gen-mapa.py`
+regenerado (36→37 módulos). `check-doc-links.py` limpio.
+
+**Pendiente para cerrar G-40 del todo**: la pantalla (overlay + tarjeta + i18n
+×8 en 10 idiomas, §5.5), las 9 formas restantes con su propia geometría, y las
+estadísticas de Bulkowski con fuente citable.
+
