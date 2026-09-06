@@ -158,17 +158,35 @@ const recortar = (texto, max = 158) => {
   const s = String(texto == null ? '' : texto).replace(/\s+/g, ' ').trim();
   const chars = Array.from(s);
   if (!chars.length) return s;
-  const em = SERP.anchoEm(s);
   const presupuesto = max * EM_LATINO;
-  if (em <= presupuesto) return s;
-  // Se reparte el presupuesto al coste medio por caracter DE ESTE texto. El
-  // minimo de 20 evita que una cadena rara se quede en un munon sin sentido.
-  const maxEf = Math.max(20, Math.floor(presupuesto / (em / chars.length)));
-  if (chars.length <= maxEf) return s;
-  const corte = chars.slice(0, maxEf - 1).join('');
+  if (SERP.anchoEm(s) <= presupuesto) return s;
+
+  // Se ACUMULA el ancho carácter a carácter y se corta cuando se agota el
+  // presupuesto. La primera versión de esto estimaba un número de caracteres
+  // dividiendo el presupuesto entre el coste MEDIO del texto, y eso sólo
+  // acierta si la densidad es uniforme — que no lo es. La japonesa de
+  // `/ja/learn/coppock-schaff-rsi-2-tsi/` lleva los ideogramas al principio y
+  // palabras latinas baratas al final («Coppock», «Schaff»), así que el
+  // prefijo que se conserva cuesta más por carácter que la media del texto
+  // entero: salía a 1.194 px, a seis píxeles del corte, ya recortada. Con el
+  // ancho acumulado el resultado no puede pasarse, venga como venga el texto.
+  //
+  // Se reserva de antemano el ancho de los puntos suspensivos, que se añaden
+  // después: contarlos al final sería volver a pasarse por el mismo sitio.
+  const reserva = SERP.anchoEm('…');
+  let em = 0;
+  let n = 0;
+  for (const ch of chars) {
+    const w = SERP.anchoEm(ch);
+    if (em + w + reserva > presupuesto) break;
+    em += w;
+    n++;
+  }
+  if (n >= chars.length) return s;
+  const corte = chars.slice(0, n).join('');
   const ultimo = corte.lastIndexOf(' ');
   // Sin espacios (chino, japones) no hay frontera que respetar: se corta y ya.
-  const base = (ultimo > maxEf * 0.5 ? corte.slice(0, ultimo) : corte).replace(/[\s,;:·—–-]+$/, '');
+  const base = (ultimo > n * 0.5 ? corte.slice(0, ultimo) : corte).replace(/[\s,;:·—–-]+$/, '');
   // Si el corte cae justo detras de un punto, la frase ya esta cerrada y los
   // puntos suspensivos sobran («… счётом.…» se leia como una errata).
   return /[.!?。！？]$/.test(base) ? base : `${base}…`;
@@ -773,7 +791,8 @@ header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
 header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
 .brand .mark{flex:none;vertical-align:middle}
-nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+nav.top{min-width:0}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px;display:inline-block}
 .crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
 h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
@@ -1182,7 +1201,8 @@ header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
 header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
 .brand .mark{flex:none;vertical-align:middle}
-nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+nav.top{min-width:0}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px;display:inline-block}
 .crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
 h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .lead{font-size:17px;color:#c7c7c7;margin:0 0 22px}
@@ -1533,7 +1553,8 @@ header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
 header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
 .brand .mark{flex:none;vertical-align:middle}
-nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+nav.top{min-width:0}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px;display:inline-block}
 .crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
 h1{font-size:31px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .lead{font-size:17px;color:#c7c7c7;margin:0 0 22px}

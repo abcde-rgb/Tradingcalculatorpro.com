@@ -168,10 +168,14 @@ Dos detalles del método, porque el resultado depende de ellos:
   `scripts/serp-ancho.js` y **la comparten el generador y el auditor**: el que decide
   cuánto texto emitir y el que comprueba si cabe usan el mismo milímetro, así que no
   pueden contradecirse.
-- **El tope de 158 caracteres de la descripción era correcto para el latino y falso para
-  el CJK**, porque un ideograma ocupa exactamente el doble. Las descripciones japonesas y
-  chinas salían de 1.400 a 3.000 px sobre un contenedor de 1.200. Ahora el presupuesto se
-  reparte por ancho real: el latino y el cirílico no se mueven, el CJK baja a ~1.100 px.
+- **El tope de 158 caracteres de la descripción era un sustituto del límite real**, que
+  es el ancho, y fallaba sobre todo en CJK: un ideograma ocupa exactamente el doble, así
+  que las descripciones japonesas y chinas salían de 1.400 a 3.000 px sobre un contenedor
+  de 1.200. Ahora el presupuesto se gasta por ancho acumulado, carácter a carácter. Efecto
+  medido: la más ancha del sitio pasa de 1.194 px —que estaba **a seis píxeles del
+  corte**, ya recortada— a **1.106 px**, y ninguna de las 2.481 se pasa. De paso, 688
+  descripciones (27,7 %) quedan más largas de lo que el tope de caracteres permitía, la
+  mayoría latinas: el ancho real da para ~175 letras latinas, no 158.
 
 ### 2.3 Un bug que no era de SEO
 

@@ -7162,3 +7162,81 @@ resto se hace a ciegas. **Bing Webmaster** importa la propiedad en un clic y reg
 investigación de palabras clave con volúmenes. **Yandex Webmaster** sigue sin verificar,
 que es lo que bloquea el favicon y el envío del sitemap para las 168 páginas rusas que ya
 indexa.
+
+---
+
+### 2026-09-06 (cont. 3) — Corrección: el latino SÍ se movió, y mi `recortar()` se pasaba
+
+Dos correcciones a la entrada anterior de hoy, las dos por comprobar en vez de dar por
+bueno. **La entrada de arriba no se reescribe** —es append-only— así que lo que dijo mal
+se dice aquí.
+
+#### 1 · «El latino y el cirílico no se mueven» era falso
+
+Lo escribí en la entrada anterior y en el mensaje del commit `ae4298b`. Medido sobre el
+build: **688 de las 2.481 descripciones (27,7 %) son más largas de lo que el código viejo
+podía emitir** —su tope duro era `slice(0, 157)`—, y son sobre todo latinas: es 110, it
+106, pt 102, fr 95, en 89, de 86.
+
+El motivo es que el presupuesto en «anchos» no equivale a 158 caracteres latinos: un
+espacio son 278/1000 em y muchas minúsculas bajan de 500, así que el coste medio real
+ronda 0,45 em y los 79 em de presupuesto compran ~175 caracteres, no 158.
+
+**No es un fallo, pero tampoco es «no se mueve»**: el tope de 158 caracteres siempre fue
+un sustituto del límite real, que es el ancho. Ninguna se pasa del corte. Pero un futuro
+lector merecía saber que 688 páginas cambiaron y no que quedaron intactas.
+
+#### 2 · El algoritmo se pasaba del presupuesto, y por eso el máximo rozaba el corte
+
+Al mirar el percentil superior apareció que la descripción más ancha del sitio estaba a
+**seis píxeles** del corte (1.194 de 1.200) **ya recortada**. Eso no era margen, era
+suerte.
+
+La causa es un error de método mío: la primera versión estimaba cuántos caracteres caben
+dividiendo el presupuesto entre el coste **medio** del texto, y eso sólo acierta si la
+densidad es uniforme. La ficha `/ja/learn/coppock-schaff-rsi-2-tsi/` lleva los ideogramas
+al principio y palabras latinas baratas al final (`Coppock`, `Schaff`, `RSI-2`, `TSI`),
+así que el prefijo conservado cuesta **más** por carácter que la media del texto entero:
+85,3 em de presupuesto gastados sobre 79 disponibles.
+
+Arreglado acumulando el ancho carácter a carácter y cortando cuando se agota el
+presupuesto, con el ancho de los puntos suspensivos **reservado de antemano** — contarlos
+al final sería volver a pasarse por el mismo sitio. Así el resultado no puede excederse,
+venga como venga el texto.
+
+| | antes | después |
+|---|---|---|
+| Descripción más ancha del sitio | 1.194 px (a 6 px del corte) | **1.106 px** (94 px de margen) |
+| Por encima del presupuesto interno (1.106 px) | varias | **0 de 2.481** |
+| Por encima del corte de Google (1.200 px) | 0 | **0** |
+
+Probado en aislamiento antes de regenerar, con un caso adversario construido a propósito
+—veinte ideogramas seguidos y detrás una cola larga de palabras latinas baratas, que es
+justo lo que engaña a una media— y con japonés, chino, ruso y latín. Los cinco caben.
+
+**La lección, para la próxima**: un percentil máximo pegado al límite no es un aprobado,
+es una pregunta sin responder. Si hubiera mirado sólo «¿cuántas se pasan?» —cero— esto no
+habría salido.
+
+#### Apéndice — lo que encontró probarlo en un navegador de verdad (BUG-092)
+
+El selector de idioma se comprobó con Chromium sobre el build servido en local: cuatro
+páginas (es, ar, ja, ru) × escritorio y móvil, más una navegación real es → ru y vuelta.
+Verifica que el selector existe, que trae los 9 idiomas, que **no se enlaza a sí misma**,
+que en árabe hereda `direction: rtl`, y que el enlace lleva de verdad a una página con
+`<html lang="ru">` que enlaza de vuelta.
+
+Todo correcto — salvo **scroll horizontal en móvil en 2 de las 4 páginas**. La primera
+sospecha fue el selector nuevo. No lo era: ocultarlo por CSS y volver a medir dejaba el
+`scrollWidth` idéntico. El culpable era `nav.top`, un item flex al que `min-width:auto`
+impide encogerse por debajo de su contenido, así que sus enlaces no envolvían aunque
+`header.top .wrap` sí tuviera `flex-wrap`. El que desbordaba era siempre el rótulo más
+largo del menú. 390 px de viewport contra 426 de contenido en `/ru/learn/`.
+
+Es preexistente y llevaba publicado en las 2.475 páginas. **Google indexa mobile-first**,
+así que no es cosmético. No lo veía nadie: `check-seo.js` lee HTML y no calcula layout, y
+`capturas.js` cubre las pantallas de la SPA, no las estáticas. Arreglado con
+`nav.top{min-width:0}` en las tres plantillas: 404 → 390 y 426 → 390.
+
+La moraleja se repite: **el hallazgo salió de una prueba escrita para comprobar otra
+cosa**, y lo primero que hubo que hacer fue descartar que lo causara mi propio cambio.
