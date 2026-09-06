@@ -187,6 +187,18 @@ probar "módulo nuevo en el backend" \
   "printf '\"\"\"Modulo de sabotaje.\"\"\"\n' > $MODULO_FALSO" \
   "rm -f $MODULO_FALSO"
 
+# El escáner vive en `backend/terminal/` desde el 2026-09-06 (G-40). Un
+# `BACKEND.glob("*.py")` a secas es ciego a lo que hay un nivel más abajo —
+# los 6 módulos del escáner desaparecerían del mapa en silencio si alguien
+# reintrodujera ese glob—, así que el mismo sabotaje de arriba se repite
+# DENTRO del subpaquete para que ese punto ciego concreto quede cazado.
+MODULO_FALSO_TERMINAL="backend/terminal/zz_sabotaje.py"
+TEMPORALES+=("$MODULO_FALSO_TERMINAL")
+probar "módulo nuevo dentro de backend/terminal/ (el escáner)" \
+  "python scripts/gen-mapa.py --check" \
+  "printf '\"\"\"Modulo de sabotaje.\"\"\"\n' > $MODULO_FALSO_TERMINAL" \
+  "rm -f $MODULO_FALSO_TERMINAL"
+
 probar "ruta nueva en el frontend" \
   "python scripts/gen-mapa.py --check" \
   "python -c \"

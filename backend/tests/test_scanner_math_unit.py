@@ -13,7 +13,7 @@ hueco de sesión sin que fallara nada.
 Regla que se comprueba en todos: si el dato no está, el resultado es `None` o
 0.0 declarado, nunca una cifra inventada.
 """
-import price_action as pa
+import terminal.price_action as pa
 
 
 def bar(o, h, l, c, v=0, ts=None, date=None):

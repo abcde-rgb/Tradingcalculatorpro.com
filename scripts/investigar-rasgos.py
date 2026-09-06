@@ -35,7 +35,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backend"))
 
-from level_research import buscar_configuracion, investigar  # noqa: E402
+from terminal.level_research import buscar_configuracion, investigar  # noqa: E402
 from stock_data import get_ohlc_history  # noqa: E402
 
 

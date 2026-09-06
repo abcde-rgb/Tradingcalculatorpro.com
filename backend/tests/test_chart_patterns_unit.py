@@ -13,7 +13,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from chart_patterns import detect_chart_patterns, get_chart_pattern_catalog, CHART_PATTERN_META  # noqa: E402
+from terminal.chart_patterns import detect_chart_patterns, get_chart_pattern_catalog, CHART_PATTERN_META  # noqa: E402
 
 
 def _row(d, price):

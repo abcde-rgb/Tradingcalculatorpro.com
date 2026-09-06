@@ -39,6 +39,24 @@ BACKEND = RAIZ / "backend"
 FRONT = RAIZ / "frontend" / "src"
 SALIDA = RAIZ / "docs" / "MAPA.md"
 
+# Subpaquetes del backend que TAMBIÉN son código propio, además de la raíz.
+# `tests/` no cuenta aquí a propósito: sus ficheros se miden aparte (`tests()`).
+_SUBPAQUETES_BACKEND = ("terminal",)
+
+
+def _ficheros_backend() -> list[Path]:
+    """Todo el .py del backend que es código: la raíz más los subpaquetes de
+    arriba. Un `BACKEND.glob("*.py")` a secas —lo que había antes— es ciego a
+    cualquier cosa que viva un nivel más abajo: los 6 módulos del escáner
+    desaparecieron del mapa el día que se movieron a `terminal/`, en silencio,
+    hasta que esto se escribió. Añadir un subpaquete nuevo sigue exigiendo
+    tocar la tupla de arriba una vez — lo que ya no exige es acordarse en los
+    tres sitios que antes recorrían `backend/` por su cuenta."""
+    out = list(BACKEND.glob("*.py"))
+    for sub in _SUBPAQUETES_BACKEND:
+        out += (BACKEND / sub).glob("*.py")
+    return sorted(out)
+
 # Ficheros del frontend que son TEXTO, no código: aparecen en casi cualquier
 # búsqueda y darían falsos positivos al comprobar si una ruta se consume.
 EXCLUIR_DE_BUSQUEDA = ("/lib/i18n/", "/lib/legalContent/", "tradingEducationContent",
@@ -55,7 +73,7 @@ DECORADOR = re.compile(
 def modulos_backend() -> list[dict]:
     """Cada módulo .py del backend con su tamaño y su primera línea de docstring."""
     out = []
-    for py in sorted(BACKEND.glob("*.py")):
+    for py in _ficheros_backend():
         src = py.read_text(errors="ignore")
         try:
             doc = ast.get_docstring(ast.parse(src)) or ""
@@ -66,7 +84,7 @@ def modulos_backend() -> list[dict]:
         if len(resumen) > 110:
             resumen = resumen[:107] + "…"
         out.append({
-            "fichero": py.name,
+            "fichero": str(py.relative_to(BACKEND)),
             "lineas": src.count("\n") + 1,
             "resumen": resumen,
             "rutas": len(DECORADOR.findall(src)),
@@ -108,7 +126,7 @@ def _rutas_sin_ordenar() -> list[dict]:
     """Las rutas tal y como salen del disco, sin ordenar."""
     prefijos = prefijos_de_router()
     out = []
-    for py in sorted(BACKEND.glob("*.py")):
+    for py in _ficheros_backend():
         src = py.read_text(errors="ignore")
         pref = prefijos.get(py.name, "")
         for m in DECORADOR.finditer(src):
@@ -120,7 +138,7 @@ def _rutas_sin_ordenar() -> list[dict]:
                 # prefijo es una posibilidad y no una certeza: al buscar
                 # consumidor valen las dos formas.
                 "alt": m.group(2) if pref else None,
-                "fichero": py.name,
+                "fichero": str(py.relative_to(BACKEND)),
                 "linea": src.count("\n", 0, m.start()) + 1,
             })
     return out
@@ -268,13 +286,13 @@ def carpetas_frontend() -> list[tuple[str, int, int]]:
 
 def _ficheros_por_tamano() -> list[tuple[str, int]]:
     """(ruta, líneas) de todo el código, sin ordenar."""
-    out = []
-    for base, patrones in ((BACKEND, ("*.py",)), (FRONT, ("**/*.jsx", "**/*.js"))):
-        for pat in patrones:
-            for f in sorted(base.glob(pat)):
-                if "node_modules" in str(f):
-                    continue
-                out.append((str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1))
+    out = [(str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1)
+           for f in _ficheros_backend()]
+    for pat in ("**/*.jsx", "**/*.js"):
+        for f in sorted(FRONT.glob(pat)):
+            if "node_modules" in str(f):
+                continue
+            out.append((str(f.relative_to(RAIZ)), f.read_text(errors="ignore").count("\n") + 1))
     return out
 
 

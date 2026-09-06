@@ -1,9 +1,11 @@
 # Escáner de Estructura de Precio — qué hace bien, qué no, y cómo confirma
 
 **Última revisión:** 2026-08-05
-**Código:** `backend/price_action.py`, `backend/timeframes.py`, `backend/candle_patterns.py`,
-`backend/server.py` (`/api/education/structure-scan/{symbol}`,
-`/api/education/pattern-scan/{symbol}`, `/api/education/scan-timeframes`),
+**Código:** `backend/terminal/price_action.py`, `backend/timeframes.py`,
+`backend/terminal/candle_patterns.py`, `backend/terminal/chart_patterns.py`
+(2026-09-06, ver G-40), `backend/server.py` (`/api/education/structure-scan/{symbol}`,
+`/api/education/pattern-scan/{symbol}`, `/api/education/chart-pattern-scan/{symbol}`,
+`/api/education/scan-timeframes`),
 `frontend/src/components/charts/StructureScanner.jsx` + `frontend/src/components/charts/structure/`,
 `frontend/src/lib/structureLog.js`
 **Tests:** `backend/tests/test_price_action_unit.py` (60),

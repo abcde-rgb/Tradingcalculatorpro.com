@@ -17,7 +17,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from level_odds import (  # noqa: E402
+from terminal.level_odds import (  # noqa: E402
     _first_touch,
     _rupturas,
     _observaciones,

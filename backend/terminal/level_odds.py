@@ -47,8 +47,8 @@ from __future__ import annotations
 import random
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from candle_patterns import detect_all_patterns
-from price_action import detect_sr_levels, detect_swings, label_structure
+from terminal.candle_patterns import detect_all_patterns
+from terminal.price_action import detect_sr_levels, detect_swings, label_structure
 
 Row = Dict[str, Any]
 

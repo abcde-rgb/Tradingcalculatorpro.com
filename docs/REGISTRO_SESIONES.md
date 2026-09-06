@@ -7026,3 +7026,102 @@ regenerado (36→37 módulos). `check-doc-links.py` limpio.
 ×8 en 10 idiomas, §5.5), las 9 formas restantes con su propia geometría, y las
 estadísticas de Bulkowski con fuente citable.
 
+---
+
+### 2026-09-06 (cont. 2) — G-40 medido contra AAPL real: el detector sobre-dispara
+
+Los 9 tests de la entrada anterior sólo prueban series sintéticas —un patrón
+limpio y aislado por caso—, y se pidió expresamente medir contra algo real y
+comparar con lo que hacen las herramientas comerciales. Las dos cosas.
+
+**Datos reales, sin usar el proveedor bloqueado.** Yahoo/Stooq/Binance siguen
+rechazados por política explícita del proxy ("gateway answered 403... policy
+denial", confirmado con curl y el log de `$HTTPS_PROXY/__agentproxy/status"`),
+pero `raw.githubusercontent.com` sí responde. 2 años de OHLC diario real de
+AAPL (2015-02-17 → 2017-02-16, dataset público de `plotly/datasets`, en origen
+de Yahoo) sirvieron para correr `detect_chart_patterns` contra precio de
+verdad por primera vez. El mínimo/máximo de la serie (89.47 / 136.27) coincide
+con la historia real de AAPL en ese periodo, así que el dato es genuino.
+
+**Resultado: 67 detecciones en 506 velas — una cada 7,6 días de mercado.**
+Dominado por doble/triple techo-suelo (63 de 67), muchas solapadas sobre los
+mismos tres swings con `fit` de 0.0-0.03. El detector exige altura > 0 (**cualquier**
+valor positivo) y no exige separación temporal ni movimiento previo, así que
+casi cualquier zigzag de tres swings dentro del 2 % de tolerancia cuenta como
+patrón.
+
+**Comparado con lo que hacen de verdad TrendSpider y Bulkowski** (buscado, no
+memoria): TrendSpider ajusta directrices y explícitamente descarta patrones
+"en fase muy temprana" y los que el precio ya dejó de respetar
+([ayuda de TrendSpider](https://help.trendspider.com/kb/automated-technical-analysis/automated-chart-pattern-recognition)).
+La práctica de algo-trading usa un ZigZag con **umbral de sensibilidad
+ajustable** — "valores bajos detectan más patrones pero meten ruido"
+([Trendoscope](https://trendoscope.com/blog/chart-patterns-101)). Y Bulkowski,
+la fuente que el propio Lote 5 cita, exige que el primer pico venga de **un
+movimiento previo del 10-20 %** y que los picos no estén "demasiado próximos
+en el tiempo" — con hasta 6 % de tolerancia entre ellos, más laxo que el 2 %
+de aquí, pero con tamaño y separación mínimos que aquí no existían
+([thepatternsite.com](https://thepatternsite.com/PatternReview5.html)).
+
+**Cuantificado sobre las propias 67 detecciones**: con altura del objetivo
+≥ 5 % (el umbral de "movimiento real" del propio Bulkowski) sobreviven 16 de
+67. Añadiendo duración ≥ 15 días, sobreviven 6 de 67. Es decir, con el
+criterio de la fuente que el diseño cita, **~90 % de lo que el detector marca
+hoy no calificaría como patrón**.
+
+**Lo que esto NO cambia**: la aritmética del objetivo medido, ya verificada
+contra la fórmula. El problema no es "calcula mal un patrón real", es "llama
+patrón a swings que no lo son" — exactamente lo que un filtro de altura
+mínima + separación temporal mínima (los dos parámetros que ya usan las
+herramientas citadas) arregla. **Sin implementar todavía** — se dejó para
+decidir con el dueño antes de tocar el código; es la continuación obvia de
+G-40.
+
+---
+
+### 2026-09-06 (cont. 3) — El escáner se muda a `backend/terminal/`, y tres puntos ciegos que eso destapó
+
+A petición del dueño ("ahí dentro irán más cosas"): `price_action.py`,
+`candle_patterns.py`, `chart_patterns.py`, `level_odds.py`, `level_features.py`
+y `level_research.py` — los 6 módulos que son el escáner — se movieron con
+`git mv` a `backend/terminal/`, con un `__init__.py` nuevo. Es la primera
+carpeta de código que tiene `backend/`: hasta ahora todo vivía plano.
+
+**No fue sólo mover ficheros y arreglar imports** (los 6 módulos entre sí,
+`server.py`, `scripts/investigar-rasgos.py` y 9 ficheros de test — uno,
+`test_level_research_unit.py`, se quedó fuera del primer barrido con `grep` y
+lo cazó el barrido final antes de dar nada por terminado). El movimiento
+destapó tres sitios que asumían un `backend/` plano y se habrían quedado
+ciegos a los 6 módulos **en silencio**:
+
+1. **`scripts/gen-mapa.py`** tenía `BACKEND.glob("*.py")` sin recursión en TRES
+   sitios (módulos, rutas y "ficheros más grandes"). Con eso a secas, los 6
+   módulos habrían desaparecido de `docs/MAPA.md` el día del traslado sin que
+   `--check` lo notara — exactamente el tipo de deriva silenciosa que este
+   fichero existe para impedir. Se centralizó en `_ficheros_backend()`
+   (raíz + subpaquetes declarados en `_SUBPAQUETES_BACKEND`), usada en las
+   tres funciones, con `"fichero"` guardando ahora la ruta relativa
+   (`terminal/chart_patterns.py`) en vez del nombre a secas.
+2. **`ci.yml`** y el comando de `CLAUDE.md` hacían `python -m py_compile *.py`
+   — el mismo glob plano, así que CI habría dejado de comprobar la sintaxis de
+   los 6 módulos sin fallar por ello. Corregido a `*.py terminal/*.py` en los
+   dos sitios.
+3. **`.claude/rules/escaner.md`** cargaba por `paths:` exactos
+   (`backend/price_action.py`, `backend/candle_patterns.py`) que dejaron de
+   existir: la regla habría parado de activarse sola al tocar el escáner, sin
+   ningún aviso. Cambiado a `backend/terminal/**`.
+
+**Verificado, no dado por bueno**: el fallo de (1) se comprobó de verdad,
+no se dedujo — crear `backend/terminal/zz_sabotaje.py` hace fallar
+`gen-mapa.py --check` (antes de la implementar la ruta, no fallaba: es
+exactamente el estado que se quiere evitar) y borrarlo lo vuelve a poner en
+verde. Ese mismo sabotaje se añadió a `probar-verificadores.sh`, junto al que
+ya existía para un módulo nuevo en la raíz — no se toca un verificador sin
+sabotearlo.
+
+`ENVIRONMENT=development JWT_SECRET=devonly python -c "import server"` importa
+limpio y las dos rutas de G-40 siguen registradas en `api_router.routes`.
+`py_compile *.py terminal/*.py`, `pytest tests/` (misma cifra que antes del
+traslado, más el único fallo preexistente ya conocido), `gen-mapa.py --check`,
+`check-doc-links.py` y `check-rutas-muertas.py`, todos verdes tras el cambio.
+

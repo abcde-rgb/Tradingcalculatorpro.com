@@ -70,6 +70,6 @@ def test_the_js_copy_has_no_extra_invented_thresholds():
 def test_the_soldier_thresholds_really_come_from_the_module():
     """Ata el test al código, no a una copia de los números en el propio test:
     si alguien cambia el módulo, esto lo ve."""
-    import candle_patterns as cp
+    import terminal.candle_patterns as cp
     assert cp._SOLDIER_MIN_BODY_PCT == EXPECTED["SOLDIER_MIN_BODY"][0]
     assert cp._SOLDIER_MAX_WICK_PCT == EXPECTED["SOLDIER_MAX_WICK"][0]

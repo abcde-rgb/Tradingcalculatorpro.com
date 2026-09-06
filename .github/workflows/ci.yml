@@ -59,10 +59,12 @@ jobs:
 
       # La lista de módulos iba a mano y se quedó atrás: price_action, timeframes,
       # market_data, nowpayments, revolut y affiliate_program no se comprobaban.
-      # Con el glob no hay nada que recordar actualizar al añadir un módulo.
+      # Con el glob no hay nada que recordar al añadir un módulo — salvo un
+      # subpaquete nuevo, que un glob plano no ve: `terminal/` (el escáner) es
+      # el primero, y por eso va aparte en vez de fiarlo a `*.py` a secas.
       - name: Verificar sintaxis (py_compile)
         run: |
-          python -m py_compile *.py
+          python -m py_compile *.py terminal/*.py
           echo "✅ Todos los módulos compilan"
 
       - name: Tests unitarios offline (las matemáticas siempre corren)

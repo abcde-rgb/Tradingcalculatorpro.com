@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from candle_patterns import (  # noqa: E402
+from terminal.candle_patterns import (  # noqa: E402
     detect_all_patterns,
     get_pattern_catalog,
     PATTERN_META,
@@ -155,7 +155,7 @@ def test_intraday_bars_carry_the_time_in_the_date():
 #  contexto de tendencia dependiente de la temporalidad, y trazabilidad
 #  (qué temporalidad, qué día abre, qué día confirma, en qué se basa).
 # ============================================================================
-from candle_patterns import (  # noqa: E402
+from terminal.candle_patterns import (  # noqa: E402
     _is_three_white_soldiers, _is_three_black_crows, _trend_before, _candle_metrics,
 )
 
@@ -276,7 +276,7 @@ def test_metrics_add_up_to_the_whole_candle():
 #  nombre de libro, y forzarlos en esta tabla (type/behavior alineados con
 #  rate) sería la misma clase de dato inventado que la Regla 1 prohíbe.
 # ============================================================================
-from candle_patterns import (  # noqa: E402
+from terminal.candle_patterns import (  # noqa: E402
     _is_bullish_belt_hold, _is_bearish_belt_hold, _is_in_neck,
     _is_bullish_abandoned_baby, _is_bearish_abandoned_baby,
 )

@@ -46,7 +46,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from price_action import detect_swings
+from terminal.price_action import detect_swings
 
 Swing = Dict[str, Any]
 

@@ -35,8 +35,8 @@ import math
 import random
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-from level_features import extraer
-from level_odds import (
+from terminal.level_features import extraer
+from terminal.level_odds import (
     _first_touch,
     _levels_as_of,
     _nulo_por_barajado,
@@ -115,7 +115,7 @@ def nulo_por_rasgo(rows: Sequence[Row], rasgos: Sequence[str], *,
     """
     if vueltas <= 0:
         return {}
-    from level_odds import _barajar_retornos  # noqa: PLC0415 — evita ciclo
+    from terminal.level_odds import _barajar_retornos  # noqa: PLC0415 — evita ciclo
     rng = random.Random(semilla)
     acum: Dict[str, Dict[Any, List[float]]] = {r: {} for r in rasgos}
     for _ in range(vueltas):

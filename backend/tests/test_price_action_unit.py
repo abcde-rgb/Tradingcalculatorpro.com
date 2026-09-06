@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from price_action import (  # noqa: E402
+from terminal.price_action import (  # noqa: E402
     detect_swings, label_structure, detect_structure_events,
     detect_sr_levels, detect_fvgs, detect_structure, detect_breakouts,
     auto_tolerance, annotate_levels, annotate_events,
@@ -486,7 +486,7 @@ def test_only_the_nearest_levels_get_the_expensive_analysis():
     evidence pass and the breakout scan are both O(levels × bars), so they run
     on the nearest handful only — but `counts.levels` still reports the total."""
     import random
-    from price_action import MAX_ANALYSED_LEVELS
+    from terminal.price_action import MAX_ANALYSED_LEVELS
     random.seed(11)
     price, rows = 100.0, []
     for i in range(4000):

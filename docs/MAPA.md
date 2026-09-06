@@ -14,8 +14,8 @@
 
 | | |
 |---|---:|
-| Módulos del backend | 37 |
-| Líneas de Python (backend) | 28,852 |
+| Módulos del backend | 38 |
+| Líneas de Python (backend) | 28,865 |
 | Rutas declaradas | 207 |
 | **Rutas sin consumidor en el frontend** | **35** |
 | Ficheros de test · funciones de test | 69 · 1146 |
@@ -83,7 +83,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `server.py` | 10,498 | 145 | — |
 | `performance.py` | 1,844 |  | Performance analytics — trade journal, metrics, error detection. |
 | `admin_routes.py` | 1,248 | 25 | admin_routes.py — Endpoints del panel de administración |
-| `price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
+| `terminal/price_action.py` | 1,045 |  | Price-action STRUCTURE detection over real OHLC — complements candle_patterns.py. |
 | `missing_apis.py` | 970 | 9 | missing_apis.py |
 | `instruments.py` | 902 |  | instruments.py — qué es cada producto financiero, como dato y no como suposición. |
 | `affiliate_program.py` | 875 | 18 | affiliate_program.py — Programa de Afiliados (pagos mensuales por volumen). |
@@ -93,17 +93,17 @@ esperando una pantalla. Esto es el hueco G-14.
 | `backtest.py` | 643 |  | Backtest engine with validation — does this system have an edge, or am I fooling myself? |
 | `options_optimize.py` | 633 |  | Options Strategy Optimizer. |
 | `referrals.py` | 626 | 7 | referrals.py — Referral / Affiliate program API. |
-| `candle_patterns.py` | 604 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
-| `level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
+| `terminal/candle_patterns.py` | 604 |  | Pure-math candle pattern detection. No ML, no AI — just the canonical |
+| `terminal/level_odds.py` | 603 |  | ¿A dónde ha ido el precio DESPUÉS de estar donde está ahora? |
 | `trading_plan.py` | 565 |  | Trading plan: the user's own rules, versioned server-side. |
 | `realtime_alerts.py` | 425 | 3 | realtime_alerts.py — WebSocket-based real-time price alerts. |
 | `performance_metrics.py` | 422 |  | Advanced performance & risk metrics — the professional-grade gap. |
-| `level_research.py` | 385 |  | ¿Cuál de todos estos rasgos aporta algo, y cuál sólo lo parece? |
-| `chart_patterns.py` | 378 |  | chart_patterns.py — geometric classical chart-pattern detection over swing |
+| `terminal/level_research.py` | 385 |  | ¿Cuál de todos estos rasgos aporta algo, y cuál sólo lo parece? |
+| `terminal/chart_patterns.py` | 378 |  | chart_patterns.py — geometric classical chart-pattern detection over swing |
 | `options_positioning.py` | 371 |  | Positioning metrics derived from open interest: max pain, GEX, OI profile, |
 | `market_data.py` | 330 |  | Multi-provider market data layer with failover, caching and circuit breakers. |
 | `portfolio_risk.py` | 327 |  | Account-level risk — heat, correlation, loss limits, volatility sizing. |
-| `level_features.py` | 323 |  | Los rasgos del montaje, tal y como se veían EN esa barra y no después. |
+| `terminal/level_features.py` | 323 |  | Los rasgos del montaje, tal y como se veían EN esa barra y no después. |
 | `timeframes.py` | 303 |  | The timeframe ladder for the price-action scanners (structure + patterns). |
 | `american_options.py` | 283 |  | American option pricing — early exercise, which Black-Scholes cannot see. |
 | `crypto_data.py` | 257 |  | Precios de criptomonedas desde las propias bolsas. |
@@ -117,6 +117,7 @@ esperando una pantalla. Esto es el hueco G-14.
 | `ecb_rates.py` | 145 |  | Tipos de cambio del Banco Central Europeo. |
 | `log_seguro.py` | 55 |  | Un valor de fuera, apto para meter en una línea de log. |
 | `csv_seguro.py` | 53 |  | Neutraliza la inyección de fórmulas en cualquier CSV que generemos. |
+| `terminal/__init__.py` | 13 |  | El escáner: estructura de precio, patrones de vela, patrones chartistas y |
 
 ## Rutas de la API
 

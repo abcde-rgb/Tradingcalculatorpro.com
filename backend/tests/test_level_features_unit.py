@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from level_features import (  # noqa: E402
+from terminal.level_features import (  # noqa: E402
     eventos_as_of,
     extraer,
     fvg_abierto,

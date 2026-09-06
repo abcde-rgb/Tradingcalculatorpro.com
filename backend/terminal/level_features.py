@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence
 
-from price_action import detect_fvgs, detect_swings, label_structure
+from terminal.price_action import detect_fvgs, detect_swings, label_structure
 
 Row = Dict[str, Any]
 

@@ -15,7 +15,7 @@ os.environ.setdefault("ENVIRONMENT", "development")
 os.environ.setdefault("JWT_SECRET", "test-only-secret")
 
 from server import _volume_oi_ratio, _rank_flow_rows, OI_STALENESS_NOTE  # noqa: E402
-from candle_patterns import detect_all_patterns  # noqa: E402
+from terminal.candle_patterns import detect_all_patterns  # noqa: E402
 
 
 # ── Volume / open interest ratio ──────────────────────────────────
@@ -146,7 +146,7 @@ def _trend_bars(n=150, seed=5, drift=0.0005, vol=0.014):
 
 
 def test_reference_price_falls_back_to_last_close_and_says_so():
-    from price_action import detect_structure
+    from terminal.price_action import detect_structure
 
     rows = _trend_bars()
     res = detect_structure(rows, 2)
@@ -158,7 +158,7 @@ def test_reference_price_falls_back_to_last_close_and_says_so():
 def test_reference_price_reports_its_age():
     """`currentPrice` was labelled "price now" in the UI while being the close
     of the last bar — a day old on a daily chart, three on a Monday."""
-    from price_action import detect_structure
+    from terminal.price_action import detect_structure
 
     rows = _trend_bars()
     res = detect_structure(rows, 2)
@@ -168,7 +168,7 @@ def test_reference_price_reports_its_age():
 
 
 def test_live_price_is_used_for_the_split_when_supplied():
-    from price_action import detect_structure
+    from terminal.price_action import detect_structure
 
     rows = _trend_bars()
     live = rows[-1]["close"] * 1.012
@@ -182,7 +182,7 @@ def test_a_level_between_close_and_live_price_flips_role():
     """The inversion this module's own docstring calls the single most
     misleading thing the scanner could say: a ceiling price has already broken
     through, still reported as resistance."""
-    from price_action import detect_structure
+    from terminal.price_action import detect_structure
 
     rows = _trend_bars()
     stale = detect_structure(rows, 2)
@@ -198,7 +198,7 @@ def test_a_level_between_close_and_live_price_flips_role():
 
 def test_zero_or_negative_live_price_is_ignored():
     """A bad quote must not become the reference."""
-    from price_action import detect_structure
+    from terminal.price_action import detect_structure
 
     rows = _trend_bars()
     for bad in (0, -5, None):
@@ -208,7 +208,7 @@ def test_zero_or_negative_live_price_is_ignored():
 
 def test_empty_scan_keeps_the_same_keys():
     """The client must never branch on 'did the scan return the short shape'."""
-    from price_action import detect_structure
+    from terminal.price_action import detect_structure
 
     full = set(detect_structure(_trend_bars(), 2).keys())
     empty = set(detect_structure([{"open": 1, "high": 1, "low": 1, "close": 1}], 2).keys())

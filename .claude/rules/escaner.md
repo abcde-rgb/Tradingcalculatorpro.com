@@ -1,7 +1,6 @@
 ---
 paths:
-  - "backend/price_action.py"
-  - "backend/candle_patterns.py"
+  - "backend/terminal/**"
   - "backend/timeframes.py"
   - "frontend/src/components/charts/**"
 ---

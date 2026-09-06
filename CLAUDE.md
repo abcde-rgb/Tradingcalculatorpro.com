@@ -57,7 +57,7 @@ npm run build
 ### Verificar antes de commit — atajo: `/verify`
 
 ```bash
-cd backend && python -m py_compile *.py     # TODOS los módulos (la lista a mano omitía 6)
+cd backend && python -m py_compile *.py terminal/*.py   # TODOS los módulos (terminal/ es el escáner)
 cd backend && pytest tests/ -q
 cd frontend && npx eslint src scripts       # 0 errores; los avisos de símbolos muertos no bloquean
 cd frontend && node scripts/i18n-check.js && node scripts/engine-check.js
@@ -171,7 +171,7 @@ Estas reglas **no están cargadas ahora**: entran solas cuando abres un fichero 
 | `rules/backend.md` | `backend/**/*.py` | Shim, colecciones de usuario, `$unset`, `user_states`, CORS, rate limiting |
 | `rules/opciones.md` | `options_*.py`, `components/options/**` | `expIdx` por pata, cadena sintética, orden del panel, tipo libre de riesgo |
 | `rules/diario-riesgo.md` | `performance.py`, `instruments.py`, `components/performance/**` | P&L, apalancamiento, R, setups, unidades, catálogo |
-| `rules/escaner.md` | `price_action.py`, `components/charts/**` | Orden del escáner, `counts.confluent`, precio de referencia |
+| `rules/escaner.md` | `backend/terminal/**`, `components/charts/**` | Orden del escáner, `counts.confluent`, precio de referencia |
 | `rules/preferencias.md` | `cloudPrefs.js`, `prefsMerge.js`, `store.js` | Ajustes en la cuenta, fusión, credenciales |
 | `rules/i18n-seo.md` | `lib/i18n/**`, `scripts/gen-*.js` | 10 idiomas, páginas generadas, dominio, ruido en búsquedas |
 | `rules/infra.md` | `.github/workflows/**`, `backend/Dockerfile` | Despliegue, `min-instances`, `DB_PROVIDER`, secretos |

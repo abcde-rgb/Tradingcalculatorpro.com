@@ -55,10 +55,10 @@ from stock_data import (
     get_cached_meta,
     get_ohlc_history,
 )
-from candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
-from chart_patterns import detect_chart_patterns, get_chart_pattern_catalog
-from price_action import detect_structure, scan_levels, apply_confluence, strip_bars
-from level_odds import measure_level_odds
+from terminal.candle_patterns import detect_all_patterns, PATTERN_META, get_pattern_catalog
+from terminal.chart_patterns import detect_chart_patterns, get_chart_pattern_catalog
+from terminal.price_action import detect_structure, scan_levels, apply_confluence, strip_bars
+from terminal.level_odds import measure_level_odds
 import timeframes
 from performance import (
     compute_trade_pnl,

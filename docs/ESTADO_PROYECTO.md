@@ -188,6 +188,13 @@
   `american_options.py` (282), `timeframes.py` (273), `crypto_data.py` (255),
   `revolut.py` (215), `market_rates.py` (212), `nowpayments.py` (181),
   `ecb_rates.py` (143).
+  > 🗂️ **El escáner vive en `backend/terminal/` desde el 2026-09-06, no suelto
+  > en `backend/`**: `price_action.py`, `candle_patterns.py`, `chart_patterns.py`
+  > (G-40), `level_odds.py`, `level_features.py` y `level_research.py`. Es la
+  > primera carpeta de código del backend —hasta ahora todo era plano— y a
+  > petición del dueño: más piezas del escáner van a vivir ahí. Los conteos de
+  > líneas de arriba son de antes del traslado; los de verdad están en
+  > `MAPA.md`, que ya lista los seis bajo su ruta nueva.
   > ⚠️ **Cuatro de ellos no tienen ninguna interfaz**: `trading_plan.py`,
   > `backtest.py`, `portfolio_risk.py` y `american_options.py`. Están escritos,
   > enrutados y con tests, y **el usuario no puede llegar a ellos**. Ver G-14.
@@ -417,11 +424,11 @@ Las cinco últimas:
 
 | Fecha | Sesión |
 |---|---|
+| 2026-09-06 (cont. 3) | El escáner se muda a `backend/terminal/`, y tres puntos ciegos que eso destapó |
+| 2026-09-06 (cont. 2) | G-40 medido contra AAPL real: el detector sobre-dispara (~90 % no calificaría como patrón) |
 | 2026-09-06 (cont.) | G-40: el escáner detecta 13 patrones chartistas geométricos, con backend y tests |
 | 2026-09-06 | Rescatar del PR 228 lo que seguía vivo, y un slug que no decía nada |
 | 2026-09-05 (cont. 2) | Fusionar main en el PR 229: dos arreglos del mismo fallo |
-| 2026-09-05 | SEO: 77 patrones con página propia, un dato falso en 10 idiomas y BUG-089 |
-| 2026-09-03 | SEO: siete rutas devolvían 404, 1.680 páginas huérfanas y slugs traducidos (BUG-081, 083, 084, 088 y 089) |
 | 2026-08-31 (cont. 5) | Panel admin: navegación por secciones + limpieza de colores |
 
 ```bash
