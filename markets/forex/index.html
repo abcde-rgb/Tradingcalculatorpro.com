@@ -14,13 +14,18 @@
 <meta name="description" content="El mercado de divisas es el más grande del mundo: se negocian unos 7,5 billones de dólares al día. No tiene una bolsa central; es una red de bancos…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/markets/forex/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/forex/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/forex/">
 <link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/forex/">
 <link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/forex/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/forex/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/foreks/">
 <link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/forex/">
-<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/forex/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/fx/">
 <link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/forex/">
 <link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/forex/">
 <link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/forex/">
@@ -33,7 +38,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="es_ES">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Mercados","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"Forex","item":"https://tradingcalculator.pro/markets/forex/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Mercados","item":"https://tradingcalculator.pro/markets/"},{"@type":"ListItem","position":3,"name":"Forex","item":"https://tradingcalculator.pro/markets/forex/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"es","mainEntity":[{"@type":"Question","name":"¿Cuáles son los pares de divisas más negociados?","acceptedAnswer":{"@type":"Answer","text":"Los \"majors\", todos contra el dólar: EUR/USD (el más líquido con diferencia, ~28% del volumen), USD/JPY, GBP/USD, USD/CHF, AUD/USD, USD/CAD y NZD/USD. Los cruces sin dólar (EUR/GBP, EUR/JPY, GBP/JPY) tienen menos liquidez y spreads más amplios."}},{"@type":"Question","name":"¿Cuánto vale un pip exactamente?","acceptedAnswer":{"@type":"Answer","text":"Con un lote estándar (100.000 unidades) y el dólar como divisa de cotización, un pip vale 10 $. Con un mini lote, 1 $. Con un micro lote, 0,10 $. Si la divisa de cotización no es el dólar, hay que convertir al tipo de cambio del momento."}},{"@type":"Question","name":"¿Cuándo está abierto el mercado de divisas?","acceptedAnswer":{"@type":"Answer","text":"24 horas, cinco días a la semana: abre el domingo a las 22:00 UTC (Sídney) y cierra el viernes a las 22:00 UTC (Nueva York). Las horas útiles reales son los solapamientos: Londres-Nueva York (12:00-16:00 UTC) concentra la mayor liquidez."}},{"@type":"Question","name":"¿Por qué se opera forex con tanto apalancamiento?","acceptedAnswer":{"@type":"Answer","text":"Porque los movimientos diarios son pequeños: un par major se mueve un 0,5-0,8% al día. Sin apalancamiento, las variaciones serían irrelevantes. Ese es también el motivo de que sea tan peligroso: el apalancamiento que hace útil al forex es el que arruina las cuentas."}},{"@type":"Question","name":"¿Qué es el swap en forex y cuándo se cobra?","acceptedAnswer":{"@type":"Answer","text":"Es el interés neto por mantener una posición abierta de un día para otro, calculado con el diferencial de tipos entre las dos divisas. Se aplica al cierre de Nueva York (22:00 UTC). Los miércoles se aplica triple porque cubre la liquidación del fin de semana."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,10 +71,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">Mercados</a><a href="https://tradingcalculator.pro/pricing">Precios</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/learn/">Aprender</a><a href="https://tradingcalculator.pro/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/markets/">Mercados</a><a href="https://tradingcalculator.pro/strategies/">Estrategias de opciones</a><a href="https://tradingcalculator.pro/patterns/">Patrones de Gráficos</a><a href="https://tradingcalculator.pro/candles/">Patrones de Velas</a><a href="https://tradingcalculator.pro/pricing">Precios</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Inicio</a> › <a href="https://tradingcalculator.pro/education">Mercados</a> › Forex</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Inicio</a> › <a href="https://tradingcalculator.pro/markets/">Mercados</a> › Forex</div>
   <h1>Forex</h1>
   <p class="lead">El mercado de divisas es el más grande del mundo: se negocian unos 7,5 billones de dólares al día. No tiene una bolsa central; es una red de bancos (mercado OTC) abierta 24 horas de domingo por la tarde a viernes por la tarde. Siempre operas un PAR: comprar EUR/USD es comprar euros y vender dólares a la vez.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
@@ -80,7 +85,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <div class="card"><h2>Otros mercados</h2><ul><li><a href="https://tradingcalculator.pro/markets/stocks/">Acciones</a></li><li><a href="https://tradingcalculator.pro/markets/crypto/">Cripto</a></li><li><a href="https://tradingcalculator.pro/markets/commodities/">Materias Primas</a></li><li><a href="https://tradingcalculator.pro/markets/indices/">Índices</a></li><li><a href="https://tradingcalculator.pro/markets/etfs/">ETFs</a></li><li><a href="https://tradingcalculator.pro/markets/futures/">Futuros</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/education">Aprender</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/learn/">Aprender</a><a href="https://tradingcalculator.pro/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/markets/">Mercados</a><a href="https://tradingcalculator.pro/strategies/">Estrategias de opciones</a><a href="https://tradingcalculator.pro/patterns/">Patrones de Gráficos</a><a href="https://tradingcalculator.pro/candles/">Patrones de Velas</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.</div>
 </div></footer>
 </body>

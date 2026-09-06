@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>テクニカル分析 | TradingCalculator.Pro</title>
+<meta name="description" content="チャートと指標を使って将来の市場動向を予測">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/technical-analysis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/technical-analysis/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/technische-analyse/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/analyse-technique/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/tehnicheskiy-analiz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/technical-analysis/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/technical-analysis/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/technical-analysis/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/analise-tecnica/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/analisi-tecnica/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="テクニカル分析 | TradingCalculator.Pro">
+<meta property="og:description" content="チャートと指標を使って将来の市場動向を予測">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/technical-analysis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"テクニカル分析","url":"https://tradingcalculator.pro/ja/learn/technical-analysis/","inLanguage":"ja","description":"チャートと指標を使って将来の市場動向を予測","teaches":["線形（算術）スケール——「自動」のもの","対数（セミログ）スケール——プロのもの","どちらをいつ使うか","なぜ分析が変わるのか（最重要）","サポートレベル","レジスタンスレベル","S/Rゾーン","ブレイクアウト","上昇トレンド","下降トレンド","レンジ","トレンド構造","SMA","EMA","RSI","MACD","ボリンジャーバンド","フィボナッチ","概念","トップダウンアプローチ"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"テクニカル分析","item":"https://tradingcalculator.pro/ja/learn/technical-analysis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › テクニカル分析</div>
+  <span class="free">7日間無料</span>
+  <h1>テクニカル分析</h1>
+  <p class="lead">チャートと指標を使って将来の市場動向を予測</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=tech-analysis">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>線形（算術）スケール——「自動」のもの</h3><p>縦の各目盛りが同じドル数を表します。$10 の動きは、価格が $20 でも $500 でも同じ高さを占めます。ほぼすべてのプラットフォームの既定値です。
+数字で見る問題点：$10→$20 は +100%（資金が倍）、$100→$110 は +10% だけ。線形では両方とも $10 → まったく同じ高さを占めますが、片方は財布にとって10倍重要です。価格レンジが広くなるほどリスク感覚を歪めます。</p><h3>対数（セミログ）スケール——プロのもの</h3><p>縦の各目盛りが同じパーセントを表し、同じドルではありません。+50% はどの価格でも同じ高さを占めます。
+数字で：$10→$20（+100%）は $100→$200（+100%）や $1,000→$2,000（+100%）と同じ高さ。チャートは本当に重要なこと——パーセントのリターン——を絶対値の代わりに映します。だから何倍にもなった資産（ビットコイン $100→$60,000、Nvidia…）では、全体像を見る唯一の方法です。線形では初期の数年は底に張り付いた平らな線ですが、対数ではすべてのサイクルがはっきり見えます。</p><h3>どちらをいつ使うか</h3><p>実践ルール：
+• 対数 → 長期チャート（週足/月足）、暗号資産、大きく上げた株、そして価格が画面上で約30-40%以上動くとき。中長期の本格分析の既定選択です。
+• 線形 → デイトレと小さいレンジ。価格が%でほとんど動かず、両スケールがほぼ同じに見えます。例：EUR/USD 1.0800→1.1000 は約1.9% → 対数でも線形でも同じ。
+注意：プラットフォームの「Auto」は第3のスケールでは ありません。ズームを自動調整するだけ。スケールは選んだ線形か対数のままです。</p><h3>なぜ分析が変わるのか（最重要）</h3><p>ほぼ誰も説明しない核心：トレンドライン、チャネル、パターン、フィボナッチは対数と線形で違って描かれます。線形で支えているトレンドラインが対数ではすでに割れていることがあり——その逆も——同じチャートで正反対のシグナルを与えます。
+数字で：$100 → $200 → $400 を結ぶ上昇トレンド。対数では各区間が +100% なので3点は完全な直線を作り、トレンドラインは信頼できます。線形では同じ上昇は加速する曲線になり、直線を引くと価格から離れてダマシのブレイクを出します。だからプロはスケールを選び（長期はほぼ常に対数）、固定して一貫させます。分析の途中でスケールを変えるのは自分を欺くことです。</p><h3>サポートレベル</h3><p>買いが下落を止めやすい、価格の下側のゾーン。そこで反発する回数が多いほど信頼できる——正確な1本の線ではなく帯として引く。『支持線があるから』だけで買わず、確認(反発の陽線や出来高の増加)を待つ。明確に割れたら、その支持線は抵抗線に変わる。</p><h3>レジスタンスレベル</h3><p>売りが上昇を止めやすい、価格の上側のゾーン。多くが利益確定する『天井』。支持線と同じ要領で逆に扱う(反落を狙って売る、または利益を確保する)。価格が勢いと出来高を伴って突破すれば、その抵抗線はふつう支持線に変わる。</p><h3>S/Rゾーン</h3><p>実際には価格は正確な1点ではなく、ある範囲で反転する。支持/抵抗を1本の線ではなくゾーン(例:99.5〜100.2)で引くと、ヒゲやスパイクで早すぎる損切りに遭いにくく、現実の市場の動きをよりよく表せる。</p><h3>ブレイクアウト</h3><p>価格が支持線や抵抗線を突き抜けること。出来高を伴うブレイクは本物であることが多く、新しい波を生む。出来高が薄いとダマシ(偽のブレイク)になりレンジに戻りやすい。初心者のコツ:最初のタッチではなく、ローソク足が水準の外で確定するのを待つ。</p><h3>上昇トレンド</h3><p>価格が切り上がる高値と安値をつくる:押し目のたびに前回より高い位置で止まる。押し目買いで最も利益を出しやすい局面。直近の重要な安値を割らない限り、上昇トレンドは生きている(『トレンドは友だち』)。</p><h3>下降トレンド</h3><p>価格が切り下がる高値と安値をつくる:戻すたびに前回より低い位置で失速する。自然なのは戻りを売る・空売りすることで、『安いから買う』ではない。早すぎる底値拾いは、口座を飛ばす最大級の失敗の一つ。</p><h3>レンジ</h3><p>価格が支持線と抵抗線の間のレンジで横ばいに動き、方向感がない状態。戦略:下限近くで買い上限近くで売る、またはブレイクまで手を出さない。相場は6〜7割がレンジなので、ここで『トレードしない』判断も立派なスキル。</p><h3>トレンド構造</h3><p>構造はトレンドの『背骨』:高値と安値が切り上がる(上昇)か切り下がる(下降)か。この連なりが崩れたとき——例えば上昇トレンドで安値を切り下げたとき——がトレンド転換の可能性を示す最初のサイン(性質の変化)。</p><h3>SMA</h3><p>単純移動平均:直近N期間の終値の平均(例:50や200)。ノイズをならして方向を示す。価格が上なら強気バイアス。最も見られるのは50と200で、その交差(ゴールデン/デッド・クロス)は市場の半分が注目する。反応は遅いが信頼できる。</p><h3>EMA</h3><p>指数移動平均:SMAと似ているが直近の価格を重く見るため、早く向きを変え価格に密着する。人気は9・20・50。速いトレード向きで、代わりにSMAよりダマシが多い。多くはEMAでエントリーを計り、200SMAで全体像を見る。</p><h3>RSI</h3><p>相対力指数(0〜100):価格が急に上げすぎ・下げすぎていないかを測る。70超=買われすぎ、30未満=売られすぎ。ただし強いトレンドでは長く『買われすぎ』のままになり得るので、単独で逆張りに使わない。最強のサインはダイバージェンス(価格は高値更新なのにRSIは更新しない)。</p><h3>MACD</h3><p>2本の移動平均(12と26)をシグナル線と比べてモメンタムを測る。MACD線がシグナルを上抜け=強気の勢い、下抜け=弱気。ヒストグラムは勢いが加速か減速かを示す。トレンドの確認に有効だが、レンジ相場では当てにならない。</p><h3>ボリンジャーバンド</h3><p>ボリンジャーバンド:20期間の平均と、±2標準偏差の2本のバンド。価格の約9割はバンド内に収まるので、バンドへのタッチだけでは反転サインにならない。最も強い使い方はボラティリティ:バンドが収縮(スクイーズ)すると、大きな動きが続きやすい。</p><h3>フィボナッチ</h3><p>フィボナッチ・リトレースメント:動きのあと、価格は続伸する前に38.2%・50%・61.8%まで押し戻すことが多い。値幅の起点から終点へ引き、トレンド方向のエントリー水準を探す。最も見られるのは61.8%で、それを割ると勢いが失われる。</p><h3>概念</h3><p>同じ銘柄を複数の時間軸で同時に分析すること。上位(日足/4時間)が方向を決め、下位(15分/5分)がエントリーを微調整する。日足が下落中なのに5分足で買う、という初心者の典型的な失敗を防げる。</p><h3>トップダウンアプローチ</h3><p>トップダウンの手順:まず上位足で方向(強気か弱気か)を決め、次に中位足でゾーンを絞り、最後に下位足でエントリーの引き金を計る。つねに上位足の方向に沿って取引すると、勝率が大きく上がる。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

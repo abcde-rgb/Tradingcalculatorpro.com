@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>江恩箱：一步步搭建与交易 | TradingCalculator.Pro</title>
+<meta name="description" content="江恩箱是技术分析的画线工具，从一个重要的枢轴点出发，把区间划分成价格与时间的网格。这里你会看到它在图表上真正的用法——锚定在哪个高点或低点、如何搭建、用什么比例、怎样交易——不带通常伴随它的玄学迷雾。它是斐波那契的几何表亲：一张价格容易做出反应的水平位地图，只要配合纪律与背景来使用就有价值。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/a-caixa-de-gann-como-se-monta-e-se-opera-passo-a-passo/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/la-gann-box-come-si-costruisce-e-si-opera-passo-dopo-passo/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="江恩箱：一步步搭建与交易 | TradingCalculator.Pro">
+<meta property="og:description" content="江恩箱是技术分析的画线工具，从一个重要的枢轴点出发，把区间划分成价格与时间的网格。这里你会看到它在图表上真正的用法——锚定在哪个高点或低点、如何搭建、用什么比例、怎样交易——不带通常伴随它的玄学迷雾。它是斐波那契的几何表亲：一张价格容易做出反应的水平位地图，只要配合纪律与背景来使用就有价值。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"江恩箱：一步步搭建与交易","url":"https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/","inLanguage":"zh","description":"江恩箱是技术分析的画线工具，从一个重要的枢轴点出发，把区间划分成价格与时间的网格。这里你会看到它在图表上真正的用法——锚定在哪个高点或低点、如何搭建、用什么比例、怎样交易——不带通常伴随它的玄学迷雾。它是斐波那契的几何表亲：一张价格容易做出反应的水平位地图，只要配合纪律与背景来使用就有价值。","teaches":["它是什么，以及为何 1×1 对角线为王","从哪个高点或低点锚定","如何一步步搭建","用什么比例（0-25-50-75-100）","如何交易这些水平位","方向性：收盘跌破某个水平位","在哪些周期上有效","神话与现实（请务必读）"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"江恩箱：一步步搭建与交易","item":"https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 江恩箱：一步步搭建与交易</div>
+  <span class="free">7 天免费试用</span>
+  <h1>江恩箱：一步步搭建与交易</h1>
+  <p class="lead">江恩箱是技术分析的画线工具，从一个重要的枢轴点出发，把区间划分成价格与时间的网格。这里你会看到它在图表上真正的用法——锚定在哪个高点或低点、如何搭建、用什么比例、怎样交易——不带通常伴随它的玄学迷雾。它是斐波那契的几何表亲：一张价格容易做出反应的水平位地图，只要配合纪律与背景来使用就有价值。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>它是什么，以及为何 1×1 对角线为王</h3><p>江恩箱把一段价格波动圈起来，划分成网格：水平线（价格位）与垂直线（时间位）。它的核心是 1×1 对角线，一条 45° 的线，代表价格与时间的完美平衡：一个价格单位对应一个时间单位。价格在 1×1 之上市场&quot;强&quot;，之下则&quot;弱&quot;。其余的线是区间的细分，充当支撑与阻力。</p><h3>从哪个高点或低点锚定</h3><p>江恩箱永远锚定在一个有意义的枢轴点，绝不是随便一个点。做多的箱体从一个重要的摆动低点（swing low）开始，延伸到高点；做空的则从一个重要的摆动高点（swing high）向下到低点。选取你要研究的这段行情中最清晰、最新的极值：最后一浪的高低点、一段推动的起点。锚点选错会让整张网格错位；如果枢轴点不是一眼就能看出，它就不是好的起点。</p><h3>如何一步步搭建</h3><p>在 TradingView 中：1) 选择 Gann Box 工具；2) 点击起始枢轴点（做多箱体里的低点）；3) 拖到行情的另一端极值（高点），从而确定价格与时间区间；4) 调整图表的比例，让 1×1 对角线接近 45°，否则角度就失去意义。箱体会把它的水平位向右（向未来）投射：那里正是你寻找反应的地方。你可以按需要打开或关闭角度线，看你是只想用水平位，还是也想用对角线。</p><h3>用什么比例（0-25-50-75-100）</h3><p>标准网格把区间分成四等份：0%、25%、50%、75% 和 100%；很多人再加上三等分（33.3% 和 66.6%）。最受关注的是 50%，也就是这段行情的中点，和斐波那契一样。对角线方面，除了 1×1，还会用 1×2 和 2×1（价格走得比时间快一倍或慢一半），更精细的版本还有 1×4、1×8。你不需要全部：1×1 加上 25/50/75% 这几个水平位就集中了九成的实用价值。</p><h3>如何交易这些水平位</h3><p>网格上的每一条线都是潜在的支撑或阻力。基础打法：等价格&quot;到达&quot;某个水平位，再读它的反应。如果价格拒绝该位（留影线后掉头），你就顺着这个位做，止损放在另一侧；如果果断突破，就找往箱体下一档延续的机会。共振为王：一个与前期支撑、整数关口或斐波那契重合的江恩位，远比孤立的一个值钱。永远别&quot;凭感觉&quot;去做某个位：它需要一个价格信号来确认。</p><h3>方向性：收盘跌破某个水平位</h3><p>关键是&quot;收盘价&quot;，不是影线。K 线收盘跌破关键位（50% 或 1×1 对角线），就读作丢失该位：偏向转空，自然目标是下一档（50% → 25% → 0% 基座）。收盘站上则相反。但要小心：影线刺破该位又在同一根 K 线内收回，通常是假突破（fakeout）、一个流动性陷阱，很多人正好借此反向进场。所以一般会要求&quot;收盘 + 回踩确认&quot;后，才把突破当真。</p><h3>在哪些周期上有效</h3><p>江恩箱在任何周期都能用，但周期越大，水平位越可靠：锚定在日线或周线摆动上的箱体，所标出的区域比 1 分钟图上的更多人尊重。推荐做法：在大周期（日线或 4 小时）上搭建箱体做水平位地图，只有当价格到达某个位时，才切到小周期（1 小时或 15 分钟）去精修入场。纯做日内会因噪声而失去稳健性。还要记得在每个周期上都把图表比例调好，因为 1×1 的角度取决于比例。</p><h3>神话与现实（请务必读）</h3><p>对这个工具要诚实：没有证据表明基金或机构用江恩箱交易——它是散户交易的民间传说，不是机构交易台的方法。江恩本人也存在争议：所谓&quot;5000 万&quot;的数字从未被证实，据他儿子说，他靠卖课程赚的比交易还多。那为什么有些位会反应？不是靠魔法几何，而是因为 50%、整数关口以及前期高低点被很多人盯着，于是像斐波那契一样自我实现。把它当作一张讲纪律的水平位地图，而不是水晶球。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

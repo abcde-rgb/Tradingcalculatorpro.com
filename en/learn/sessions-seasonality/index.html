@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Sessions &amp; seasonality | TradingCalculator.Pro</title>
+<meta name="description" content="At certain hours and dates the market TENDS to behave in similar ways, driven by money flows (opens, data, closes, expiries). They're not fixed rules or buy…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/en/learn/sessions-seasonality/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/horarios-sesiones-y-estacionalidad/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/sessions-seasonality/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/handelszeiten-saisonalitat/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/horaires-et-saisonnalite/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/sessii-i-sezonnost/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/sessions-seasonality/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/sessions-seasonality/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/sessions-seasonality/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/horarios-e-sazonalidade/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/orari-e-stagionalita/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/horarios-sesiones-y-estacionalidad/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Sessions &amp; seasonality | TradingCalculator.Pro">
+<meta property="og:description" content="At certain hours and dates the market TENDS to behave in similar ways, driven by money flows (opens, data, closes, expiries). They're not fixed rules or buy…">
+<meta property="og:url" content="https://tradingcalculator.pro/en/learn/sessions-seasonality/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Sessions & seasonality","url":"https://tradingcalculator.pro/en/learn/sessions-seasonality/","inLanguage":"en","description":"At certain hours and dates the market TENDS to behave in similar ways, driven by money flows (opens, data, closes, expiries). They're not fixed rules or buy…","teaches":["The 3 sessions","The Asian range","London open (~09:00)","NY open / Judas swing (15:30)","London-NY overlap (~14:30-17:30)","The US data hour (14:30)","Gold and its hours","Power hour / US close (21:00-22:00)","Weekend (gap & Monday)","Month-end & expiries"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://tradingcalculator.pro/en/learn/"},{"@type":"ListItem","position":3,"name":"Sessions & seasonality","item":"https://tradingcalculator.pro/en/learn/sessions-seasonality/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/en/learn/">Learn</a> › Sessions &amp; seasonality</div>
+  <span class="free">7-day free trial</span>
+  <h1>Sessions &amp; seasonality</h1>
+  <p class="lead">At certain hours and dates the market TENDS to behave in similar ways, driven by money flows (opens, data, closes, expiries). They're not fixed rules or buy signals: they're statistical tendencies that help you choose WHEN to trade and when to step aside. All times in Frankfurt time (UTC+2) (they shift ±1 h with daylight saving).</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=session-timing">Open the full module →</a></p>
+  
+  
+  <div class="card"><h2>What you will learn</h2><h3>The 3 sessions</h3><p>The day splits into Asia (early morning), London (morning) and New York (afternoon). Each has its character: Asia is usually quiet; London and NY concentrate the volume and the big moves. Knowing which session you're in tells you how much volatility to expect and whether it's worth being at the screen.</p><h3>The Asian range</h3><p>Overnight (Frankfurt time) volume is low and price usually moves in a tight range. That night range becomes a reference: London and NY often break it — sweeping its highs/lows — as they open. Trading inside the Asian range is usually dull and treacherous (false breakouts).</p><h3>London open (~09:00)</h3><p>The first shot of European volatility. It usually gives the day's first strong move and often sweeps the liquidity built up in the Asian range before deciding a direction. It's one of the best windows for forex and gold; many European traders trade only this window (~09:00-11:00, Frankfurt time).</p><h3>NY open / Judas swing (15:30)</h3><p>When the US stock market opens (indices, 15:30 Frankfurt time), price often makes a FALSE first push in one direction and then reverses, hunting the stops of those who entered on the first move. ICT calls it the 'Judas swing'. Practical rule: don't chase the open's first move; wait for the reversal to confirm.</p><h3>London-NY overlap (~14:30-17:30)</h3><p>The hours when London and New York trade at once: peak liquidity and the day's biggest moves. Most daily breakouts and trends are born here. If you can only watch the market for a while each day, this is the window with the best action-to-time ratio.</p><h3>The US data hour (14:30)</h3><p>At 14:30 (Frankfurt time) the big US data drops: jobs (NFP, first Friday of the month), CPI, GDP... They cause violent spikes and whipsaws in seconds, with the spread blown out. Many traders do NOT trade right at the release (you get swept easily). Gold, indices and the dollar are the most sensitive.</p><h3>Gold and its hours</h3><p>Gold comes alive in the Frankfurt afternoon: COMEX opens ~14:20, US data hits at 14:30 and the London fix is at 16:00. Outside that window (and overnight) it's usually flat. That's why 'around 14:00' you feel it start to move: it's the run-up to its strong hour. Trade it when it has liquidity, not when it's asleep.</p><h3>Power hour / US close (21:00-22:00)</h3><p>The last hour before the US stock market close (22:00 Frankfurt time) concentrates a burst of volume: funds adjusting positions and end-of-day closes. There are usually fast moves and the daily candle often gets decided here. It's a window for experienced traders, not for the beginner.</p><h3>Weekend (gap &amp; Monday)</h3><p>The traditional market closes on Friday (~22:00) and reopens Sunday/Monday; CME BTC and gold futures often open with a GAP that frequently fills ('CME gap'). Holding positions over the weekend carries real risk (news while the market is shut). Monday has its own character after digesting the weekend.</p><h3>Month-end &amp; expiries</h3><p>The last 1-3 days of the month bring rebalancing by big funds: flows that move price with no technical 'reason'. The 3rd Friday of Mar/Jun/Sep/Dec is 'triple witching' (futures and options expire): huge volume and price tends to 'pin' to big strikes. And there's known seasonality ('Sell in May', Santa rally, January effect) — soft tendencies, not laws.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <div class="related card"><h2>More topics</h2><ul><li><a href="https://tradingcalculator.pro/en/learn/cross-margin/">Cross margin</a></li><li><a href="https://tradingcalculator.pro/en/learn/start-here/">Start here</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">Trading Fundamentals</a></li><li><a href="https://tradingcalculator.pro/en/learn/market-mechanics/">Market Mechanics</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-styles/">Trading Styles</a></li><li><a href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">Fundamental Analysis</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.</div>
+</div></footer>
+</body>
+</html>

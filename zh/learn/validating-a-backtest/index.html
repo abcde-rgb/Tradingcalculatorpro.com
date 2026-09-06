@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>如何验证回测 | TradingCalculator.Pro</title>
+<meta name="description" content="漂亮的资金曲线什么也证明不了：只要一直试组合，总能试出一条来。业余回测和专业回测的分别不在结果，而在于为了不自欺做了什么。本模块就是这后半部分的六件工具，以及站内已经实现它们的三个页面。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/validating-a-backtest/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/validar-un-backtest/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/einen-backtest-validieren/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/valider-un-backtest/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/proverka-bektesta/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/validar-um-backtest/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/validare-un-backtest/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/validar-un-backtest/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="如何验证回测 | TradingCalculator.Pro">
+<meta property="og:description" content="漂亮的资金曲线什么也证明不了：只要一直试组合，总能试出一条来。业余回测和专业回测的分别不在结果，而在于为了不自欺做了什么。本模块就是这后半部分的六件工具，以及站内已经实现它们的三个页面。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/validating-a-backtest/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"如何验证回测","url":"https://tradingcalculator.pro/zh/learn/validating-a-backtest/","inLanguage":"zh","description":"漂亮的资金曲线什么也证明不了：只要一直试组合，总能试出一条来。业余回测和专业回测的分别不在结果，而在于为了不自欺做了什么。本模块就是这后半部分的六件工具，以及站内已经实现它们的三个页面。","teaches":["制造虚假优势的四种偏差","样本内与样本外","前向滚动：真要交易会是什么样","对交易顺序做蒙特卡洛","需要多少笔交易","按你找了多久打折","为什么被公开的优势会失效"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"如何验证回测","item":"https://tradingcalculator.pro/zh/learn/validating-a-backtest/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 如何验证回测</div>
+  <span class="free">7 天免费试用</span>
+  <h1>如何验证回测</h1>
+  <p class="lead">漂亮的资金曲线什么也证明不了：只要一直试组合，总能试出一条来。业余回测和专业回测的分别不在结果，而在于为了不自欺做了什么。本模块就是这后半部分的六件工具，以及站内已经实现它们的三个页面。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=backtest-validation">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>制造虚假优势的四种偏差</h3><p>前视偏差：用当时还不存在的信息——拿收盘价去决定盘中的操作。幸存者偏差：只在还在挂牌的标的上测试，忽略那些已经退市的。数据窥探：试一千种组合，留下最好的那个——它之所以最好只是运气。过拟合：不断加规则，直到历史被完美拟合，噪声也一并拟合进去。四种都能产出漂亮的结果，没有一种能在市场上活下来。</p><h3>样本内与样本外</h3><p>留出一段历史——比如最后 30 %——参数搜索绝不碰它。等最好的规则集选定之后，在那段上只评估一次。如果你看过那段又回去调参，它就不再是样本外了：它已经变成训练的一部分。只在样本内成立的结果，是对过去的描述，不是预测。</p><h3>前向滚动：真要交易会是什么样</h3><p>用一整段历史拟合出来的一套参数，用到了未来的信息：一月的你并不知道十二月哪条均线会有效。前向滚动按窗口重新优化——在第一段上训练，在下一段上交易，然后往前推——这才是实盘会发生的样子。要看的数字是效率：训练期的优势有多少能在向前应用时留下来。低于 0.5 就是曲线拟合的典型特征。</p><h3>对交易顺序做蒙特卡洛</h3><p>你的回测只给了你一种交易顺序，而你看到的回撤取决于它们出现的次序。把同样这批交易随机重排上千次，就得到这套系统本可能产生的回撤分布。要看第 95 百分位，而不是平均值：它回答的是「我必须准备好扛住多少？」。它几乎总是比你实际经历的那一条路径糟得多。</p><h3>需要多少笔交易</h3><p>少于 30 笔什么也说明不了。一百笔是做决定的下限，两百笔有说服力，五百笔才算强显著。还有一个几乎没人打的折扣：相关的交易——同一段趋势、同一天、同一个板块里的好几笔——比独立样本的分量小。三百笔高度相关的交易，信息量还不如八十笔互不相关的。样本小的时候，估计胜率上五个百分点的误差，可能让算出来的凯利比例翻三倍。</p><h3>按你找了多久打折</h3><p>在完全随机的数据上试四十七种组合，最好的那一个也会显得不错。那是算术，不是本事。折减夏普计算的是：在一个完全没有优势的系统上，同样规模的搜索单靠运气能得到多少；然后要求你的结果超过它。这就是「我的回测赚了 40 %」和「我的回测赚了 40 %，而这比运气能给的更多」之间的分别。测试组合少于二十个时，这个修正本身就不精确：在那里通过只是迹象，不是证明。</p><h3>为什么被公开的优势会失效</h3><p>最干净的例子是「FOMC 会前漂移」：2015 年的一项研究记录到，美股相当一部分的风险溢价，是在美联储公告前的二十四小时内赚到的。后来把样本延长的研究发现，2015 年之后它基本消失了。并不是原来的发现是假的：是公开这件事把它套利掉了。所以历史上的优势从不保证未来的优势，也因此值得盯着你正在用的那一个——交易日志的分析会算出你系统最近的下滑是否超出运气能解释的范围。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

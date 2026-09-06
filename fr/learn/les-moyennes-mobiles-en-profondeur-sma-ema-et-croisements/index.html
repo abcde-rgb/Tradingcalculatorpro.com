@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Les moyennes mobiles en profondeur : SMA, EMA et croisements | TradingCalculator.Pro</title>
+<meta name="description" content="La moyenne mobile est l'indicateur le plus utilisé de l'analyse technique : elle lisse le bruit du prix et t'indique, d'un coup d'œil, où va la tendance.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/les-moyennes-mobiles-en-profondeur-sma-ema-et-croisements/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/medias-moviles-sma-ema-cruces/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/moving-averages-in-depth-sma-ema-and-crossovers/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/gleitende-durchschnitte-im-detail-sma-ema-und-kreuzungen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/les-moyennes-mobiles-en-profondeur-sma-ema-et-croisements/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/skolzyaschie-srednie-podrobno-sma-ema-i-peresecheniya/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/sma-ema/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/sma-ema/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/sma-ema/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/medias-moveis-a-fundo-sma-ema-e-cruzamentos/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/medie-mobili-a-fondo-sma-ema-e-incroci/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/medias-moviles-sma-ema-cruces/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Les moyennes mobiles en profondeur : SMA, EMA et croisements | TradingCalculator.Pro">
+<meta property="og:description" content="La moyenne mobile est l'indicateur le plus utilisé de l'analyse technique : elle lisse le bruit du prix et t'indique, d'un coup d'œil, où va la tendance.">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/les-moyennes-mobiles-en-profondeur-sma-ema-et-croisements/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Les moyennes mobiles en profondeur : SMA, EMA et croisements","url":"https://tradingcalculator.pro/fr/learn/les-moyennes-mobiles-en-profondeur-sma-ema-et-croisements/","inLanguage":"fr","description":"La moyenne mobile est l'indicateur le plus utilisé de l'analyse technique : elle lisse le bruit du prix et t'indique, d'un coup d'œil, où va la tendance.","teaches":["SMA vs EMA : laquelle utiliser","Quelle période choisir","Stratégie 1 : croisement prix/moyenne","Stratégie 2 : croisement de deux moyennes","Stratégie 3 : triple croisement avec filtre","Croisement doré et croisement de la mort","La moyenne comme support/résistance","Familles d'indicateurs"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"Les moyennes mobiles en profondeur : SMA, EMA et croisements","item":"https://tradingcalculator.pro/fr/learn/les-moyennes-mobiles-en-profondeur-sma-ema-et-croisements/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › Les moyennes mobiles en profondeur : SMA, EMA et croisements</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>Les moyennes mobiles en profondeur : SMA, EMA et croisements</h1>
+  <p class="lead">La moyenne mobile est l'indicateur le plus utilisé de l'analyse technique : elle lisse le bruit du prix et t'indique, d'un coup d'œil, où va la tendance. Voici ce qu'elles sont vraiment, quelles périodes utiliser, les stratégies de croisement (y compris le croisement doré et celui de la mort) et comment les utiliser comme support et résistance dynamiques. Souviens-toi : ce sont des indicateurs retardés — ils confirment la tendance, ils ne la devinent pas.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=moving-averages">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>SMA vs EMA : laquelle utiliser</h3><p>Une moyenne mobile est le prix moyen des N dernières séances, recalculé à chaque bougie. La SMA (simple) traite toutes les données de la même façon ; l'EMA (exponentielle) donne plus de poids aux données récentes, donc elle réagit plus tôt mais donne aussi plus de faux signaux. Aucune n'est « meilleure » : la SMA est plus lisse et fiable pour la tendance de fond ; l'EMA, plus rapide pour le trading court. Les deux sont des indicateurs RETARDÉS : ils bougent après que le prix a déjà tourné.</p><h3>Quelle période choisir</h3><p>La période (N) décide du caractère de la moyenne. Courtes (5-20) : momentum et supports/résistances immédiats. Moyennes (20-100) : objectifs de correction et de retracement. Longues (100, 150, 200) : la tendance de fond — celle de 200 séances est la référence institutionnelle. Certains utilisent des périodes de Fibonacci (89, 144, 233). Règle pratique : plus N est grand, plus c'est lisse et lent ; plus N est petit, plus c'est rapide et bruité. Adapte N à ton unité de temps.</p><h3>Stratégie 1 : croisement prix/moyenne</h3><p>La plus simple. Signal d'achat quand le prix croise la moyenne de bas en haut et reste au-dessus (tendance haussière) ; signal de vente quand il la croise de haut en bas et reste en dessous (tendance baissière). Elle marche bien en marché directionnel et échoue en range (elle te secoue). Utilise-la comme filtre de direction, pas comme unique déclencheur.</p><h3>Stratégie 2 : croisement de deux moyennes</h3><p>Au lieu de regarder le prix, tu regardes le croisement d'une moyenne rapide et d'une lente (p. ex. 30 et 100). Achat quand la rapide croise au-dessus de la lente ; vente quand elle croise en dessous. Elle filtre plus de bruit que le croisement du prix, mais au prix de plus de retard : tu entres plus tard. Un classique du suivi de tendance.</p><h3>Stratégie 3 : triple croisement avec filtre</h3><p>Tu ajoutes une troisième moyenne lente (p. ex. 200) comme filtre de tendance. Tu n'achètes que si les deux moyennes plus rapides sont au-dessus du filtre ; tu ne vends que si elles sont en dessous. Cela réduit les faux signaux en ne tradant que dans le sens de la tendance de fond, échangeant la fréquence contre la qualité. Moins de trades, mais plus propres.</p><h3>Croisement doré et croisement de la mort</h3><p>Les deux croisements les plus célèbres, entre la moyenne de 50 et celle de 200 séances. Croisement doré : la 50 croise la 200 vers le HAUT → signal haussier de long terme. Croisement de la mort : la 50 croise la 200 vers le BAS → signal baissier. Ils sont lents et arrivent tard (le retournement a déjà commencé), mais tant de traders et de médias les suivent qu'ils deviennent pertinents par eux-mêmes. Mieux comme contexte que comme déclencheur exact.</p><h3>La moyenne comme support/résistance</h3><p>Le prix tend à respecter les longues moyennes comme des zones de décision. S'il rebondit fortement sur la moyenne, la continuation de tendance est probable ; s'il la casse nettement, un retournement est probable ; s'il la touche et hésite, il peut casser dans les deux sens. La valeur augmente avec la confluence : quand la moyenne coïncide avec un niveau horizontal, un Fibonacci ou un nombre rond, cette zone pèse bien plus.</p><h3>Familles d'indicateurs</h3><p>La moyenne est un indicateur de tendance (retardé) : elle brille en marché directionnel et échoue en range. Il vaut mieux la combiner avec d'autres familles : oscillateurs (RSI, stochastique, CCI) qui anticipent les retournements mais échouent en tendance ; volatilité (bandes de Bollinger, qui sont des moyennes ± écarts) ; force de tendance (ADX) ; et volume. La clé n'est pas d'accumuler des indicateurs, mais de combiner des familles qui se compensent.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

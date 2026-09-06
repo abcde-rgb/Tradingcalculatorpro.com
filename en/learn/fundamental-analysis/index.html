@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Fundamental Analysis | TradingCalculator.Pro</title>
+<meta name="description" content="Analyzing economic factors that drive long-term market movements">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-fundamental/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/fundamentalanalyse/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/fundamentalnyy-analiz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/analise-fundamental/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/analisi-fondamentale/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-fundamental/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Fundamental Analysis | TradingCalculator.Pro">
+<meta property="og:description" content="Analyzing economic factors that drive long-term market movements">
+<meta property="og:url" content="https://tradingcalculator.pro/en/learn/fundamental-analysis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Fundamental Analysis","url":"https://tradingcalculator.pro/en/learn/fundamental-analysis/","inLanguage":"en","description":"Analyzing economic factors that drive long-term market movements","teaches":["GDP Growth","CPI Inflation","Interest Rates","NFP","Unemployment","How to Use","Impact Levels","P/E Ratio","EPS","Revenue Growth","Dividends"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://tradingcalculator.pro/en/learn/"},{"@type":"ListItem","position":3,"name":"Fundamental Analysis","item":"https://tradingcalculator.pro/en/learn/fundamental-analysis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/en/learn/">Learn</a> › Fundamental Analysis</div>
+  <span class="free">7-day free trial</span>
+  <h1>Fundamental Analysis</h1>
+  <p class="lead">Analyzing economic factors that drive long-term market movements</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fund-analysis">Open the full module →</a></p>
+  
+  
+  <div class="card"><h2>What you will learn</h2><h3>GDP Growth</h3><p>GDP measures everything a country produces in a quarter: it's the economy's thermometer. If it grows more than expected, the currency tends to rise (strong economy → possible rate hikes); if it disappoints, it falls. What moves the market isn't the figure itself but the surprise versus forecasts.</p><h3>CPI Inflation</h3><p>CPI measures inflation: how much consumer prices rise. It's one of the biggest market movers, because central banks raise rates to curb high inflation. CPI above expectations → higher rates → strong currency but jittery stocks. Watch the 'core' reading (excluding energy and food).</p><h3>Interest Rates</h3><p>The central bank's interest rate is the price of money and the #1 driver of currencies. Higher rates attract foreign capital and strengthen the currency, but they cool the economy and usually weigh on stocks. It's not just the decision that matters, but the 'tone' (hawkish/dovish) about the months ahead.</p><h3>NFP</h3><p>Non-Farm Payrolls (NFP) is the US jobs report released the first Friday of each month: the most-watched macro number in the world. It creates huge volatility spikes in the dollar, gold and indices in the first minute. Beginner rule: don't hold positions right before it; the spread blows out and price jumps.</p><h3>Unemployment</h3><p>The unemployment rate measures the % of jobless people actively seeking work. Lower unemployment = strong economy = upward pressure on rates and the currency. Read it alongside NFP and wages: a 'hot' labor market raises inflation worries. Like any macro data, what moves price is the deviation from expectations.</p><h3>How to Use</h3><p>The economic calendar lists what data is coming, at what time and with what expected impact. Use it the opposite way you'd think: not to 'guess' the reaction, but to know WHEN not to trade. Each morning check the day's high-impact events and avoid opening positions in the minutes before a red release.</p><h3>Impact Levels</h3><p>Events are flagged by impact: red (high: rates, CPI, NFP), orange (medium) and yellow (low). Red ones can move the market hundreds of points in seconds, with very wide spreads and slippage. For a beginner, the sensible move is to wait for the data to pass and trade the reaction, not the lottery of the number.</p><h3>P/E Ratio</h3><p>The P/E (Price/Earnings) tells you how many years of current earnings you're paying for the stock. A P/E of 15 is 'normal'; 40+ means the market expects lots of growth (expensive and fragile if it disappoints); very low can be a bargain… or a company in trouble. It only makes sense compared to the sector and the company's own history.</p><h3>EPS</h3><p>EPS (Earnings Per Share) is the company's profit divided by its shares: how much it earns per share. It's the number stock markets watch most each quarter; if it beats forecasts, the stock usually rises. What matters is the trend (is it growing every year?) and the surprise versus what analysts expected.</p><h3>Revenue Growth</h3><p>Revenue growth measures how much sales rise year over year. It's the cleanest sign a business is genuinely expanding, especially in young companies not yet profitable. Accelerating sales = momentum; stalling sales = a warning, even if profit holds up thanks to cost cuts.</p><h3>Dividends</h3><p>A dividend is the slice of profit a company pays out in cash to shareholders, usually each quarter. The 'dividend yield' (dividend/price) tells you how much you collect per year. Attractive for long-term investing and living off income, but beware: an unusually high yield sometimes hides a declining company.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <div class="related card"><h2>More topics</h2><ul><li><a href="https://tradingcalculator.pro/en/learn/cross-margin/">Cross margin</a></li><li><a href="https://tradingcalculator.pro/en/learn/start-here/">Start here</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">Trading Fundamentals</a></li><li><a href="https://tradingcalculator.pro/en/learn/market-mechanics/">Market Mechanics</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-styles/">Trading Styles</a></li><li><a href="https://tradingcalculator.pro/en/learn/valuing-a-company-in-depth/">Valuing a company in depth</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.</div>
+</div></footer>
+</body>
+</html>

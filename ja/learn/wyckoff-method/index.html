@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Wyckoff Method | TradingCalculator.Pro</title>
+<meta name="description" content="ワイコフ理論は、20世紀初頭にリチャード・ワイコフが築いたテクニカル分析の枠組みです。価格・出来高・時間を観察し、大口の機関投資家（コンポジット・オペレーター）による仕込みと振るい落としの周期を見抜き、それと同じ方向で取引することを目指します。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/wyckoff-method/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/metodo-wyckoff/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/wyckoff-method/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/wyckoff-method/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/wyckoff-method/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/wyckoff-method/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/wyckoff-method/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/wyckoff-method/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/wyckoff-method/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/metodo-wyckoff/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/metodo-wyckoff/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/metodo-wyckoff/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Wyckoff Method | TradingCalculator.Pro">
+<meta property="og:description" content="ワイコフ理論は、20世紀初頭にリチャード・ワイコフが築いたテクニカル分析の枠組みです。価格・出来高・時間を観察し、大口の機関投資家（コンポジット・オペレーター）による仕込みと振るい落としの周期を見抜き、それと同じ方向で取引することを目指します。">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/wyckoff-method/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Wyckoff Method","url":"https://tradingcalculator.pro/ja/learn/wyckoff-method/","inLanguage":"ja","description":"ワイコフ理論は、20世紀初頭にリチャード・ワイコフが築いたテクニカル分析の枠組みです。価格・出来高・時間を観察し、大口の機関投資家（コンポジット・オペレーター）による仕込みと振るい落としの周期を見抜き、それと同じ方向で取引することを目指します。","teaches":["Supply & Demand","Cause & Effect","Effort vs. Result","Accumulation","Markup","Distribution","Markdown","Preliminary Support (PS)","Selling Climax (SC)","Automatic Rally (AR)","Secondary Test (ST)","Spring","Back Up the Creek (BUEC)","Sign of Strength (SOS)","LPS — Last Point of Support（最後の支持点）","PSY — Preliminary Supply","BC — Buying Climax","UT — Upthrust","Upthrust After Distribution（UTAD）— 分散後の上抜けダマシ","Sign of Weakness (SOW)","LPSY — Last Point of Supply（最後の供給点）","The Composite Operator","Accumulation Campaign","Distribution Campaign","Effort vs. Result","No Supply","No Demand","Climactic Volume"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"Wyckoff Method","item":"https://tradingcalculator.pro/ja/learn/wyckoff-method/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › Wyckoff Method</div>
+  <span class="free">7日間無料</span>
+  <h1>Wyckoff Method</h1>
+  <p class="lead">ワイコフ理論は、20世紀初頭にリチャード・ワイコフが築いたテクニカル分析の枠組みです。価格・出来高・時間を観察し、大口の機関投資家（コンポジット・オペレーター）による仕込みと振るい落としの周期を見抜き、それと同じ方向で取引することを目指します。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=wyckoff">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>Supply &amp; Demand</h3><p>需要が供給を上回れば価格は上がり、供給が需要を上回れば下がります。あとはすべて、いまどちらの側が主導権を握っているかを読み取る作業です。</p><h3>Cause &amp; Effect</h3><p>レンジを作るのに費やした時間（原因）が、そのあとに続く値動きの大きさ（結果）を決めます。土台が広いほど大きなトレンドを賄える——ポイント・アンド・フィギュアのカウントで測ります。</p><h3>Effort vs. Result</h3><p>出来高が労力、値動きが結果です。膨大な出来高がわずかな前進しか生まないとき、その動きは吸収されており、転換が近づいています。</p><h3>Accumulation</h3><p>スマートマネーが横ばいのレンジの安値圏で、弱い手の売りを吸収していきます。戻りで出来高が増え、押しで減ります。スプリング（サポート割れの振るい落とし）と強さの兆候（SOS）で終わります。</p><h3>Markup</h3><p>価格が出来高を伴って買い集めのレンジを上抜けます。高値も安値も切り上がっていきます。大衆は遅れてトレンドに気づき、買い始めます。BUEC がブレイク水準を試し直します。</p><h3>Distribution</h3><p>スマートマネーが高値圏で個人にポジションを渡していきます。買い集めと同じ構図の裏返しです。UTAD（売り抜け後の上放れ失敗）と弱さの兆候（SOW）で終わり、高値圏では価格がレンジで推移します。</p><h3>Markdown</h3><p>価格が売り抜けのレンジを下に破ります。高値も安値も切り下がります。大衆は狼狽して安値で売る——ちょうどスマートマネーが再び買い集めているときにです。BUTI が下抜け水準を試し直します。</p><h3>Preliminary Support (PS)</h3><p>長い下落のあとに現れる、最初のまとまった買いの試みです。出来高が増え値幅も広がりますが、下落はまだ止まっていません。下落局面の終わりが近いかもしれないという合図です。</p><h3>Selling Climax (SC)</h3><p>大商いと広い値幅を伴う激しい狼狽売り。終値は安値からかなり離れた位置になります。売り手の力尽きと下落局面の終わりを示す、その値動きで最も長い陰線です。</p><h3>Automatic Rally (AR)</h3><p>SC のあと、売り方の買い戻しによって起きる鋭い反発。出来高は多いこともありますが、終わりに向けて細っていきます。買い集めレンジの上限を定めます。</p><h3>Secondary Test (ST)</h3><p>価格が出来高を減らし値幅を狭めながら SC の水準まで戻ってくる動き。売りが吸収され、売り圧力が弱まったことを確認させます。</p><h3>Spring</h3><p>買い集めレンジのサポートを下抜ける振るい落とし。売り方を罠にかけ、残った売りを吸収します。下抜け時に出来高が小さければ強気のスプリング、大きければ失敗の可能性。最も勝率の高いエントリー地点です。</p><h3>Back Up the Creek (BUEC)</h3><p>価格が買い集めレンジを離れたあと、ブレイク水準まで押す動き。押しで出来高が減り、売りが尽きたことを確認させます。スプリングを逃した人にとっての王道のエントリーです。</p><h3>Sign of Strength (SOS)</h3><p>出来高を伴った力強い上昇で、スプリングからレンジを抜けて上へ向かう動き。機関投資家が価格を押し上げる用意を整え、買い集めが完了したことを裏づけます。</p><h3>LPS — Last Point of Support（最後の支持点）</h3><p>強さの兆候のあとに切り上がった安値で、抜けた抵抗線をサポートとして試し直す動き。買い集め局面で最もリスクの低い買いエントリーです。</p><h3>PSY — Preliminary Supply</h3><p>上昇トレンドに向けた最初のまとまった売り。大口が処分を始めます。価格はまだ上がりますが、上昇の勢いは鈍ります。</p><h3>BC — Buying Climax</h3><p>レンジの天井を示す、熱狂的で出来高の多い買い。個人が強気に買い上がる一方で、スマートマネーはその需要にぶつけて売っています。</p><h3>UT — Upthrust</h3><p>抵抗線を上抜けようとして失敗し、レンジ内に戻って引ける動き。ブレイクを買った参加者を閉じ込めます。</p><h3>Upthrust After Distribution（UTAD）— 分散後の上抜けダマシ</h3><p>売り抜けレンジの抵抗線を上抜ける偽のブレイク。出来高は多いものの、価格はレンジ内に戻って引けます。個人の買い需要にさらに売りをぶつけるための、機関投資家の罠です。</p><h3>Sign of Weakness (SOW)</h3><p>売り抜けのあとに起きる、大商いを伴う急落。UTAD から広い値幅でレンジを下に突き抜けます。スマートマネーが売り切り、下落局面が始まったことを裏づけます。</p><h3>LPSY — Last Point of Supply（最後の供給点）</h3><p>弱さの兆候のあとに切り下がった高値で、割れたサポートを抵抗として試し直す動き。売り抜け局面で最もリスクの低い売りエントリーです。</p><h3>The Composite Operator</h3><p>ワイコフの中心概念。大口の機関投資家（銀行、ファンド、マーケットメイカー）すべてを、ひとつの仮想的な主体として捉えます。相場をこの「コンポジット・オペレーター」の意図的な作戦として読むこと——ランダムなノイズとしてではなく——が、決定的な視点の転換です。</p><h3>Accumulation Campaign</h3><p>コンポジット・オペレーターは数週間から数か月かけて静かに買い、上昇を引き起こさないように供給を吸収します。ニュース、恐怖、変動を利用して弱い個人を振るい落とし、安値で株数を集めます。</p><h3>Distribution Campaign</h3><p>上昇局面をやり遂げたあと、コンポジット・オペレーターは上昇が続くと信じる個人に全ポジションを渡します。大衆の強欲と取り残される恐怖が、天井で売り抜けるために利用されます。</p><h3>Effort vs. Result</h3><p>労力（出来高）と結果（値幅）を比べます。大商い＋わずかな値動き＝吸収（強い手が売りを引き受けている）。大商い＋大きな値動き＝確信があり、続伸・続落が見込めます。</p><h3>No Supply</h3><p>上昇トレンド中や買い集めレンジ内で、値幅の狭い陰線が極端に少ない出来高で出る状態。売りが尽きたことを示す強気のサインで、背後の需要を裏づけます。</p><h3>No Demand</h3><p>下降トレンド中や売り抜けレンジ内で、値幅の狭い陽線が極端に少ない出来高で出る状態。買いが枯れたことを示す弱気のサインで、背後の売り圧力を裏づけます。</p><h3>Climactic Volume</h3><p>価格の極値で出来高が極端に膨らむ状態（セリング・クライマックスまたはバイイング・クライマックス）。優勢だった側の力尽きを示し、転換または長い保ち合いが近いという重要な警告になります。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

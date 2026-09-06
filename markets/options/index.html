@@ -14,16 +14,21 @@
 <meta name="description" content="Una opción da el DERECHO —no la obligación— de comprar (call) o vender (put) un activo a un precio fijado (strike) antes o en una fecha concreta. Quien…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/markets/options/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/options/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/options/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/options/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/optionen/">
 <link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/options/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/options/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/optsiony/">
 <link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/options/">
 <link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/options/">
 <link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/options/">
-<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/options/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/options/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/opcoes/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/opzioni/">
 <link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/options/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -33,7 +38,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="es_ES">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Mercados","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"Opciones","item":"https://tradingcalculator.pro/markets/options/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Mercados","item":"https://tradingcalculator.pro/markets/"},{"@type":"ListItem","position":3,"name":"Opciones","item":"https://tradingcalculator.pro/markets/options/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"es","mainEntity":[{"@type":"Question","name":"¿Qué es una opción call y una opción put?","acceptedAnswer":{"@type":"Answer","text":"Una call da derecho a COMPRAR el activo al precio de ejercicio; se compra esperando que el precio suba. Una put da derecho a VENDERLO a ese precio; se compra esperando que baje o para proteger una cartera. En ambos casos el comprador arriesga como máximo la prima pagada."}},{"@type":"Question","name":"¿Cuánto cuesta un contrato de opciones?","acceptedAnswer":{"@type":"Answer","text":"La prima cotizada multiplicada por el multiplicador del contrato, que en opciones sobre acciones estadounidenses es 100. Una prima de 3,20 $ significa 320 $ por contrato, no 3,20 $. Es la confusión que más dinero cuesta a los principiantes."}},{"@type":"Question","name":"¿Qué significa comprar para abrir y vender para cerrar?","acceptedAnswer":{"@type":"Answer","text":"Comprar para abrir (buy to open) inicia una posición larga pagando la prima. Vender para cerrar (sell to close) la deshace vendiendo el contrato en el mercado. Si en cambio abriste vendiendo (sell to open, cobrando la prima), cierras comprando (buy to close). Confundir abrir con cerrar te deja con una posición vendida sin quererlo."}},{"@type":"Question","name":"¿Qué pasa si dejo expirar una opción?","acceptedAnswer":{"@type":"Answer","text":"Si vence fuera de dinero (OTM), expira sin valor y pierdes toda la prima pagada. Si vence dentro de dinero (ITM), se ejerce o se liquida automáticamente: en opciones sobre acciones eso significa recibir o entregar 100 acciones por contrato, lo que puede exigir capital que no tienes. Por eso los profesionales cierran antes del vencimiento."}},{"@type":"Question","name":"¿Por qué pierdo dinero con la opción si acerté la dirección?","acceptedAnswer":{"@type":"Answer","text":"Por dos motivos casi siempre: la theta (el valor temporal se evapora cada día, y se acelera en las últimas semanas) y la caída de la volatilidad implícita (si compraste con IV alta —antes de resultados, por ejemplo— y la IV se desploma tras el evento, la prima cae aunque el precio se mueva a tu favor). Acertar la dirección es solo uno de los tres factores que hay que acertar."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,10 +71,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">Mercados</a><a href="https://tradingcalculator.pro/pricing">Precios</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/learn/">Aprender</a><a href="https://tradingcalculator.pro/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/markets/">Mercados</a><a href="https://tradingcalculator.pro/strategies/">Estrategias de opciones</a><a href="https://tradingcalculator.pro/patterns/">Patrones de Gráficos</a><a href="https://tradingcalculator.pro/candles/">Patrones de Velas</a><a href="https://tradingcalculator.pro/pricing">Precios</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Inicio</a> › <a href="https://tradingcalculator.pro/education">Mercados</a> › Opciones</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Inicio</a> › <a href="https://tradingcalculator.pro/markets/">Mercados</a> › Opciones</div>
   <h1>Opciones</h1>
   <p class="lead">Una opción da el DERECHO —no la obligación— de comprar (call) o vender (put) un activo a un precio fijado (strike) antes o en una fecha concreta. Quien compra paga una prima y arriesga solo esa prima. Quien vende cobra la prima y asume la obligación: en una call descubierta el riesgo es ilimitado —el precio no tiene techo—; en una put descubierta está limitado, pero al strike entero por el multiplicador, que puede ser más de lo que tienes. Es el único instrumento que permite construir un perfil de riesgo a medida.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
@@ -80,7 +85,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <div class="card"><h2>Otros mercados</h2><ul><li><a href="https://tradingcalculator.pro/markets/forex/">Forex</a></li><li><a href="https://tradingcalculator.pro/markets/stocks/">Acciones</a></li><li><a href="https://tradingcalculator.pro/markets/crypto/">Cripto</a></li><li><a href="https://tradingcalculator.pro/markets/commodities/">Materias Primas</a></li><li><a href="https://tradingcalculator.pro/markets/indices/">Índices</a></li><li><a href="https://tradingcalculator.pro/markets/etfs/">ETFs</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/education">Aprender</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/learn/">Aprender</a><a href="https://tradingcalculator.pro/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/markets/">Mercados</a><a href="https://tradingcalculator.pro/strategies/">Estrategias de opciones</a><a href="https://tradingcalculator.pro/patterns/">Patrones de Gráficos</a><a href="https://tradingcalculator.pro/candles/">Patrones de Velas</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.</div>
 </div></footer>
 </body>

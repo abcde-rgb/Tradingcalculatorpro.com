@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Wyckoff Method | TradingCalculator.Pro</title>
+<meta name="description" content="威科夫方法是理查德·威科夫在 20 世纪初提出的技术分析框架。它研究价格、成交量与时间，用以识别大型机构操作者（复合操作者）的操纵周期，并与之同向交易。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/wyckoff-method/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/metodo-wyckoff/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/wyckoff-method/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/wyckoff-method/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/wyckoff-method/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/wyckoff-method/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/wyckoff-method/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/wyckoff-method/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/wyckoff-method/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/metodo-wyckoff/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/metodo-wyckoff/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/metodo-wyckoff/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Wyckoff Method | TradingCalculator.Pro">
+<meta property="og:description" content="威科夫方法是理查德·威科夫在 20 世纪初提出的技术分析框架。它研究价格、成交量与时间，用以识别大型机构操作者（复合操作者）的操纵周期，并与之同向交易。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/wyckoff-method/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Wyckoff Method","url":"https://tradingcalculator.pro/zh/learn/wyckoff-method/","inLanguage":"zh","description":"威科夫方法是理查德·威科夫在 20 世纪初提出的技术分析框架。它研究价格、成交量与时间，用以识别大型机构操作者（复合操作者）的操纵周期，并与之同向交易。","teaches":["Supply & Demand","Cause & Effect","Effort vs. Result","Accumulation","Markup","Distribution","Markdown","Preliminary Support (PS)","Selling Climax (SC)","Automatic Rally (AR)","Secondary Test (ST)","Spring","Back Up the Creek (BUEC)","Sign of Strength (SOS)","LPS — Last Point of Support（最后支撑点）","PSY — Preliminary Supply","BC — Buying Climax","UT — Upthrust","Upthrust After Distribution（UTAD）——派发后的向上假突破","Sign of Weakness (SOW)","LPSY — Last Point of Supply（最后供给点）","The Composite Operator","Accumulation Campaign","Distribution Campaign","Effort vs. Result","No Supply","No Demand","Climactic Volume"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"Wyckoff Method","item":"https://tradingcalculator.pro/zh/learn/wyckoff-method/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › Wyckoff Method</div>
+  <span class="free">7 天免费试用</span>
+  <h1>Wyckoff Method</h1>
+  <p class="lead">威科夫方法是理查德·威科夫在 20 世纪初提出的技术分析框架。它研究价格、成交量与时间，用以识别大型机构操作者（复合操作者）的操纵周期，并与之同向交易。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=wyckoff">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>Supply &amp; Demand</h3><p>需求大于供给时价格上涨，供给大于需求时价格下跌。其余的一切，不过是在判断此刻是哪一方在掌控。</p><h3>Cause &amp; Effect</h3><p>构筑区间所花的时间（因）决定了随后走势的幅度（果）。底部越宽，能支撑的趋势越大——用点数图计数来衡量。</p><h3>Effort vs. Result</h3><p>成交量是付出，价格变动是结果。当巨量只换来微小进展时，说明这段走势正在被吸收，反转已经不远。</p><h3>Accumulation</h3><p>聪明钱在横盘区间的低价位吸收弱手抛出的筹码。反弹时成交量放大，回落时萎缩。以「弹簧」（跌破支撑的洗盘）和强势信号（SOS）收尾。</p><h3>Markup</h3><p>价格带着放大的成交量突破吸筹区间，形成更高的高点与更高的低点。大众很晚才注意到趋势并开始买入。BUEC 会回踩突破位。</p><h3>Distribution</h3><p>聪明钱在高价位把仓位派发给散户。与吸筹相同，只是方向相反。以派发后的上冲回落（UTAD）和弱势信号（SOW）收尾，高位价格呈区间震荡。</p><h3>Markdown</h3><p>价格向下跌破派发区间，形成更低的高点与更低的低点。大众恐慌并在低点卖出——恰好是聪明钱重新吸筹的时候。BUTI 会回踩跌破位。</p><h3>Preliminary Support (PS)</h3><p>长期下跌后第一次像样的买入尝试。成交量放大、振幅扩张——但跌势尚未止住。它提示派发下跌阶段的结束可能不远了。</p><h3>Selling Climax (SC)</h3><p>剧烈的恐慌抛售，成交量巨大、振幅宽阔。收盘价远高于最低点。标志着卖方力竭与下跌阶段的结束，是整段走势中最宽的一根阴线。</p><h3>Automatic Rally (AR)</h3><p>SC 之后的急速反弹，空头回补推动。成交量可能很高，但接近尾声时递减。它划定了吸筹区间的上沿。</p><h3>Secondary Test (ST)</h3><p>价格以更小的成交量和更窄的振幅回到 SC 区域。确认筹码正在被吸收、卖压已经减轻。</p><h3>Spring</h3><p>跌破吸筹区间支撑的一次洗盘。它套住空头并吸收剩余筹码。跌破时缩量＝看涨弹簧；放量＝可能是失败的弹簧。这是胜率最高的入场点。</p><h3>Back Up the Creek (BUEC)</h3><p>价格离开吸筹区间后回踩突破位。回踩时成交量萎缩，确认筹码已被消化。对于错过弹簧的人，这是经典入场点。</p><h3>Sign of Strength (SOS)</h3><p>价格在放量中强劲上攻，从弹簧位一路穿越区间向上。确认机构已准备好推升价格，吸筹阶段结束。</p><h3>LPS — Last Point of Support（最后支撑点）</h3><p>强势信号之后出现的更高低点，回踩被突破的阻力并将其转为支撑。这是整个吸筹阶段风险最低的做多入场点。</p><h3>PSY — Preliminary Supply</h3><p>上涨趋势中第一次像样的卖出；大资金开始出货。价格仍在上行，但涨势已经放缓。</p><h3>BC — Buying Climax</h3><p>标记区间顶部的狂热放量买入。散户激进买进，而聪明钱正把筹码卖给这股买盘。</p><h3>UT — Upthrust</h3><p>向上冲破阻力但未能守住，收盘又回到区间之内，把追突破的买家困在里面。</p><h3>Upthrust After Distribution（UTAD）——派发后的向上假突破</h3><p>向上假突破派发区间的阻力位。成交量很高，但价格收回区间之内。这是一个多头陷阱，让机构得以在散户买盘中卖出更多筹码。</p><h3>Sign of Weakness (SOW)</h3><p>派发之后价格放量急跌，从 UTAD 以宽阔振幅向下穿越区间。确认聪明钱已完全派发，下跌阶段开始。</p><h3>LPSY — Last Point of Supply（最后供给点）</h3><p>弱势信号之后出现的更低高点，回踩被跌破的支撑并将其转为阻力。这是整个派发阶段风险最低的做空入场点。</p><h3>The Composite Operator</h3><p>威科夫的核心概念：把所有大型机构参与者（银行、基金、做市商）设想成一个统一的假想主体。把行情读作这位「综合操盘手」有意为之的战役，而不是随机噪音，是最关键的视角转变。</p><h3>Accumulation Campaign</h3><p>综合操盘手会用数周甚至数月悄悄买入，在不引发上涨的前提下吸收可得筹码。他利用消息、恐惧与波动把弱手散户洗出去，从而低价拿到股份。</p><h3>Distribution Campaign</h3><p>一轮成功的推升之后，综合操盘手把全部仓位倒给相信上涨仍将延续的散户。大众的贪婪与错失恐惧被用来在最高价卖出。</p><h3>Effort vs. Result</h3><p>把「付出」（成交量）和「结果」（价格振幅）作比较。巨量＋小幅波动＝吸收（强手在承接筹码）。巨量＋大幅波动＝有决心，可以期待延续。</p><h3>No Supply</h3><p>上涨趋势中或吸筹区间内，出现振幅很窄、成交量极低的阴线。说明抛压已经枯竭——这是看涨信号，印证了底下的买盘。</p><h3>No Demand</h3><p>下跌趋势中或派发区间内，出现振幅很窄、成交量极低的阳线。说明买盘已经枯竭——这是看跌信号，印证了底下的抛压。</p><h3>Climactic Volume</h3><p>在价格极值处出现极高成交量（抛售高潮或买入高潮）。这表明主导力量已经力竭，是反转或长期盘整即将到来的重要警讯。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

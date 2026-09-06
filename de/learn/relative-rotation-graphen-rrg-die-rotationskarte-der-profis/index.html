@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Relative-Rotation-Graphen (RRG): die Rotationskarte der Profis | TradingCalculator.Pro</title>
+<meta name="description" content="Relative Rotation Graphs (RRG), von Julius de Kempenaer entwickelt, sind eine visuelle Art zu sehen, welche Werte oder Sektoren GEGENÜBER einem…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/de/learn/relative-rotation-graphen-rrg-die-rotationskarte-der-profis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/graficos-rotacion-relativa-rrg-cuadrantes/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/relative-rotation-graphs-rrg-the-pros-rotation-map/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/relative-rotation-graphen-rrg-die-rotationskarte-der-profis/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/graphes-de-rotation-relative-rrg-la-carte-de-rotation-des/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/grafiki-otnositelnoy-rotatsii-rrg-karta-rotatsii/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/rrg/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/rrg/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/rrg/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/graficos-de-rotacao-relativa-rrg-o-mapa-de-rotacao-dos/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/relative-rotation-graphs-rrg-la-mappa-di-rotazione-dei/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/graficos-rotacion-relativa-rrg-cuadrantes/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Relative-Rotation-Graphen (RRG): die Rotationskarte der Profis | TradingCalculator.Pro">
+<meta property="og:description" content="Relative Rotation Graphs (RRG), von Julius de Kempenaer entwickelt, sind eine visuelle Art zu sehen, welche Werte oder Sektoren GEGENÜBER einem…">
+<meta property="og:url" content="https://tradingcalculator.pro/de/learn/relative-rotation-graphen-rrg-die-rotationskarte-der-profis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="de_DE">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Relative-Rotation-Graphen (RRG): die Rotationskarte der Profis","url":"https://tradingcalculator.pro/de/learn/relative-rotation-graphen-rrg-die-rotationskarte-der-profis/","inLanguage":"de","description":"Relative Rotation Graphs (RRG), von Julius de Kempenaer entwickelt, sind eine visuelle Art zu sehen, welche Werte oder Sektoren GEGENÜBER einem…","teaches":["Was es ist","Die zwei Achsen","Die 4 Quadranten","Die Rotation (im Uhrzeigersinn)","Die Schweife (die Bahn)","Wie man es nutzt","Grenzen (Ehrlichkeit)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Start","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Lernen","item":"https://tradingcalculator.pro/de/learn/"},{"@type":"ListItem","position":3,"name":"Relative-Rotation-Graphen (RRG): die Rotationskarte der Profis","item":"https://tradingcalculator.pro/de/learn/relative-rotation-graphen-rrg-die-rotationskarte-der-profis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/pricing">Preise</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Start</a> › <a href="https://tradingcalculator.pro/de/learn/">Lernen</a> › Relative-Rotation-Graphen (RRG): die Rotationskarte der Profis</div>
+  <span class="free">7 Tage gratis</span>
+  <h1>Relative-Rotation-Graphen (RRG): die Rotationskarte der Profis</h1>
+  <p class="lead">Relative Rotation Graphs (RRG), von Julius de Kempenaer entwickelt, sind eine visuelle Art zu sehen, welche Werte oder Sektoren GEGENÜBER einem Referenzindex an Stärke gewinnen oder verlieren — und wie schnell. Statt jeden Wert einzeln zu betrachten, setzt du alle auf eine 4-Quadranten-Fläche und siehst auf einen Blick, wer führt und wer zurückfällt. Es ist ein institutionelles Werkzeug (StockCharts, Bloomberg), das Privatanleger kaum nutzen.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=rrg">Vollständiges Modul öffnen →</a></p>
+  
+  
+  <div class="card"><h2>Was du lernst</h2><h3>Was es ist</h3><p>Ein RRG stellt jeden Wert als Punkt auf einer in 4 Quadranten geteilten Fläche dar, immer GEGEN einen Index gemessen (z. B. den S&amp;P 500). Es sagt nicht, ob etwas absolut steigt, sondern ob es besser oder schlechter als der Markt läuft und ob dieser Vorsprung zu- oder abnimmt. Es dient dazu, viele Werte auf einmal zu vergleichen und zu entscheiden, worauf man den Fokus legt.</p><h3>Die zwei Achsen</h3><p>Die waagerechte Achse ist die RS-Ratio: die relative Stärke gegenüber dem Index (rechts = stärker als der Markt, links = schwächer). Die senkrechte Achse ist das RS-Momentum: das TEMPO dieser Stärke (oben = der Vorsprung beschleunigt, unten = er lässt nach). Die Mitte ist der Referenzindex (Wert 100): in der Mitte zu sein heißt, sich wie der Markt zu verhalten.</p><h3>Die 4 Quadranten</h3><p>Oben rechts, Führend (stark und beschleunigend): die aktuellen Gewinner. Unten rechts, Schwächelnd (stark, aber an Tempo verlierend). Unten links, Zurückbleibend (schwach und fallend): die Verlierer. Oben links, Verbessernd (noch schwach, aber wieder Tempo gewinnend): mögliche nächste Führer. Die Farbe jedes Quadranten fasst seine Gesundheit auf einen Blick zusammen.</p><h3>Die Rotation (im Uhrzeigersinn)</h3><p>Das Starke am RRG ist, dass Werte dazu neigen, IM UHRZEIGERSINN zwischen den Quadranten zu rotieren: Verbessernd → Führend → Schwächelnd → Zurückbleibend → und zurück zu Verbessernd. Dieser Zyklus hilft vorauszudenken: ein Sektor, der in &quot;Verbessernd&quot; eintritt, könnte einen Führungsabschnitt beginnen; einer, der &quot;Führend&quot; Richtung &quot;Schwächelnd&quot; verlässt, erschöpft vielleicht seinen Vorsprung.</p><h3>Die Schweife (die Bahn)</h3><p>Jeder Punkt zieht einen &quot;Schweif&quot;: die Spur der letzten Wochen, die zeigt, woher er kam und wohin er zieht. Ein langer Schweif mit klarer Richtung signalisiert eine starke, stetige Rotation; ein kurzer, verwickelter Schweif Unentschlossenheit. Der Schweif macht aus einem Standbild einen Film des Rotationstrends.</p><h3>Wie man es nutzt</h3><p>Der klassische Einsatz ist die Sektorrotation: das Portfolio mit Sektoren im Quadranten Führend oder Verbessernd bestücken und die im Quadranten Zurückbleibend meiden (oder reduzieren). Es vergleicht auch Aktien, Länder oder Anlageklassen gegen einen einzigen Index. Stets mit sorgfältig gewähltem Benchmark und auf Wochenbasis, um Rauschen zu filtern.</p><h3>Grenzen (Ehrlichkeit)</h3><p>Das RRG misst RELATIVE Stärke, nicht absolute: ein Wert kann im Quadranten Führend stehen und dennoch im Preis fallen, wenn der ganze Markt fällt — er fällt nur weniger. Es ist für sich kein Einstiegssignal: es sagt, wo man schauen soll, nicht wann man einsteigt; dafür braucht es eigene Analyse und Risikomanagement. Und wie alles auf Durchschnitten Beruhende läuft es einen Schritt hinterher.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <div class="related card"><h2>Weitere Themen</h2><ul><li><a href="https://tradingcalculator.pro/de/learn/cross-margin/">Cross-Margin</a></li><li><a href="https://tradingcalculator.pro/de/learn/hier-starten/">Hier starten</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">Trading-Grundlagen</a></li><li><a href="https://tradingcalculator.pro/de/learn/marktmechanik/">Marktmechanik</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-stile/">Trading-Stile</a></li><li><a href="https://tradingcalculator.pro/de/learn/fundamentalanalyse/">Fundamentalanalyse</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.</div>
+</div></footer>
+</body>
+</html>

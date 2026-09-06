@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>安德鲁斯音叉：用中位线交易 | TradingCalculator.Pro</title>
+<meta name="description" content="由 Alan Andrews 创建的安德鲁斯音叉（Andrews' Pitchfork），是一个由 3 条平行线组成的几何工具，从 3 个价格枢轴点画出。它形成一个动态通道，其中轴——中位线——像磁铁一样，价格倾向于回到它那里。它很少被讲授，却非常直观，和江恩并列，作为用几何来读走势的一种方式很合适。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/andrews-pitchfork-trading-the-median-line/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/horquilla-de-andrews-linea-mediana/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/andrews-pitchfork-trading-the-median-line/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/andrews-gabel-mit-der-medianlinie-handeln/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-fourche-d-andrews-trader-la-ligne-mediane/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/vily-endryusa-torgovlya-po-sredinnoy-linii/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/andrews-pitchfork-trading-the-median-line/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/andrews-pitchfork-trading-the-median-line/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/andrews-pitchfork-trading-the-median-line/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/o-garfo-de-andrews-operar-com-a-linha-mediana/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/il-forchettone-di-andrews-operare-con-la-linea-mediana/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/horquilla-de-andrews-linea-mediana/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="安德鲁斯音叉：用中位线交易 | TradingCalculator.Pro">
+<meta property="og:description" content="由 Alan Andrews 创建的安德鲁斯音叉（Andrews' Pitchfork），是一个由 3 条平行线组成的几何工具，从 3 个价格枢轴点画出。它形成一个动态通道，其中轴——中位线——像磁铁一样，价格倾向于回到它那里。它很少被讲授，却非常直观，和江恩并列，作为用几何来读走势的一种方式很合适。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/andrews-pitchfork-trading-the-median-line/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"安德鲁斯音叉：用中位线交易","url":"https://tradingcalculator.pro/zh/learn/andrews-pitchfork-trading-the-median-line/","inLanguage":"zh","description":"由 Alan Andrews 创建的安德鲁斯音叉（Andrews' Pitchfork），是一个由 3 条平行线组成的几何工具，从 3 个价格枢轴点画出。它形成一个动态通道，其中轴——中位线——像磁铁一样，价格倾向于回到它那里。它很少被讲授，却非常直观，和江恩并列，作为用几何来读走势的一种方式很合适。","teaches":["它是什么","怎么画","中位线（磁铁）","平行线（通道）","施夫（Schiff）变体","如何交易","局限（诚实）"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"安德鲁斯音叉：用中位线交易","item":"https://tradingcalculator.pro/zh/learn/andrews-pitchfork-trading-the-median-line/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 安德鲁斯音叉：用中位线交易</div>
+  <span class="free">7 天免费试用</span>
+  <h1>安德鲁斯音叉：用中位线交易</h1>
+  <p class="lead">由 Alan Andrews 创建的安德鲁斯音叉（Andrews' Pitchfork），是一个由 3 条平行线组成的几何工具，从 3 个价格枢轴点画出。它形成一个动态通道，其中轴——中位线——像磁铁一样，价格倾向于回到它那里。它很少被讲授，却非常直观，和江恩并列，作为用几何来读走势的一种方式很合适。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=pitchfork">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>它是什么</h3><p>这是一个由三条平行直线构成的倾斜通道：中间一条中位线，两侧两根“叉齿”（上、下平行线）。安德鲁斯的想法是，一段推动之后，价格多数时间围绕中位线摆动，并把平行线当作该走势的支撑与阻力。</p><h3>怎么画</h3><p>需要 3 个清晰的枢轴点。点 1 是锚点（走势的起点）；点 2 和点 3 是随后反应的高点与低点。中位线从点 1 出发，穿过 2 与 3 之间的中点，并向未来延伸。两条平行线从点 2 和点 3 以与中位线相同的斜率画出。</p><h3>中位线（磁铁）</h3><p>中位线是这个工具的核心。安德鲁斯观察到价格大约有 80% 的时间会回到它，因此它是一个自然的目标：当价格朝某条平行线离开又反弹时，中位线通常是第一个去处。价格尊重还是跌破中位线，也透露趋势的强弱。</p><h3>平行线（通道）</h3><p>上、下平行线充当通道的边缘：走势往往在此放缓并掉头回向中位线的区域。在平行线上的干净拒绝，是顺着回归中心的入场；跌破并在通道外被接受，则警告结构正在改变，可能该重画音叉了。</p><h3>施夫（Schiff）变体</h3><p>如果第一段非常陡直，经典音叉画出来可能太陡。施夫变体移动锚点：不再从点 1 出发，而是从 1 与 2 之间的中点出发。这会缓和斜率，通常给出更贴近现实的通道。修正施夫（modified Schiff）会进一步微调这个调整。</p><h3>如何交易</h3><p>基础打法是回归中位线：在平行线上找拒绝，交易回向中心，止损放在线的另一侧。交易者还会用“警戒线”（warning lines）——通道之外的额外平行线——作为目标或价格逃逸时的提醒。一如既往，配合共振（一个价位、一个斐波那契）和确认会更好。</p><h3>局限（诚实）</h3><p>音叉是“主观”的：一切取决于你选哪 3 个枢轴点，两个交易者可以在同一张图上画出不同的音叉。它不是机械系统，也没有其他工具那样的统计验证；它是一个结构的可视化指引。用它来框定走势、找到反应区域，而不是当作精确的真理。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

@@ -14,16 +14,21 @@
 <meta name="description" content="An index measures the combined behaviour of a basket of shares. The S&amp;P 500 is the 500 largest US companies; the IBEX 35, Spain's 35 most liquid. You…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/ja/markets/indices/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/indices/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/indices/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/indices/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/indizes/">
 <link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/indices/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/indices/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/indeksy/">
 <link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/indices/">
 <link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/indices/">
 <link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/indices/">
 <link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/indices/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/indices/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/indici/">
 <link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/indices/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -33,7 +38,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="ja_JP">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"マーケット","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"指数","item":"https://tradingcalculator.pro/ja/markets/indices/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"マーケット","item":"https://tradingcalculator.pro/ja/markets/"},{"@type":"ListItem","position":3,"name":"指数","item":"https://tradingcalculator.pro/ja/markets/indices/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"ja","mainEntity":[{"@type":"Question","name":"What is the S&P 500 and how is it calculated?","acceptedAnswer":{"@type":"Answer","text":"It is an index of the 500 largest listed US companies, weighted by float-adjusted market capitalization: the more a company is worth on the market, the more it weighs. S&P Dow Jones Indices maintains it and reviews constituents quarterly. It represents about 80% of US market capitalization."}},{"@type":"Question","name":"What are the major stock market indices in the world?","acceptedAnswer":{"@type":"Answer","text":"S&P 500, Nasdaq 100 and Dow Jones in the United States; DAX (Germany), CAC 40 (France), FTSE 100 (UK), IBEX 35 (Spain) and Euro Stoxx 50 in Europe; Nikkei 225 and Hang Seng in Asia. The first three set the tone for the rest: when the S&P 500 falls, almost everything falls with it."}},{"@type":"Question","name":"Can you buy an index directly?","acceptedAnswer":{"@type":"Answer","text":"No. An index is a calculated number, not an asset. You get exposure through ETFs that track it (SPY, VOO for the S&P 500), futures (ES, MES), index options, or CFDs. Each instrument carries different costs and risks."}},{"@type":"Question","name":"Why does the DAX outperform the IBEX over the long run?","acceptedAnswer":{"@type":"Answer","text":"Partly because the DAX is a total return index: it reinvests dividends inside the index itself. The published IBEX 35 is price return and excludes them (a \"with dividends\" version exists but is barely quoted). Comparing a total return index with a price return one wildly exaggerates the real difference."}},{"@type":"Question","name":"How much is one S&P 500 point worth in futures?","acceptedAnswer":{"@type":"Answer","text":"On the E-mini (ES), $50 per point. On the Micro E-mini (MES), $5 per point. With the index at 5,400, one ES contract controls $270,000 of notional and one MES, $27,000."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,10 +71,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">マーケット</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/education">マーケット</a> › 指数</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/markets/">マーケット</a> › 指数</div>
   <h1>指数</h1>
   <p class="lead">An index measures the combined behaviour of a basket of shares. The S&amp;P 500 is the 500 largest US companies; the IBEX 35, Spain's 35 most liquid. You cannot buy an index directly: you trade it through futures, ETFs, options or CFDs.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
@@ -77,10 +82,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 
   <div class="card"><h2>よくある質問</h2><h3>What is the S&amp;P 500 and how is it calculated?</h3><p>It is an index of the 500 largest listed US companies, weighted by float-adjusted market capitalization: the more a company is worth on the market, the more it weighs. S&amp;P Dow Jones Indices maintains it and reviews constituents quarterly. It represents about 80% of US market capitalization.</p><h3>What are the major stock market indices in the world?</h3><p>S&amp;P 500, Nasdaq 100 and Dow Jones in the United States; DAX (Germany), CAC 40 (France), FTSE 100 (UK), IBEX 35 (Spain) and Euro Stoxx 50 in Europe; Nikkei 225 and Hang Seng in Asia. The first three set the tone for the rest: when the S&amp;P 500 falls, almost everything falls with it.</p><h3>Can you buy an index directly?</h3><p>No. An index is a calculated number, not an asset. You get exposure through ETFs that track it (SPY, VOO for the S&amp;P 500), futures (ES, MES), index options, or CFDs. Each instrument carries different costs and risks.</p><h3>Why does the DAX outperform the IBEX over the long run?</h3><p>Partly because the DAX is a total return index: it reinvests dividends inside the index itself. The published IBEX 35 is price return and excludes them (a &quot;with dividends&quot; version exists but is barely quoted). Comparing a total return index with a price return one wildly exaggerates the real difference.</p><h3>How much is one S&amp;P 500 point worth in futures?</h3><p>On the E-mini (ES), $50 per point. On the Micro E-mini (MES), $5 per point. With the index at 5,400, one ES contract controls $270,000 of notional and one MES, $27,000.</p></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
-  <div class="card"><h2>他のマーケット</h2><ul><li><a href="https://tradingcalculator.pro/ja/markets/forex/">FX</a></li><li><a href="https://tradingcalculator.pro/ja/markets/stocks/">株式</a></li><li><a href="https://tradingcalculator.pro/ja/markets/crypto/">暗号資産</a></li><li><a href="https://tradingcalculator.pro/ja/markets/commodities/">コモディティ</a></li><li><a href="https://tradingcalculator.pro/ja/markets/etfs/">ETF</a></li><li><a href="https://tradingcalculator.pro/ja/markets/futures/">先物</a></li></ul></div>
+  <div class="card"><h2>他のマーケット</h2><ul><li><a href="https://tradingcalculator.pro/ja/markets/fx/">FX</a></li><li><a href="https://tradingcalculator.pro/ja/markets/stocks/">株式</a></li><li><a href="https://tradingcalculator.pro/ja/markets/crypto/">暗号資産</a></li><li><a href="https://tradingcalculator.pro/ja/markets/commodities/">コモディティ</a></li><li><a href="https://tradingcalculator.pro/ja/markets/etf/">ETF</a></li><li><a href="https://tradingcalculator.pro/ja/markets/futures/">先物</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/education">学ぶ</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
 </div></footer>
 </body>

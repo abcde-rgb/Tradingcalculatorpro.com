@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Temps et cycles : Fibonacci temporel et cycles de Hurst | TradingCalculator.Pro</title>
+<meta name="description" content="Presque toute l'analyse technique s'obsède du PRIX (où) et oublie le TEMPS (quand). Ce module récupère cette dimension oubliée avec deux approches peu…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/temps-et-cycles-fibonacci-temporel-et-cycles-de-hurst/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/tiempo-ciclos-fibonacci-temporal-hurst/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/zeit-und-zyklen-fibonacci-zeit-und-hurst-zyklen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/temps-et-cycles-fibonacci-temporel-et-cycles-de-hurst/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/vremya-i-tsikly-vremennoy-fibonachchi-i-tsikly-hersta/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/tempo-e-ciclos-fibonacci-temporal-e-os-ciclos-de-hurst/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/tempo-e-cicli-fibonacci-temporale-e-i-cicli-di-hurst/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/tiempo-ciclos-fibonacci-temporal-hurst/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Temps et cycles : Fibonacci temporel et cycles de Hurst | TradingCalculator.Pro">
+<meta property="og:description" content="Presque toute l'analyse technique s'obsède du PRIX (où) et oublie le TEMPS (quand). Ce module récupère cette dimension oubliée avec deux approches peu…">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/temps-et-cycles-fibonacci-temporel-et-cycles-de-hurst/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Temps et cycles : Fibonacci temporel et cycles de Hurst","url":"https://tradingcalculator.pro/fr/learn/temps-et-cycles-fibonacci-temporel-et-cycles-de-hurst/","inLanguage":"fr","description":"Presque toute l'analyse technique s'obsède du PRIX (où) et oublie le TEMPS (quand). Ce module récupère cette dimension oubliée avec deux approches peu…","teaches":["La dimension oubliée : le temps","Zones de temps de Fibonacci","Clusters temporels (confluence)","Les cycles de Hurst","La FLD (Future Line of Demarcation)","Limites (honnêteté)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"Temps et cycles : Fibonacci temporel et cycles de Hurst","item":"https://tradingcalculator.pro/fr/learn/temps-et-cycles-fibonacci-temporel-et-cycles-de-hurst/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › Temps et cycles : Fibonacci temporel et cycles de Hurst</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>Temps et cycles : Fibonacci temporel et cycles de Hurst</h1>
+  <p class="lead">Presque toute l'analyse technique s'obsède du PRIX (où) et oublie le TEMPS (quand). Ce module récupère cette dimension oubliée avec deux approches peu connues : les zones de temps de Fibonacci (pour anticiper QUAND le marché peut tourner) et les cycles de Hurst (l'idée que le prix est une somme d'ondes imbriquées de longueurs différentes). Des idées puissantes mais subjectives ; on te les raconte honnêtement.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=time-cycles">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>La dimension oubliée : le temps</h3><p>Un retournement n'arrive pas seulement à un PRIX, il arrive aussi à un MOMENT. L'analyse du temps tente de répondre au &quot;quand&quot; : si un cycle dure ~20 séances, le prochain creux devrait arriver environ 20 séances après le précédent. Elle ne remplace pas l'analyse du prix (supports, tendance) : elle la COMPLÈTE, t'aidant à rester attentif dans les fenêtres où un retournement est plus probable.</p><h3>Zones de temps de Fibonacci</h3><p>Ce sont des lignes VERTICALES placées à des intervalles de la suite de Fibonacci (1, 2, 3, 5, 8, 13, 21… séances ou bougies) à partir d'un pivot important. L'idée : le marché tend à faire des retournements ou des changements de rythme près de ces dates. Contrairement aux retracements de Fibonacci (qui portent sur le prix), celles-ci travaillent seulement sur l'axe du temps : elles ne disent pas à quel prix, mais approximativement quand.</p><h3>Clusters temporels (confluence)</h3><p>Comme sur le prix tu cherches la confluence de niveaux, dans le temps tu cherches la confluence de DATES : quand plusieurs projections temporelles (cycles différents, zones de Fibonacci différentes depuis des pivots différents) pointent vers la même fenêtre, cette zone devient &quot;chaude&quot;. Un cluster temporel qui coïncide en plus avec un niveau de prix important est là où il vaut le plus la peine de guetter un retournement.</p><h3>Les cycles de Hurst</h3><p>J. M. Hurst a proposé que le prix est la SOMME de plusieurs ondes cycliques de longueurs différentes imbriquées les unes dans les autres (un cycle de 40 jours contient un de 20, qui contient un de 10…). Son &quot;modèle nominal&quot; donne des durées approximatives typiques. L'utilité : si tu sais dans quelle phase sont les cycles plus grands et plus petits, tu peux anticiper quand plusieurs creux s'alignent en même temps — c'est alors qu'apparaissent les mouvements les plus forts.</p><h3>La FLD (Future Line of Demarcation)</h3><p>L'outil le plus pratique de Hurst est la FLD (Future Line of Demarcation) : tu prends le prix et tu le décales vers la droite de la MOITIÉ de la longueur du cycle étudié. Quand le prix croise sa propre FLD, cela signale le timing probable du retournement du cycle et projette une cible. Une façon simple de transformer la théorie des cycles en signaux concrets de quand agir.</p><h3>Limites (honnêteté)</h3><p>Sois sceptique et honnête : les cycles du marché ne sont PAS des montres suisses. Ils changent de durée, se déphasent et parfois disparaissent, et il est extrêmement facile de tracer a posteriori des zones de temps qui &quot;marchent&quot;. Aucune preuve solide que ces dates aient un pouvoir prédictif magique ; leur vraie valeur est de discipliner ton attention (savoir quand regarder) et de se combiner au prix. Ne trade jamais une date seule : attends la confirmation du prix.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

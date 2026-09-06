@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>La prime de risque de volatilité | TradingCalculator.Pro</title>
+<meta name="description" content="Vendre des options, c'est beaucoup de petits gains et des pertes rares mais énormes : le même profil qu'une grille. La différence, c'est qu'ici quelque…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/la-prime-de-risque-de-volatilite/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/prima-de-riesgo-de-volatilidad/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-volatility-risk-premium/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/die-volatilitatsrisikopramie/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-prime-de-risque-de-volatilite/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/premiya-za-risk-volatilnosti/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-volatility-risk-premium/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-volatility-risk-premium/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-volatility-risk-premium/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/o-premio-de-risco-de-volatilidade/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/il-premio-al-rischio-di-volatilita/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/prima-de-riesgo-de-volatilidad/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="La prime de risque de volatilité | TradingCalculator.Pro">
+<meta property="og:description" content="Vendre des options, c'est beaucoup de petits gains et des pertes rares mais énormes : le même profil qu'une grille. La différence, c'est qu'ici quelque…">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/la-prime-de-risque-de-volatilite/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"La prime de risque de volatilité","url":"https://tradingcalculator.pro/fr/learn/la-prime-de-risque-de-volatilite/","inLanguage":"fr","description":"Vendre des options, c'est beaucoup de petits gains et des pertes rares mais énormes : le même profil qu'une grille. La différence, c'est qu'ici quelque…","teaches":["Ce que c'est","Pourquoi elle se paie","Ce que dit la preuve, et avec quelles réserves","La facture : 5 février 2018","En quoi cela diffère d'une grille","Comment la gérer sans exploser","Que regarder dans vos propres chiffres"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"La prime de risque de volatilité","item":"https://tradingcalculator.pro/fr/learn/la-prime-de-risque-de-volatilite/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › La prime de risque de volatilité</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>La prime de risque de volatilité</h1>
+  <p class="lead">Vendre des options, c'est beaucoup de petits gains et des pertes rares mais énormes : le même profil qu'une grille. La différence, c'est qu'ici quelque chose de réel change de mains — une prime que quelqu'un paie pour transférer un risque. Ce module sert à distinguer quand ce profil est un métier d'assureur et quand c'est juste une facture différée.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=vol-premium">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>Ce que c'est</h3><p>La volatilité implicite — celle qu'escompte le prix des options — cote généralement au-dessus de la volatilité que le sous-jacent réalise finalement. Cet écart systématique est la prime : le vendeur d'options l'encaisse en échange du risque que la réalisée, cette fois, soit plus élevée.</p><h3>Pourquoi elle se paie</h3><p>Ce n'est pas une inefficience que quelqu'un aurait oublié d'arbitrer : c'est le prix d'une assurance. Un fonds qui ne doit pas sauter paie la protection même si elle est chère en moyenne, comme on paie l'assurance auto en sachant que l'assureur gagne. La prime existe parce qu'il y a une demande structurelle de protection, et c'est pourquoi la publier ne la fait pas disparaître.</p><h3>Ce que dit la preuve, et avec quelles réserves</h3><p>Les indices de vente systématique d'options du CBOE sur le S&amp;P 500 ont historiquement montré un rendement proche de l'indice avec nettement moins de volatilité, ce qui améliore le ratio ajusté du risque. Deux réserves qui ne sont pas mineures : ces indices sont calculés BRUTS, avant coûts de transaction, et le Sharpe pénalise à peine l'asymétrie, donc il flatte précisément les stratégies à queue gauche. À prendre comme une direction bien documentée, pas comme un chiffre transposable à votre compte.</p><h3>La facture : 5 février 2018</h3><p>Le VIX a connu ce jour-là le plus grand bond en pourcentage de son histoire et l'ETN de volatilité inverse XIV a perdu environ 96 % de sa valeur en une seule séance ; son émetteur a annoncé la liquidation le lendemain. Des années de rendements stables effacées en quelques heures. La leçon n'est pas que la prime n'existait pas : c'est que ces rendements stables ÉTAIENT le paiement du risque de queue porté, et la facture arrive entière et d'un coup.</p><h3>En quoi cela diffère d'une grille</h3><p>Sur le profil, en rien : beaucoup de gains, des pertes rares et grandes. Sur le fond, en tout. En vendant de la prime vous encaissez ce que quelqu'un paie volontairement pour vous transférer un risque ; dans une grille vous n'encaissez rien de personne, vous ne faites que différer la reconnaissance d'une perte. C'est pourquoi l'une peut avoir une espérance positive avec de la gestion, et l'autre n'en a avec aucune.</p><h3>Comment la gérer sans exploser</h3><p>Trois règles non négociables. Le stop : sans lui, la perte potentielle d'une position vendeuse de prime est pratiquement illimitée, et cela inverse l'espérance. La taille : une fraction très faible, calibrée pour survivre à la perte de queue, pas à la moyenne. Et la corrélation : dix positions vendeuses de volatilité ne sont pas dix paris, c'en est un seul, et elles coulent ensemble — la limite doit porter sur l'exposition agrégée, pas par position.</p><h3>Que regarder dans vos propres chiffres</h3><p>Le taux de réussite et le Sharpe ne vous préviendront pas : tous deux ont bonne mine jusqu'au coup. Ceux qui préviennent sont l'asymétrie, le kurtosis et le ratio de queues du journal. Une asymétrie fortement négative avec un ratio de queues sous 1 signifie que vos pertes extrêmes dépassent déjà vos gains extrêmes, et c'est une information sur ce qui va arriver, pas sur ce qui est arrivé.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

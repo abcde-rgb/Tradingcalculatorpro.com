@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Margin &amp; liquidation in derivatives | TradingCalculator.Pro</title>
+<meta name="description" content="If you trade leveraged futures or perpetuals, margin is your lifeline. Most accounts die not from bad analysis but from not understanding HOW and WHEN the…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/en/learn/margin-liquidation-in-derivatives/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/margen-y-liquidacion/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/margin-liquidation-bei-derivaten/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/marge-et-liquidation-sur-derives/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/marzha-i-likvidatsiya-v-derivativah/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/margem-e-liquidacao-em-derivados/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/margine-e-liquidazione-nei-derivati/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/margen-y-liquidacion/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Margin &amp; liquidation in derivatives | TradingCalculator.Pro">
+<meta property="og:description" content="If you trade leveraged futures or perpetuals, margin is your lifeline. Most accounts die not from bad analysis but from not understanding HOW and WHEN the…">
+<meta property="og:url" content="https://tradingcalculator.pro/en/learn/margin-liquidation-in-derivatives/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Margin & liquidation in derivatives","url":"https://tradingcalculator.pro/en/learn/margin-liquidation-in-derivatives/","inLanguage":"en","description":"If you trade leveraged futures or perpetuals, margin is your lifeline. Most accounts die not from bad analysis but from not understanding HOW and WHEN the…","teaches":["Isolated margin","Cross margin","Position mode: one-way (averages) vs hedge (separate)","Liquidation price & maintenance margin","Mark price vs last price vs index price","Funding rate","Liquidation wicks & cascades","Anti-manipulation engines (MP Shield-style)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://tradingcalculator.pro/en/learn/"},{"@type":"ListItem","position":3,"name":"Margin & liquidation in derivatives","item":"https://tradingcalculator.pro/en/learn/margin-liquidation-in-derivatives/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/en/learn/">Learn</a> › Margin &amp; liquidation in derivatives</div>
+  <span class="free">7-day free trial</span>
+  <h1>Margin &amp; liquidation in derivatives</h1>
+  <p class="lead">If you trade leveraged futures or perpetuals, margin is your lifeline. Most accounts die not from bad analysis but from not understanding HOW and WHEN the exchange liquidates you. This module covers margin modes, position modes, the liquidation price and how to protect yourself from manipulation wicks.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=margin-liq">Open the full module →</a></p>
+  
+  
+  <div class="card"><h2>What you will learn</h2><h3>Isolated margin</h3><p>Each position has its OWN margin: if it gets liquidated you only lose what you assigned to that trade — the rest of your account stays untouched. Recommended for beginners and for high leverage, because the maximum damage is capped in advance. Downside: liquidation comes sooner, since only that margin backs you.</p><h3>Cross margin</h3><p>Your ENTIRE available balance backs ALL your positions. Liquidation sits further away (more cushion), but if price runs hard against you, a single trade can drain the WHOLE account. Useful for hedging and experienced traders with measured risk; lethal combined with overleverage and no stop loss.</p><h3>Position mode: one-way (averages) vs hedge (separate)</h3><p>In one-way mode you can only be long OR short: every additional entry in the same direction is AVERAGED into a single position, with a new average price and a new liquidation. In hedge mode you can hold a long AND a short at the same time, separately, each with its own margin. Hedge mode feels &quot;safe&quot;, but you pay double fees and double funding — and it often just hides refusing to admit the entry was wrong.</p><h3>Liquidation price &amp; maintenance margin</h3><p>The exchange requires a minimum to keep a position open (maintenance margin, ~0.4-1%). When unrealized losses eat your margin down to that minimum, the engine force-closes your position and charges a liquidation fee on top. At 100x, a ~0.5-0.8% move against you is enough. ALWAYS check the liquidation price before confirming — and never use it as a &quot;free stop&quot;: you lose more than with a real SL.</p><h3>Mark price vs last price vs index price</h3><p>Last price = the latest trade on THAT exchange (manipulable with little volume). Index price = volume-weighted spot average across several major exchanges. Mark price = index adjusted by the basis; it is the &quot;fair&quot; price serious platforms use to compute unrealized PnL and LIQUIDATIONS. If your platform liquidates on last price, a single local wick can take you out even though the global market never touched your level. Verify it in the docs before depositing.</p><h3>Funding rate</h3><p>Perpetuals never expire; funding keeps their price pinned to spot: usually every 8h, longs pay shorts when the perp trades above the index, and vice versa. Holding against high funding bleeds you daily (0.01% × 3/day sounds small; at 10x it is not). Extreme funding (&gt;0.1%/8h) = a market crowded in one direction: a contrarian signal and fuel for squeezes.</p><h3>Liquidation wicks &amp; cascades</h3><p>Thousands of traders' liquidation levels cluster in predictable zones (below obvious lows, above highs). A push into that zone triggers forced liquidations, which are market orders → they move price further → liquidating the next cluster: a cascade. On small, thin exchanges a 'scam wick' can sweep positions while the broader market barely moves. That is why mark price and WHERE you trade matter.</p><h3>Anti-manipulation engines (MP Shield-style)</h3><p>Some exchanges — Margex with its MP Shield™, and serious venues in general via a composite mark price — aggregate prices from 12+ liquidity sources and discard sharp deviations from any single source, so an artificial wick on one exchange cannot liquidate you. It is not magic: it does NOT protect you from a real market move. Check your platform: does it liquidate on mark/composite index? Does it publish the index composition? Does it have an insurance fund and transparent ADL?</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <div class="related card"><h2>More topics</h2><ul><li><a href="https://tradingcalculator.pro/en/learn/cross-margin/">Cross margin</a></li><li><a href="https://tradingcalculator.pro/en/learn/start-here/">Start here</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">Trading Fundamentals</a></li><li><a href="https://tradingcalculator.pro/en/learn/market-mechanics/">Market Mechanics</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-styles/">Trading Styles</a></li><li><a href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">Fundamental Analysis</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.</div>
+</div></footer>
+</body>
+</html>

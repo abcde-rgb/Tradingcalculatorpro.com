@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>冷门振荡指标：Coppock、Schaff、RSI-2 与 TSI | TradingCalculator.Pro</title>
+<meta name="description" content="在 RSI、MACD 和随机指标之外，还有一小撮几乎没人用、却带着有用想法的动量振荡指标。这里我们汇集四个：Coppock（找长期底部）、Schaff 趋势周期（更快、滞后更小的周期）、Connors RSI-2（均值回归）以及真实强度指数 TSI（高度平滑的动量）。它们都不神奇，但各自解决一件具体的事。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/coppock-schaff-rsi-2-tsi/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/osciladores-raros-coppock-schaff-rsi2-tsi/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/little-known-oscillators-coppock-schaff-rsi-2-and-tsi/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/wenig-bekannte-oszillatoren-coppock-schaff-rsi-2-und-tsi/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/oscillateurs-peu-connus-coppock-schaff-rsi-2-et-tsi/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/maloizvestnye-ostsillyatory-koppok-shaff-rsi-2-i-tsi/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/coppock-schaff-rsi-2-tsi/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/coppock-schaff-rsi-2-tsi/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/rsi-2-tsi/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/osciladores-pouco-conhecidos-coppock-schaff-rsi-2-e-tsi/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/oscillatori-poco-conosciuti-coppock-schaff-rsi-2-e-tsi/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/osciladores-raros-coppock-schaff-rsi2-tsi/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="冷门振荡指标：Coppock、Schaff、RSI-2 与 TSI | TradingCalculator.Pro">
+<meta property="og:description" content="在 RSI、MACD 和随机指标之外，还有一小撮几乎没人用、却带着有用想法的动量振荡指标。这里我们汇集四个：Coppock（找长期底部）、Schaff 趋势周期（更快、滞后更小的周期）、Connors RSI-2（均值回归）以及真实强度指数 TSI（高度平滑的动量）。它们都不神奇，但各自解决一件具体的事。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/coppock-schaff-rsi-2-tsi/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"冷门振荡指标：Coppock、Schaff、RSI-2 与 TSI","url":"https://tradingcalculator.pro/zh/learn/coppock-schaff-rsi-2-tsi/","inLanguage":"zh","description":"在 RSI、MACD 和随机指标之外，还有一小撮几乎没人用、却带着有用想法的动量振荡指标。这里我们汇集四个：Coppock（找长期底部）、Schaff 趋势周期（更快、滞后更小的周期）、Connors RSI-2（均值回归）以及真实强度指数 TSI（高度平滑的动量）。它们都不神奇，但各自解决一件具体的事。","teaches":["为什么还要别的振荡指标","Coppock 曲线","Schaff 趋势周期（STC）","Connors RSI-2","真实强度指数（TSI）","局限（诚实）"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"冷门振荡指标：Coppock、Schaff、RSI-2 与 TSI","item":"https://tradingcalculator.pro/zh/learn/coppock-schaff-rsi-2-tsi/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 冷门振荡指标：Coppock、Schaff、RSI-2 与 TSI</div>
+  <span class="free">7 天免费试用</span>
+  <h1>冷门振荡指标：Coppock、Schaff、RSI-2 与 TSI</h1>
+  <p class="lead">在 RSI、MACD 和随机指标之外，还有一小撮几乎没人用、却带着有用想法的动量振荡指标。这里我们汇集四个：Coppock（找长期底部）、Schaff 趋势周期（更快、滞后更小的周期）、Connors RSI-2（均值回归）以及真实强度指数 TSI（高度平滑的动量）。它们都不神奇，但各自解决一件具体的事。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=oscillators">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>为什么还要别的振荡指标</h3><p>所有振荡指标都想做同一件事：衡量价格的速度与力度，以发现衰竭或推动。经典的（RSI、MACD）有已知缺陷——滞后、趋势中给假信号——而这四个是为攻克具体问题而生：一个找大底、一个减小滞后、一个买回调、一个平滑噪声。认识它们能扩大你的工具箱。</p><h3>Coppock 曲线</h3><p>由 Edwin Coppock 于 1962 年创建，用来发现长期市场“底部”（为月线上的指数设计）。它把两条变化率（约 11 和约 14 个月）相加并平滑。经典信号：当曲线在零下方且“转头向上”时，标出一个重要底部与长期买入区。它不适合精细择时或卖出；它是一枚长周期指南针。</p><h3>Schaff 趋势周期（STC）</h3><p>Doug Schaff 把 MACD 与随机指标的周期逻辑结合，造出一个比普通 MACD“更早”反应的振荡指标。STC 在 0 到 100 之间摆动，力图以更小的滞后捕捉周期转折，标出超买（约 75）与超卖（约 25）。它比 MACD 更快更干净，代价是在无趋势市场里给出更多假信号。</p><h3>Connors RSI-2</h3><p>Larry Connors 推广了用只有 2 周期（而非 14）的 RSI 做股票和指数的均值回归：当极低的 RSI-2（例如 &lt;5）在一个大背景上涨趋势“内部”（价格在 200 均线上方）标出极度超卖时进场。它极其跳跃——不停触及极端——所以只有配上清晰的趋势过滤和严格的离场规则才管用。</p><h3>真实强度指数（TSI）</h3><p>William Blau 的 TSI 是一个“双重”平滑的动量振荡指标：对价格变动施加两条指数均线以滤除噪声，留下一条穿越零线与信号线的干净曲线。它的优点是假信号比原始动量更少，背离也相当可靠；代价是双重平滑带来一些滞后。</p><h3>局限（诚实）</h3><p>这些振荡指标没有一个是印钞机：它们都源自过去的价格，所以落后；在强趋势里，任何振荡指标都会饱和并误导。别把它们全堆上——你会得到互相矛盾的信号；挑一个契合你风格的（Coppock 用于持仓做多、RSI-2 用于回归等），用数据检验，并配合共振与风险管理。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>全仓保证金 | TradingCalculator.Pro</title>
+<meta name="description" content="十一个模块，讲清决定一个杠杆账户能否存活的机制：保证金是什么、经纪商凭什么把你平掉、为什么加仓阶梯的第二级几乎从来成交不了，以及为什么提高杠杆并不能让你承担更多风险。课程中的每一个数字都能在面板的阶梯模拟器里复现。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/cross-margin/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/margen-cruzado-margin-call-y-stop-out/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/cross-margin/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/cross-margin/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/marge-croisee/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/kross-marzha/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/cross-margin/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/cross-margin/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/cross-margin/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/margem-cruzada/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/margine-incrociato/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/margen-cruzado-margin-call-y-stop-out/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="全仓保证金 | TradingCalculator.Pro">
+<meta property="og:description" content="十一个模块，讲清决定一个杠杆账户能否存活的机制：保证金是什么、经纪商凭什么把你平掉、为什么加仓阶梯的第二级几乎从来成交不了，以及为什么提高杠杆并不能让你承担更多风险。课程中的每一个数字都能在面板的阶梯模拟器里复现。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/cross-margin/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"全仓保证金","url":"https://tradingcalculator.pro/zh/learn/cross-margin/","inLanguage":"zh","description":"十一个模块，讲清决定一个杠杆账户能否存活的机制：保证金是什么、经纪商凭什么把你平掉、为什么加仓阶梯的第二级几乎从来成交不了，以及为什么提高杠杆并不能让你承担更多风险。课程中的每一个数字都能在面板的阶梯模拟器里复现。","teaches":["公式","这个误解为什么昂贵","四个数字","两条阈值线","两者各自怎么运作","什么时候全仓才是对的选择","两段距离，实测","而且保证金本身也在动","实算案例","什么价格才解锁它","该做的检查","三条规则","警报信号","确实会发生的事","不会发生的事","模型很重要，而且非常重要","数据","天花板","几乎没人提的细节","量级","图表上看不到的东西","破产公式","取舍","一致性检验","上限","在框架之外失去的东西"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"全仓保证金","item":"https://tradingcalculator.pro/zh/learn/cross-margin/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 全仓保证金</div>
+  <span class="free">7 天免费试用</span>
+  <h1>全仓保证金</h1>
+  <p class="lead">十一个模块，讲清决定一个杠杆账户能否存活的机制：保证金是什么、经纪商凭什么把你平掉、为什么加仓阶梯的第二级几乎从来成交不了，以及为什么提高杠杆并不能让你承担更多风险。课程中的每一个数字都能在面板的阶梯模拟器里复现。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=cross-margin">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>公式</h3><p>保证金 = 手数 × 合约规模 × 价格 ÷ 杠杆。XAUUSD 一手是 100 金衡盎司，所以在 4,600 美元、1:500 时，一手占用 920 美元，却控制着 460,000 美元的黄金。</p><h3>这个误解为什么昂贵</h3><p>如果你以为自己冒的是 920 美元的风险，你就会按 920 美元来定仓位。但黄金走 10 美元，这一手就是 1,000 美元：你已经亏得比被扣的保证金还多。保证金限制的是你能「开」多少，从来不是你能亏多少。</p><h3>四个数字</h3><p>余额是已实现的钱。净值是余额加浮动盈亏。已用保证金是持仓占用的部分。可用保证金是净值减已用保证金，而它是唯一决定下一笔委托能否成交的量。</p><h3>两条阈值线</h3><p>追加保证金通知通常在 100 % 附近，强平线在 20 % 到 50 % 之间，视经纪商而定；欧盟的保证金平仓规则将其定为最低所需保证金的 50 %。前者只是警告；后者会自动平仓，从亏得最多的那笔开始。行情快速时，你可能连警告都没看到就跨过了两条线。</p><h3>两者各自怎么运作</h3><p>逐仓下每笔仓位有自己的担保品，它被强平不会波及其他仓位。全仓下全部净值为所有仓位担保，因此一笔亏损仓位会吃掉其他仓位的缓冲。</p><h3>什么时候全仓才是对的选择</h3><p>当敞口彼此相关或已对冲、杠杆适中、几笔交易构成同一个想法时。那种场合下它能避免因一根影线被强平。而在激进加仓时它恰恰相反：因为所有仓位共享担保品，它缩短了追加保证金通知与强平之间的距离。</p><h3>两段距离，实测</h3><p>以 1:500 在 4,328.15 买入五手黄金。逐仓下，仓位在 8.66 美元处亏光自己的保证金——价格 ÷ 杠杆，与规模无关。全仓下，余额 5,000 美元、强平线 50 %，平仓在 5.68 美元处就到来：即 4,322.47。担保品「更多」的账户反而先被强平，因为经纪商的阈值不是亏光保证金，而是跌破它的一半。</p><h3>而且保证金本身也在动</h3><p>在差价合约中，保证金按市价重新计算，不会冻结在入场价：多头价格下跌时，所需保证金也随之缩小。它对缓冲的影响很小——这里从 5.672 美元变成 5.678 美元——而且对你有利，所以危险并不在这里。值得知道恰恰是出于相反的理由：把这一点说成全仓最大问题的人，没有算过账。问题在于阈值。</p><h3>实算案例</h3><p>账户 5,000 美元，1:500，五手黄金在 4,328.15。已用保证金 4,328.15，可用保证金 671.85。价格上涨五分钱，你想再加五手：需要 4,328.20，而你有 696.80。委托被拒；只放得下 0.80 手。整套计划依赖的那一步根本没有发生。</p><h3>什么价格才解锁它</h3><p>第二级要到 4,335.49 才成交，而那时可用保证金正好归零。也就是说：要让一个五分钱间距的阶梯跑通，价格得先走完七美元——是你计划间距的一百倍。改成 10 美元间距，同样的计划就能完整成交，因为浮动盈利增长得比保证金更快。这正是金字塔加仓与胡乱堆仓的区别。</p><h3>该做的检查</h3><p>一级的成本不是「手数 × 单位保证金」，而是该级前后已用保证金的差额。只有这样，当该级方向相反、减少净敞口而不是增加时，结果才正确。</p><h3>三条规则</h3><p>只在得到确认时加仓、每一级都小于前一级、每次加仓都上移止损，使总风险永不超过第一次入场时设定的水平。去掉其中任何一条，这套技术就变成了它的反面。</p><h3>警报信号</h3><p>如果随着加仓，距离强平的缓冲在「变窄」，你做的就不是金字塔加仓。在模拟器里以 10 美元顺势间距的阶梯中，缓冲从第一级后的 5.68 美元增加到第五级完成后的 17.65 美元：交易在盈利，净值涨得比保证金快。把同一个阶梯改成逆势，第二级就已经进不去了。</p><h3>确实会发生的事</h3><p>在净额保证金模型下，五手多单加五手空单，敞口为零、保证金为零：保证金比例从 116 % 变为未定义，即便你几乎没有可用保证金，委托也能成交。</p><h3>不会发生的事</h3><p>如果你用这笔腾出的保证金再加五手多单，你的净头寸又是五手，保证金回到原来的金额。同一个起点，只是少了四笔交易的点差。而解开锁仓时，全部敞口会瞬间回来：在保证金比例 100 % 时平掉保护腿，下一个跳价就会触发强平。</p><h3>模型很重要，而且非常重要</h3><p>并非所有经纪商都做净额结算。在双腿全额收取保证金的模型下，同样这五手对冲仓位的保证金会从 4,328 美元升到 8,656 美元，保证金比例从 116 % 跌到 58 %：距离 50 % 的强平线只剩八个百分点。原本用来保护的对冲，恰恰成了触发强平的原因。请事先在品种规格表里确认，而不是事后。</p><h3>数据</h3><p>以 5,000 美元、黄金 4,328.15、要求承受 70 美元逆向波动而不被强平计算：1:200 可开 0.620 手；1:500 为 0.673；1:1000 为 0.693；1:2000 为 0.704。从 1:500 提到 1:1000，可防守规模只多出 3 %。</p><h3>天花板</h3><p>这个公式收敛到 余额 ÷（合约 × 缓冲）。5,000 美元、70 美元缓冲时，上限是 0.714 手，任何杠杆都无法突破。当一个账户撑不起一笔仓位时，问题出在本金，而不是杠杆。</p><h3>几乎没人提的细节</h3><p>对一笔「已经定好规模」的仓位而言，更高的杠杆确实带来更多缓冲：五手在 1:500 下能承受 5.68 美元，在 1:1000 下能承受 7.84 美元，因为强平阈值是一个更小保证金的百分比。杠杆从来都不是危险。危险的是它诱使你开出的规模。</p><h3>量级</h3><p>黄金 0.25 美元的点差，五手就是每笔 125 美元。开锁再解锁一共四笔交易：500 美元。相对实算案例里 671.85 美元的可用保证金，光是执行就吃掉 74 %。</p><h3>图表上看不到的东西</h3><p>点差在宏观数据发布与周末收盘前会扩大。隔夜利息每晚收取，锁仓时通常两条腿都收。周日开盘的跳空可能整个越过你的强平位：强平按第一个可成交价格执行，而不是你算出来的那个。</p><h3>破产公式</h3><p>无漂移时，先达到 +a 而不是先亏掉 −b 的概率是 b ÷ (a + b)。缓冲 7.66 美元、目标 260 美元时结果是 2.9 %。加上一个强劲上升趋势——每天 20 美元、日波动率 60 美元——概率升到 8.6 %：仍然是一套十次里失败九次的计划。</p><h3>取舍</h3><p>减小入场规模会提高缓冲与概率，代价是同样的金额盈利需要更长的行情。这个取舍就是全部的决策，而它在第一笔委托时就定下了：之后不平仓就无法更改。</p><h3>一致性检验</h3><p>如果一套计划要求你在开始之前先把账户翻三倍，而你确实做得到，那这套计划就是多余的：重复做那件事本身能走得更远，而且从不经过追加保证金通知。任何依赖于「先解决一个比自身更难的问题」的计划，都是循环论证。</p><h3>上限</h3><p>主要货币对 30:1；非主要货币对、主要指数与黄金 20:1；其他商品与非主要指数 10:1；个股 5:1；加密货币 2:1。此外还有在最低所需保证金 50 % 处的强制平仓，以及按账户计的负余额保护。</p><h3>在框架之外失去的东西</h3><p>按 20:1，五手黄金在 4,330 需要 108,250 美元保证金，而不是 4,330 美元。高杠杆只出现在伯利兹、塞舌尔或毛里求斯等司法辖区的机构，那里负余额保护并无法规保障，申诉途径也不同。在使用杠杆交易之前，请书面确认你是否享有这项保护。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li><li><a href="https://tradingcalculator.pro/zh/learn/valuing-a-company-in-depth/">深入估值一家公司</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

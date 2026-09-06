@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>时间与周期：斐波那契时间与赫斯特周期 | TradingCalculator.Pro</title>
+<meta name="description" content="几乎所有技术分析都痴迷于“价格”（在哪），却忘了“时间”（何时）。本模块用两种冷门方法找回这个被遗忘的维度：斐波那契时间区（预判市场“何时”可能转向）与赫斯特周期（价格是不同长度、层层嵌套的波之和这一想法）。它们是强大但主观的想法；我们如实讲给你听。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/tiempo-ciclos-fibonacci-temporal-hurst/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/zeit-und-zyklen-fibonacci-zeit-und-hurst-zyklen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/temps-et-cycles-fibonacci-temporel-et-cycles-de-hurst/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/vremya-i-tsikly-vremennoy-fibonachchi-i-tsikly-hersta/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/tempo-e-ciclos-fibonacci-temporal-e-os-ciclos-de-hurst/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/tempo-e-cicli-fibonacci-temporale-e-i-cicli-di-hurst/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/tiempo-ciclos-fibonacci-temporal-hurst/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="时间与周期：斐波那契时间与赫斯特周期 | TradingCalculator.Pro">
+<meta property="og:description" content="几乎所有技术分析都痴迷于“价格”（在哪），却忘了“时间”（何时）。本模块用两种冷门方法找回这个被遗忘的维度：斐波那契时间区（预判市场“何时”可能转向）与赫斯特周期（价格是不同长度、层层嵌套的波之和这一想法）。它们是强大但主观的想法；我们如实讲给你听。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"时间与周期：斐波那契时间与赫斯特周期","url":"https://tradingcalculator.pro/zh/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/","inLanguage":"zh","description":"几乎所有技术分析都痴迷于“价格”（在哪），却忘了“时间”（何时）。本模块用两种冷门方法找回这个被遗忘的维度：斐波那契时间区（预判市场“何时”可能转向）与赫斯特周期（价格是不同长度、层层嵌套的波之和这一想法）。它们是强大但主观的想法；我们如实讲给你听。","teaches":["被遗忘的维度：时间","斐波那契时间区","时间簇（共振）","赫斯特周期","FLD（未来分界线）","局限（诚实）"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"时间与周期：斐波那契时间与赫斯特周期","item":"https://tradingcalculator.pro/zh/learn/time-and-cycles-fibonacci-time-and-hurst-cycles/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 时间与周期：斐波那契时间与赫斯特周期</div>
+  <span class="free">7 天免费试用</span>
+  <h1>时间与周期：斐波那契时间与赫斯特周期</h1>
+  <p class="lead">几乎所有技术分析都痴迷于“价格”（在哪），却忘了“时间”（何时）。本模块用两种冷门方法找回这个被遗忘的维度：斐波那契时间区（预判市场“何时”可能转向）与赫斯特周期（价格是不同长度、层层嵌套的波之和这一想法）。它们是强大但主观的想法；我们如实讲给你听。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=time-cycles">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>被遗忘的维度：时间</h3><p>转折不仅发生在某个“价格”，也发生在某个“时刻”。时间分析试图回答“何时”：若一个周期约 20 个交易日，下一个底部大约应在上一个之后 20 个交易日到来。它不取代价格分析（支撑、趋势）：它是“补充”，帮你在更可能转折的时间窗口里保持警觉。</p><h3>斐波那契时间区</h3><p>它们是从一个重要枢轴点起、按斐波那契数列间隔（1、2、3、5、8、13、21…个交易日或 K 线）放置的“竖线”。想法是市场倾向于在这些日期附近做出转折或节奏变化。与斐波那契回撤（关乎价格）不同，这些只作用于时间轴：它们不说在什么价格，而是大约在什么时候。</p><h3>时间簇（共振）</h3><p>就像在价格上找价位共振一样，在时间上你要找“日期”的共振：当多条时间投影（不同周期、来自不同枢轴的不同斐波那契区）指向同一个窗口时，那个区域就变“热”。一个时间簇若还与一个重要价位重合，就是最值得盯着看会不会转折的地方。</p><h3>赫斯特周期</h3><p>J. M. Hurst 提出，价格是若干不同长度、层层嵌套的周期波之“和”（一个 40 天周期里含一个 20 天的，其中又含一个 10 天的……）。他的“名义模型”给出典型的大致时长。用处：若你知道较大和较小的周期各处于什么相位，就能预判多个底部何时同时对齐——那正是最强走势出现之时。</p><h3>FLD（未来分界线）</h3><p>赫斯特最实用的工具是 FLD（Future Line of Demarcation，未来分界线）：把价格向右平移你所研究周期长度的“一半”。当价格穿越自己的 FLD 时，就提示该周期转折的大致时机，并投射出一个目标。这是把周期理论变成“何时行动”这一具体信号的简单办法。</p><h3>局限（诚实）</h3><p>要怀疑、要诚实：市场周期不是瑞士表。它们会改变长度、错位，有时消失，而事后在图上画出“奏效”的时间区极其容易。没有确凿证据表明这些日期具有神奇的预测力；它们真正的价值是约束你的注意力（知道何时该看）并与价格结合。永远别只凭一个日期交易：等价格确认。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

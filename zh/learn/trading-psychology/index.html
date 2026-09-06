@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>交易心理学 | TradingCalculator.Pro</title>
+<meta name="description" content="心理学是成功交易者与失败者之间最决定性的因素。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/trading-psychology/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/psicologia-del-trading/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/trading-psychology/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/trading-psychologie/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/psychologie-du-trading/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/psihologiya-treydinga/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/trading-psychology/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/trading-psychology/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/trading-psychology/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/psicologia-do-trading/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/psicologia-del-trading/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/psicologia-del-trading/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="交易心理学 | TradingCalculator.Pro">
+<meta property="og:description" content="心理学是成功交易者与失败者之间最决定性的因素。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/trading-psychology/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"交易心理学","url":"https://tradingcalculator.pro/zh/learn/trading-psychology/","inLanguage":"zh","description":"心理学是成功交易者与失败者之间最决定性的因素。","teaches":["FOMO（害怕错过）","确认偏差","损失厌恶","羊群心理","报复性交易","过度自信","近因偏差","锚定效应","赌徒谬误","沉没成本谬误","贪婪","恐惧","希望","亢奋","管理连续亏损","盈利中的纪律","过度交易","交易例行程序","接受亏损","耐心：等待入场","控制上头（tilt）","减仓，而不是加倍","诊断：是你还是市场？","以小仓重建信心","睡眠","压力与屏幕时间","职业倦怠"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"交易心理学","item":"https://tradingcalculator.pro/zh/learn/trading-psychology/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 交易心理学</div>
+  <span class="free">7 天免费试用</span>
+  <h1>交易心理学</h1>
+  <p class="lead">心理学是成功交易者与失败者之间最决定性的因素。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=psychology">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>FOMO（害怕错过）</h3><p>害怕错过机会。解决方案：始终等待您的设置。</p><h3>确认偏差</h3><p>您只寻找确认您预设想法的信息。</p><h3>损失厌恶</h3><p>失去的痛苦是获胜喜悦的2倍。</p><h3>羊群心理</h3><p>您在没有自己分析的情况下跟随人群。</p><h3>报复性交易</h3><p>试图用更大、无计划的交易立刻扳回亏损。这是把小亏变成灾难的最快方式。解决办法：停下并离开。</p><h3>过度自信</h3><p>连胜后你加大仓位、无视规则，以为自己“看透了”。市场惩罚傲慢；多数大亏就发生在大赚之后。</p><h3>近因偏差</h3><p>过度看重刚发生的事：几次亏损就放弃好策略；几次盈利就自觉无敌。用数百笔交易而非最近三笔来评判你的系统。</p><h3>锚定效应</h3><p>执着于某个参考价（你的买入价、之前的高点），据此而非当前现实做决定。“我回本了，现在卖”不是分析，而是锚定。</p><h3>赌徒谬误</h3><p>认为连亏几次后“该”赢了（或反之）。每笔交易都是独立的——市场不欠你什么。为“稳妥回本”而加仓，是披着数学外衣的破产。</p><h3>沉没成本谬误</h3><p>仅因已投入金钱、时间或自尊而继续持有亏损仓位。已亏的不会因死扛而回来；唯一有效的问题是：“如果是今天，我会在这个价位入场吗？”</p><h3>贪婪</h3><p>想要更多：不在目标位平仓、加仓、过度杠杆。它会把盈利单变成亏损单。解药：入场前就定好目标和规则。</p><h3>恐惧</h3><p>过早平掉盈利、让你错过好机会，或在亏损中僵住。健康的恐惧尊重止损；有害的恐惧让你偏离计划。解药：只用输得起的钱去冒险。</p><h3>希望</h3><p>让你死扛亏损单、“盼着它回来”的情绪。希望不是策略：当你发现自己在盼望而非分析时，很可能你早该离场了。</p><h3>亢奋</h3><p>连赢数次后的无敌感。此时你会放松警惕、无视风险，把赚的又还回去。庆祝的方式是关掉电脑，而不是加倍下注。</p><h3>管理连续亏损</h3><p>连续亏损是正常的。解决方案：暂时减少仓位规模。</p><h3>盈利中的纪律</h3><p>获胜后，兴奋会增加您的风险。</p><h3>过度交易</h3><p>因无聊而交易。质量&gt;数量。</p><h3>交易例行程序</h3><p>例行程序创造纪律。</p><h3>接受亏损</h3><p>亏损是做生意的成本，就像店铺租金，而非个人失败。职业交易者经常亏；关键是亏得小、赚得大。</p><h3>耐心：等待入场</h3><p>不必每天都交易。最好的机会很少；在其间强行做平庸的交易正是侵蚀账户的原因。持有现金也是一种仓位。</p><h3>控制上头（tilt）</h3><p>“上头”是在亏损或自觉被市场亏待后带着情绪交易。识别信号（愤怒、着急、加仓）并离开：10分钟的休息比任何指标都更能拯救账户。</p><h3>减仓，而不是加倍</h3><p>回撤期把风险减半，直到信心和状态恢复。为“快速爬出坑”而加倍下注，只是挖得更快。</p><h3>诊断：是你还是市场？</h3><p>查看日志：若你违反了规则，问题在你（回归纪律）。若你都遵守了，可能是市场状态变了——调整或暂停系统。</p><h3>以小仓重建信心</h3><p>糟糕的阶段后，用最小仓位、只做A+形态回归。最初几笔的目标不是赚钱，而是重新做到良好执行。</p><h3>睡眠</h3><p>睡眠不足7小时，你的风险容忍度飙升、判断力下降——烧掉账户的完美配方。没睡好=减仓或休息一天。</p><h3>压力与屏幕时间</h3><p>不停盯盘不会改善交易——只会滋生焦虑和过度操作。设定交易时段、使用警报，把生活放在屏幕之外。</p><h3>职业倦怠</h3><p>迹象：交易毫无热情、事事烦躁、不再复盘日志。解药是停几天或几周——市场一直都在；你的资金和健康未必。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

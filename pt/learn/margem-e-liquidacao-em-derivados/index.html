@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Margem e liquidação em derivados | TradingCalculator.Pro</title>
+<meta name="description" content="Se opera futuros ou perpétuos com alavancagem, a margem é a sua vida. A maioria das contas não morre por uma má análise, mas por não perceber COMO e QUANDO…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/pt/learn/margem-e-liquidacao-em-derivados/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/margen-y-liquidacion/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/margin-liquidation-bei-derivaten/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/marge-et-liquidation-sur-derives/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/marzha-i-likvidatsiya-v-derivativah/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/margem-e-liquidacao-em-derivados/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/margine-e-liquidazione-nei-derivati/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/margen-y-liquidacion/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Margem e liquidação em derivados | TradingCalculator.Pro">
+<meta property="og:description" content="Se opera futuros ou perpétuos com alavancagem, a margem é a sua vida. A maioria das contas não morre por uma má análise, mas por não perceber COMO e QUANDO…">
+<meta property="og:url" content="https://tradingcalculator.pro/pt/learn/margem-e-liquidacao-em-derivados/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="pt_PT">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Margem e liquidação em derivados","url":"https://tradingcalculator.pro/pt/learn/margem-e-liquidacao-em-derivados/","inLanguage":"pt","description":"Se opera futuros ou perpétuos com alavancagem, a margem é a sua vida. A maioria das contas não morre por uma má análise, mas por não perceber COMO e QUANDO…","teaches":["Margem isolada (isolated)","Margem cruzada (cross)","Modo de posição: unidirecional (faz média) vs cobertura (separado)","Preço de liquidação e margem de manutenção","Mark price vs last price vs preço índice","Funding rate (taxa de financiamento)","Pavios de liquidação e cascatas","Motores antimanipulação (tipo MP Shield)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Início","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Aprender","item":"https://tradingcalculator.pro/pt/learn/"},{"@type":"ListItem","position":3,"name":"Margem e liquidação em derivados","item":"https://tradingcalculator.pro/pt/learn/margem-e-liquidacao-em-derivados/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/pricing">Preços</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Início</a> › <a href="https://tradingcalculator.pro/pt/learn/">Aprender</a> › Margem e liquidação em derivados</div>
+  <span class="free">7 dias grátis</span>
+  <h1>Margem e liquidação em derivados</h1>
+  <p class="lead">Se opera futuros ou perpétuos com alavancagem, a margem é a sua vida. A maioria das contas não morre por uma má análise, mas por não perceber COMO e QUANDO a exchange o liquida. Este módulo explica os modos de margem, os modos de posição, o preço de liquidação e como se proteger dos pavios de manipulação.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=margin-liq">Abrir o módulo completo →</a></p>
+  
+  
+  <div class="card"><h2>O que vai aprender</h2><h3>Margem isolada (isolated)</h3><p>Cada posição tem A SUA própria margem: se for liquidada, perde apenas o que lhe foi atribuído e o resto da conta fica intacto. É o modo recomendado para principiantes e para alavancagem alta, porque o dano máximo está limitado à partida. Contra: a liquidação chega mais cedo, porque só essa margem o apoia.</p><h3>Margem cruzada (cross)</h3><p>TODO o seu saldo disponível apoia TODAS as suas posições. A liquidação fica mais longe (mais almofada), mas se o preço for fortemente contra si, uma só operação pode esvaziar a conta INTEIRA. Útil para coberturas e traders experientes com risco medido; letal combinada com sobrealavancagem e sem stop loss.</p><h3>Modo de posição: unidirecional (faz média) vs cobertura (separado)</h3><p>No modo unidirecional (one-way) só pode estar longo OU curto: cada entrada extra na mesma direção faz MÉDIA numa única posição, com novo preço médio e nova liquidação. No modo cobertura (hedge) pode ter um longo E um curto abertos ao mesmo tempo, separados e cada um com a sua margem. O hedge parece &quot;seguro&quot;, mas paga dupla comissão e duplo funding — e muitas vezes só esconde não querer aceitar que a entrada era má.</p><h3>Preço de liquidação e margem de manutenção</h3><p>A exchange exige um mínimo para manter a posição aberta (margem de manutenção, ~0,4-1%). Quando as perdas não realizadas comem a sua margem até esse mínimo, o motor fecha a sua posição à força e ainda cobra comissão de liquidação. A 100x basta um movimento de ~0,5-0,8% contra si. Olhe SEMPRE para o preço de liquidação antes de confirmar — e nunca o use como &quot;stop grátis&quot;: perde mais do que com um SL real.</p><h3>Mark price vs last price vs preço índice</h3><p>Last price = último cruzamento NESSA exchange (manipulável com pouco volume). Preço índice = média ponderada do spot em várias exchanges grandes. Mark price = índice ajustado pelo basis; é o preço &quot;justo&quot; com que as plataformas sérias calculam o PnL não realizado e as LIQUIDAÇÕES. Se a sua plataforma liquida pelo last price, um único pavio local pode executá-lo mesmo que o mercado global nem sequer tenha tocado no seu nível. Verifique-o na documentação antes de depositar.</p><h3>Funding rate (taxa de financiamento)</h3><p>Os perpétuos não vencem; o funding mantém o seu preço colado ao spot: normalmente a cada 8h, os longos pagam aos curtos se o perpétuo cotar acima do índice, e ao contrário. Aguentar posição contra um funding alto sangra-o diariamente (0,01% × 3/dia parece pouco; com 10x já não é). Funding extremo (&gt;0,1%/8h) = mercado saturado numa direção: sinal contrarian e combustível para squeezes.</p><h3>Pavios de liquidação e cascatas</h3><p>Os níveis de liquidação de milhares de traders agrupam-se em zonas previsíveis (abaixo de mínimos óbvios, acima de máximos). Um empurrão até essa zona dispara liquidações forçadas, que são ordens a mercado → movem mais o preço → liquidam o grupo seguinte: cascata. Em exchanges pequenas com pouca liquidez, uma &quot;scam wick&quot; pode varrer posições sem que o resto do mercado quase se mexa. É por isso que importam o mark price e ONDE opera.</p><h3>Motores antimanipulação (tipo MP Shield)</h3><p>Algumas exchanges — a Margex com o seu MP Shield™, e em geral as sérias via mark price composto — agregam o preço de mais de 12 fontes de liquidez e descartam desvios bruscos de uma única fonte, para que um pavio artificial numa exchange não o possa liquidar. Não é magia: NÃO o protege de um movimento real do mercado. Verifique na sua plataforma: liquida por mark/índice composto?, publica a composição do índice?, tem fundo de seguro e ADL transparente?</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
+  <div class="related card"><h2>Mais temas</h2><ul><li><a href="https://tradingcalculator.pro/pt/learn/margem-cruzada/">Margem cruzada</a></li><li><a href="https://tradingcalculator.pro/pt/learn/comece-aqui/">Comece aqui</a></li><li><a href="https://tradingcalculator.pro/pt/learn/fundamentos-do-trading/">Fundamentos do Trading</a></li><li><a href="https://tradingcalculator.pro/pt/learn/mecanica-do-mercado/">Mecânica do Mercado</a></li><li><a href="https://tradingcalculator.pro/pt/learn/estilos-de-trading/">Estilos de Trading</a></li><li><a href="https://tradingcalculator.pro/pt/learn/analise-fundamental/">Análise Fundamental</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.</div>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Order flow / lettura del tape | TradingCalculator.Pro</title>
+<meta name="description" content="Il prezzo è il risultato; l'order flow è la causa. Qui impari a leggere la reale pressione in acquisto e in vendita —chi è aggressivo, dove c'è liquidità…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/it/learn/order-flow-lettura-del-tape/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/order-flow-lectura-de-cinta/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/order-flow-tape-reading/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/order-flow-tape-reading/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/order-flow-lecture-de-la-bande/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/order-flow-chtenie-lenty/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/order-flow-tape-reading/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/order-flow-tape-reading/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/order-flow-tape-reading/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/order-flow-leitura-de-fita/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/order-flow-lettura-del-tape/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/order-flow-lectura-de-cinta/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Order flow / lettura del tape | TradingCalculator.Pro">
+<meta property="og:description" content="Il prezzo è il risultato; l'order flow è la causa. Qui impari a leggere la reale pressione in acquisto e in vendita —chi è aggressivo, dove c'è liquidità…">
+<meta property="og:url" content="https://tradingcalculator.pro/it/learn/order-flow-lettura-del-tape/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="it_IT">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Order flow / lettura del tape","url":"https://tradingcalculator.pro/it/learn/order-flow-lettura-del-tape/","inLanguage":"it","description":"Il prezzo è il risultato; l'order flow è la causa. Qui impari a leggere la reale pressione in acquisto e in vendita —chi è aggressivo, dove c'è liquidità…","teaches":["Che cos'è l'order flow?","Il book (DOM / profondità)","Il tape (time & sales) e gli aggressori","Delta di volume","Footprint / grafico a cluster","Assorbimento","Ordini iceberg","Point of control (POC) e area di valore"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Impara","item":"https://tradingcalculator.pro/it/learn/"},{"@type":"ListItem","position":3,"name":"Order flow / lettura del tape","item":"https://tradingcalculator.pro/it/learn/order-flow-lettura-del-tape/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/it/learn/">Impara</a><a href="https://tradingcalculator.pro/it/tools/">Calcolatrici</a><a href="https://tradingcalculator.pro/it/markets/">Mercati</a><a href="https://tradingcalculator.pro/it/strategies/">Strategie in opzioni</a><a href="https://tradingcalculator.pro/it/patterns/">Pattern Grafici</a><a href="https://tradingcalculator.pro/it/candles/">Pattern di Candele</a><a href="https://tradingcalculator.pro/pricing">Prezzi</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/it/learn/">Impara</a> › Order flow / lettura del tape</div>
+  <span class="free">7 giorni gratis</span>
+  <h1>Order flow / lettura del tape</h1>
+  <p class="lead">Il prezzo è il risultato; l'order flow è la causa. Qui impari a leggere la reale pressione in acquisto e in vendita —chi è aggressivo, dove c'è liquidità, dove viene assorbita— invece di guardare solo la candela già chiusa. Richiede dati di livello 2 e pratica, ma è la lente che usano gli intraday professionisti.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=order-flow">Apri il modulo completo →</a></p>
+  
+  
+  <div class="card"><h2>Cosa imparerai</h2><h3>Che cos'è l'order flow?</h3><p>Leggere gli ordini reali che muovono il prezzo: chi compra e vende in modo aggressivo (a mercato) e chi mette muri di liquidità (in limite). Il grafico ti dice cosa è SUCCESSO; l'order flow ti dice cosa sta succedendo ORA e perché. Non è una sfera di cristallo: è contesto di brevissimo termine.</p><h3>Il book (DOM / profondità)</h3><p>Mostra gli ordini in attesa: le vendite (ask) sopra il prezzo e gli acquisti (bid) sotto. La size a ogni livello dice dov'è la liquidità —un muro grande frena il prezzo; la sua sparizione improvvisa spesso precede un movimento—. Attenzione: si può falsificare (spoofing).</p><h3>Il tape (time &amp; sales) e gli aggressori</h3><p>Ogni operazione eseguita colpisce il bid (venditore aggressivo, si colora di rosso) o l'ask (compratore aggressivo, verde). Un fiume di esecuzioni grandi sull'ask = compratori che spingono. La velocità e la size del tape dicono se il movimento ha convinzione o è fumo.</p><h3>Delta di volume</h3><p>Il netto tra volume aggressivo in acquisto e in vendita. Delta positivo = comandano i compratori a mercato. Il segnale potente è la DIVERGENZA: il prezzo sale ma il delta cala (acquisti aggressivi che si esauriscono) → possibile inversione. Il delta cumulato della giornata mostra chi sta vincendo il braccio di ferro.</p><h3>Footprint / grafico a cluster</h3><p>Apre ogni candela al suo interno: mostra quanto volume è passato sul bid e sull'ask a OGNI prezzo. Vedi dove si è negoziato davvero e gli squilibri (molto più da un lato). Un footprint con acquisti aggressivi sul minimo della candela e senza continuazione = trappola.</p><h3>Assorbimento</h3><p>Arriva una valanga di aggressione (molto volume a mercato) ma il prezzo NON si muove: un ordine limite enorme sta assorbendo tutto. È tra i segnali di inversione più affidabili —qualcuno di grosso sta difendendo quel livello—. Il contrario di una rottura: la pressione sbatte contro un muro e si esaurisce.</p><h3>Ordini iceberg</h3><p>Un ordine gigante spezzato e nascosto: mostra solo una piccola porzione e, ogni volta che se la mangiano, si ricarica da solo allo stesso prezzo. Sul tape vedi esecuzioni ripetute a un livello senza che la size visibile scenda. Segnala un forte interesse istituzionale a quel prezzo.</p><h3>Point of control (POC) e area di valore</h3><p>Dal profilo di volume: il POC è il prezzo dove si è negoziato DI PIÙ nella seduta, e l'area di valore è la zona in cui è avvenuto il 70% del volume. Agiscono da calamita e da supporto/resistenza intraday —il prezzo tende a tornare al POC e a rimbalzare sui bordi dell'area di valore.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
+  <div class="related card"><h2>Altri temi</h2><ul><li><a href="https://tradingcalculator.pro/it/learn/margine-incrociato/">Margine incrociato</a></li><li><a href="https://tradingcalculator.pro/it/learn/inizia-da-qui/">Inizia da qui</a></li><li><a href="https://tradingcalculator.pro/it/learn/fondamenti-del-trading/">Fondamenti del Trading</a></li><li><a href="https://tradingcalculator.pro/it/learn/meccanica-del-mercato/">Meccanica del Mercato</a></li><li><a href="https://tradingcalculator.pro/it/learn/stili-di-trading/">Stili di Trading</a></li><li><a href="https://tradingcalculator.pro/it/learn/analisi-fondamentale/">Analisi Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/it/learn/">Impara</a><a href="https://tradingcalculator.pro/it/tools/">Calcolatrici</a><a href="https://tradingcalculator.pro/it/markets/">Mercati</a><a href="https://tradingcalculator.pro/it/strategies/">Strategie in opzioni</a><a href="https://tradingcalculator.pro/it/patterns/">Pattern Grafici</a><a href="https://tradingcalculator.pro/it/candles/">Pattern di Candele</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.</div>
+</div></footer>
+</body>
+</html>

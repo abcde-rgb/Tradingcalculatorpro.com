@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>DeMark TD Sequential: o contador de esgotamento que as instituições usam | TradingCalculator.Pro</title>
+<meta name="description" content="O TD Sequential de Tom DeMark é uma ferramenta de timing contra-tendência que tenta assinalar o ponto exato em que uma tendência se esgota e fica vulnerável…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/pt/learn/demark-td-sequential-o-contador-de-esgotamento-que-as/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/demark-td-sequential-setup-9-countdown-13/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/demark-td-sequential-the-exhaustion-counter-institutions-use/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/demark-td-sequential-der-erschopfungszahler-den/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/demark-td-sequential-le-compteur-d-epuisement-qu-utilisent/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/demark-td-sequential-schetchik-istoscheniya-kotorym/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/demark-td/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/td/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/td-sequential/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/demark-td-sequential-o-contador-de-esgotamento-que-as/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/demark-td-sequential-il-contatore-di-esaurimento-che-usano/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/demark-td-sequential-setup-9-countdown-13/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="DeMark TD Sequential: o contador de esgotamento que as instituições usam | TradingCalculator.Pro">
+<meta property="og:description" content="O TD Sequential de Tom DeMark é uma ferramenta de timing contra-tendência que tenta assinalar o ponto exato em que uma tendência se esgota e fica vulnerável…">
+<meta property="og:url" content="https://tradingcalculator.pro/pt/learn/demark-td-sequential-o-contador-de-esgotamento-que-as/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="pt_PT">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"DeMark TD Sequential: o contador de esgotamento que as instituições usam","url":"https://tradingcalculator.pro/pt/learn/demark-td-sequential-o-contador-de-esgotamento-que-as/","inLanguage":"pt","description":"O TD Sequential de Tom DeMark é uma ferramenta de timing contra-tendência que tenta assinalar o ponto exato em que uma tendência se esgota e fica vulnerável…","teaches":["O que é e para que serve","O TD Price Flip (o disparador)","O Setup: a contagem de 9","Setup \"aperfeiçoado\"","O Countdown: a contagem de 13","Como usá-lo bem","Limites (honestidade)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Início","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Aprender","item":"https://tradingcalculator.pro/pt/learn/"},{"@type":"ListItem","position":3,"name":"DeMark TD Sequential: o contador de esgotamento que as instituições usam","item":"https://tradingcalculator.pro/pt/learn/demark-td-sequential-o-contador-de-esgotamento-que-as/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/pricing">Preços</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Início</a> › <a href="https://tradingcalculator.pro/pt/learn/">Aprender</a> › DeMark TD Sequential: o contador de esgotamento que as instituições usam</div>
+  <span class="free">7 dias grátis</span>
+  <h1>DeMark TD Sequential: o contador de esgotamento que as instituições usam</h1>
+  <p class="lead">O TD Sequential de Tom DeMark é uma ferramenta de timing contra-tendência que tenta assinalar o ponto exato em que uma tendência se esgota e fica vulnerável a uma inversão. É dos poucos indicadores &quot;raros&quot; que os gestores profissionais usam mesmo —vem de série nos terminais Bloomberg—, mas o investidor de retalho mal o conhece. Não prevê: conta o cansaço de compradores e vendedores através de duas fases, o Setup (9) e o Countdown (13).</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=demark">Abrir o módulo completo →</a></p>
+  
+  
+  <div class="card"><h2>O que vai aprender</h2><h3>O que é e para que serve</h3><p>É um indicador de esgotamento, não de tendência: procura onde um movimento foi &quot;demasiado longe, demasiado depressa&quot; e perde força. Trabalha com duas contagens encadeadas —Setup de 9 barras e Countdown de 13— e rende melhor em marcos de 4h para cima. A sua lógica é contra-tendência: avisa de possíveis fundos e topos, não de continuações.</p><h3>O TD Price Flip (o disparador)</h3><p>Antes de contar é preciso uma mudança de polaridade. Um flip de alta ocorre quando o fecho atual supera o fecho de 4 barras atrás depois de ter estado abaixo; o de baixa, ao contrário. Esse flip reinicia e arranca a contagem do Setup na direção contrária ao troço anterior.</p><h3>O Setup: a contagem de 9</h3><p>Um Setup de compra são 9 fechos consecutivos, cada um MENOR do que o fecho de 4 barras atrás; o de venda, 9 fechos consecutivos cada um MAIOR. Ao chegar ao 9 a tendência já está esticada há algum tempo e costuma aparecer uma reação ou pausa. Se a sequência se interromper antes do 9, reinicia-se do zero.</p><h3>Setup &quot;aperfeiçoado&quot;</h3><p>Nem todos os 9 valem o mesmo. O Setup considera-se &quot;aperfeiçoado&quot; quando o mínimo das barras 8 ou 9 (num setup de compra) fica abaixo dos mínimos das barras 6 e 7 —ou o máximo, num setup de venda, acima—. Esse detalhe filtra sinais fracos e dá mais fiabilidade à viragem.</p><h3>O Countdown: a contagem de 13</h3><p>Depois de completar o Setup começa o Countdown, que mede o esgotamento final. Aqui compara-se o fecho com o máximo ou mínimo de 2 barras atrás, e os números NÃO têm de ser consecutivos. Quando a série chega a 13, o mercado fica especialmente propenso a virar: é a zona de máxima vulnerabilidade da tendência.</p><h3>Como usá-lo bem</h3><p>É contra-tendência, por isso brilha combinado com níveis: um 9 ou um 13 que coincide com um suporte/resistência, um nível de Gann ou um Fibonacci é muito mais fiável. Use-o para antecipar esgotamento e afinar saídas ou entradas contrárias, de preferência em 4h/diário, e espere sempre por uma confirmação de preço antes de agir.</p><h3>Limites (honestidade)</h3><p>O TD Sequential assinala esgotamento PROVÁVEL, não uma viragem garantida: em tendências muito fortes um 9 ou um 13 podem aparecer e o preço continuar na mesma. Não é um sistema completo por si só; funciona como filtro de timing dentro de um plano com gestão de risco. Operar cada 9/13 às cegas, contra uma tendência potente, é uma forma rápida de perder.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
+  <div class="related card"><h2>Mais temas</h2><ul><li><a href="https://tradingcalculator.pro/pt/learn/margem-cruzada/">Margem cruzada</a></li><li><a href="https://tradingcalculator.pro/pt/learn/comece-aqui/">Comece aqui</a></li><li><a href="https://tradingcalculator.pro/pt/learn/fundamentos-do-trading/">Fundamentos do Trading</a></li><li><a href="https://tradingcalculator.pro/pt/learn/mecanica-do-mercado/">Mecânica do Mercado</a></li><li><a href="https://tradingcalculator.pro/pt/learn/estilos-de-trading/">Estilos de Trading</a></li><li><a href="https://tradingcalculator.pro/pt/learn/analise-fundamental/">Análise Fundamental</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.</div>
+</div></footer>
+</body>
+</html>

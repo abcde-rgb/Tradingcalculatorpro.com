@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Коробка Ганна: как построить и торговать пошагово | TradingCalculator.Pro</title>
+<meta name="description" content="Коробка Ганна — это инструмент рисования технического анализа, который строится от важного пивота и делит диапазон на сетку цены и времени. Здесь ты видишь…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/a-caixa-de-gann-como-se-monta-e-se-opera-passo-a-passo/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/la-gann-box-come-si-costruisce-e-si-opera-passo-dopo-passo/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Коробка Ганна: как построить и торговать пошагово | TradingCalculator.Pro">
+<meta property="og:description" content="Коробка Ганна — это инструмент рисования технического анализа, который строится от важного пивота и делит диапазон на сетку цены и времени. Здесь ты видишь…">
+<meta property="og:url" content="https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Коробка Ганна: как построить и торговать пошагово","url":"https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/","inLanguage":"ru","description":"Коробка Ганна — это инструмент рисования технического анализа, который строится от важного пивота и делит диапазон на сетку цены и времени. Здесь ты видишь…","teaches":["Что это и почему главная — диагональ 1×1","От какого максимума или минимума крепить","Как построить пошагово","Какие пропорции (0-25-50-75-100)","Как торговать уровни","Направление: закрытия ниже уровня","На каких таймфреймах работает","Миф против реальности (прочти)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Обучение","item":"https://tradingcalculator.pro/ru/learn/"},{"@type":"ListItem","position":3,"name":"Коробка Ганна: как построить и торговать пошагово","item":"https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Главная</a><a href="https://tradingcalculator.pro/ru/learn/">Обучение</a><a href="https://tradingcalculator.pro/ru/tools/">Калькуляторы</a><a href="https://tradingcalculator.pro/ru/markets/">Рынки</a><a href="https://tradingcalculator.pro/ru/strategies/">Опционные стратегии</a><a href="https://tradingcalculator.pro/ru/patterns/">Графические Паттерны</a><a href="https://tradingcalculator.pro/ru/candles/">Свечные Паттерны</a><a href="https://tradingcalculator.pro/pricing">Цены</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Главная</a> › <a href="https://tradingcalculator.pro/ru/learn/">Обучение</a> › Коробка Ганна: как построить и торговать пошагово</div>
+  <span class="free">7 дней бесплатно</span>
+  <h1>Коробка Ганна: как построить и торговать пошагово</h1>
+  <p class="lead">Коробка Ганна — это инструмент рисования технического анализа, который строится от важного пивота и делит диапазон на сетку цены и времени. Здесь ты видишь, как её реально используют на графике: от какого максимума или минимума её крепят, как строят, какие пропорции применяют и как по ней торгуют — без эзотерического тумана, который обычно её сопровождает. Это геометрический родственник Фибоначчи: карта уровней, где цена склонна реагировать, полезная, если применять её с дисциплиной и контекстом.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">Открыть полный модуль →</a></p>
+  
+  
+  <div class="card"><h2>Чему вы научитесь</h2><h3>Что это и почему главная — диагональ 1×1</h3><p>Коробка Ганна охватывает движение цены и делит его на сетку: горизонтальные линии (уровни цены) и вертикальные (уровни времени). Её сердце — диагональ 1×1, линия под 45°, отражающая идеальное равновесие цены и времени: одна единица цены на единицу времени. Выше 1×1 рынок «сильный», ниже — «слабый». Остальные линии — это деления диапазона, работающие как поддержка и сопротивление.</p><h3>От какого максимума или минимума крепить</h3><p>Коробку ВСЕГДА крепят к значимому пивоту, никогда к произвольной точке. Для бычьей коробки она начинается от значимого минимума (swing low) и тянется к максимуму; для медвежьей — от значимого максимума (swing high) к минимуму. Выбирай самый ясный и свежий экстремум изучаемого движения: минимум или максимум последней волны, начало импульса. Плохая привязка сбивает всю сетку; если пивот не бросается в глаза, это плохая точка старта.</p><h3>Как построить пошагово</h3><p>В TradingView: 1) выбери инструмент Gann Box; 2) кликни по исходному пивоту (минимум в бычьей коробке); 3) протяни до противоположного экстремума движения (максимум), задав тем самым диапазон цены и времени; 4) настрой МАСШТАБ графика так, чтобы диагональ 1×1 выходила около 45°, иначе углы теряют смысл. Коробка проецирует свои уровни вправо (в будущее): именно там ты ищешь реакции. Углы можно включать или выключать в зависимости от того, работаешь ли ты только с уровнями или ещё и с диагоналями.</p><h3>Какие пропорции (0-25-50-75-100)</h3><p>Стандартная сетка делит диапазон на четверти: 0%, 25%, 50%, 75% и 100%; многие добавляют трети (33,3% и 66,6%). Самый наблюдаемый уровень — 50%, середина движения, как и в Фибоначчи. Среди диагоналей, кроме 1×1, используют 1×2 и 2×1 (цена идёт вдвое быстрее или вдвое медленнее времени), а в более тонких версиях — 1×4 или 1×8. Все не нужны: 1×1 и уровни 25/50/75% дают 90% практической пользы.</p><h3>Как торговать уровни</h3><p>Каждая линия сетки — потенциальная поддержка или сопротивление. Базовый приём: дождаться, пока цена ДОЙДЁТ до уровня, и прочитать реакцию. Если уровень отвергнут (тень и разворот), торгуешь в пользу уровня со стопом по другую сторону; если пробит уверенно — ищешь продолжение к следующей ступени коробки. Решает конфлюэнция: уровень Ганна, совпадающий с прежней поддержкой, круглым числом или Фибоначчи, стоит куда больше, чем одиночный. Никогда не торгуй уровень «просто так»: нужен ценовой сигнал для подтверждения.</p><h3>Направление: закрытия ниже уровня</h3><p>Ключ — ЗАКРЫТИЕ, а не тень. Свеча, закрывшаяся ниже ключевого уровня (50% или диагонали 1×1), читается как потеря этого уровня: уклон становится медвежьим, а естественная цель — следующая ступень ниже (50% → 25% → база 0%). Наоборот при закрытиях выше. Но осторожно: тень, пробивающая уровень и возвращающая его в той же свече, обычно ложный пробой (fakeout), ловушка ликвидности, и многие используют её для входа в обратную сторону. Поэтому обычно требуют закрытие + ретест, прежде чем считать пробой настоящим.</p><h3>На каких таймфреймах работает</h3><p>Коробка работает на любом таймфрейме, но чем выше рамка, тем надёжнее уровни: коробка, привязанная к свингу дневного или недельного графика, отмечает зоны, которые уважает куда больше людей, чем на минутном графике. Рекомендуемый подход: строй коробку на старшем таймфрейме (день или 4ч) для карты уровней и спускайся на младший (1ч или 15м) только чтобы уточнить вход, когда цена доходит до уровня. В чистом интрадее она теряет надёжность из-за шума. И помни про правильный масштаб графика на каждой рамке, ведь угол 1×1 зависит от масштаба.</p><h3>Миф против реальности (прочти)</h3><p>Будь честен с инструментом: нет доказательств, что фонды или институционалы торгуют коробками Ганна — это фольклор розничного трейдинга, а не метод институционального деска. Сам У.Д. Ганн спорен: цифра «50 миллионов» никогда не подтверждалась, и, по словам его сына, он заработал больше на продаже курсов, чем на торговле. Почему тогда реагируют некоторые уровни? Не из-за магической геометрии, а потому что 50%, круглые числа и прежние максимумы и минимумы видит множество людей, и они становятся самосбывающимися, как и Фибоначчи. Используй её как дисциплинированную карту уровней, а не как хрустальный шар.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>
+  <div class="related card"><h2>Ещё темы</h2><ul><li><a href="https://tradingcalculator.pro/ru/learn/kross-marzha/">Кросс-маржа</a></li><li><a href="https://tradingcalculator.pro/ru/learn/nachni-zdes/">Начни здесь</a></li><li><a href="https://tradingcalculator.pro/ru/learn/osnovy-treydinga/">Основы Трейдинга</a></li><li><a href="https://tradingcalculator.pro/ru/learn/mehanika-rynka/">Механика Рынка</a></li><li><a href="https://tradingcalculator.pro/ru/learn/stili-treydinga/">Стили Трейдинга</a></li><li><a href="https://tradingcalculator.pro/ru/learn/fundamentalnyy-analiz/">Фундаментальный Анализ</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Главная</a><a href="https://tradingcalculator.pro/ru/learn/">Обучение</a><a href="https://tradingcalculator.pro/ru/tools/">Калькуляторы</a><a href="https://tradingcalculator.pro/ru/markets/">Рынки</a><a href="https://tradingcalculator.pro/ru/strategies/">Опционные стратегии</a><a href="https://tradingcalculator.pro/ru/patterns/">Графические Паттерны</a><a href="https://tradingcalculator.pro/ru/candles/">Свечные Паттерны</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.</div>
+</div></footer>
+</body>
+</html>

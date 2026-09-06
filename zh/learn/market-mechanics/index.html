@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>市场机制 | TradingCalculator.Pro</title>
+<meta name="description" content="了解市场运作机制、订单类型和经纪商选择">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/market-mechanics/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/mecanica-del-mercado/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/market-mechanics/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/marktmechanik/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/mehanika-rynka/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/market-mechanics/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/market-mechanics/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/market-mechanics/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/mecanica-do-mercado/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/meccanica-del-mercato/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/mecanica-del-mercado/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="市场机制 | TradingCalculator.Pro">
+<meta property="og:description" content="了解市场运作机制、订单类型和经纪商选择">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/market-mechanics/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"市场机制","url":"https://tradingcalculator.pro/zh/learn/market-mechanics/","inLanguage":"zh","description":"了解市场运作机制、订单类型和经纪商选择","teaches":["市价单","限价单","止损单","止损限价单","追踪止损","监管","点差","执行","杠杆","MetaTrader 4","MetaTrader 5","TradingView","为什么要记日志？","记录什么","复盘流程"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"市场机制","item":"https://tradingcalculator.pro/zh/learn/market-mechanics/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 市场机制</div>
+  <span class="free">7 天免费试用</span>
+  <h1>市场机制</h1>
+  <p class="lead">了解市场运作机制、订单类型和经纪商选择</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=mechanics">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>市价单</h3><p>立刻按当下可得的最优价格买入或卖出。好处:保证成交进场。坏处:在快速或流动性差的市场要付出点差,还可能滑点(以 100.05 而非 100.00 成交)。当'进出场'比'精确到分'更重要时使用它。</p><h3>限价单</h3><p>设定你愿意买入的最高价(或卖出的最低价):只会以该价或更优成交。好处:你掌控价格,绝不多付。坏处:若市场没到你的价,就错过这笔交易。适合在支撑与阻力处耐心进场。</p><h3>止损单</h3><p>一种挂单,当价格触及你的水平时转为市价单。两种用途:作为止损(价格逆你而动时把你带出)或用于突破进场。注意:触发后按市价成交,所以在价格跳空时可能比你的水平成交得更差。</p><h3>止损限价单</h3><p>与止损单类似,但触发后挂的是限价单而非市价单。你能控制成交价,代价是若价格快速穿过,可能根本不成交。用于避免滑点很好;作为止损则危险,因为它可能让你没能平仓。</p><h3>追踪止损</h3><p>一种动态止损,按固定距离跟随价格(多单上移、空单下移)但从不回退。它在你让盈利奔跑的同时自动锁定利润,当价格反向走过该距离时把你带出。是无需盯盘就能'砍亏损、让盈利奔跑'的关键。</p><h3>监管</h3><p>只与受严肃监管机构监管的经纪商交易(英国 FCA、美国 CFTC/NFA、澳洲 ASIC、欧洲 CySEC)。监管强制它们将你的钱与自有资金分开(隔离资金),也让你有投诉的对象。没有可靠监管,你的存款不受保护。</p><h3>点差</h3><p>买价与卖价之间的差:这是你每笔交易的直接成本,还不算佣金。EUR/USD 点差 1 个点算正常,3 个点以上就贵了。做剥头皮时点差会吃掉大部分利润,所以选经纪商前先比较点差。</p><h3>执行</h3><p>你的订单成交的速度与可靠性。在快速交易和新闻时段尤为重要:重新报价、延迟或拒单都会让你真金白银地亏。选择 ECN/STP 执行(你的订单直达市场),若你交易频繁,要警惕那些与你对赌的经纪商。</p><h3>杠杆</h3><p>放大收益和损失——极度谨慎使用</p><h3>MetaTrader 4</h3><p>外汇行业标准，自动交易(EA)</p><h3>MetaTrader 5</h3><p>多资产平台，高级订单类型和市场深度</p><h3>TradingView</h3><p>最佳图表平台，社交功能，多经纪商集成</p><h3>为什么要记日志？</h3><p>顶尖交易者都写日志,因为这是看清自身模式最快的方式:哪些形态让你赚钱、你在一天中的哪个时段失手、情绪如何破坏你。没有记录,你会在不知不觉中重复同样的错误。这就是'交易'与真正'进步'之间的差别。</p><h3>记录什么</h3><p>每笔交易记录:进场、出场、仓位、形态类型、以 R 计的风险、结果、市场状况,以及你的情绪状态(恐惧、亢奋、无聊)。附上一张图表截图。累积 30-50 笔后,就会浮现出你凭记忆绝看不到的清晰规律。</p><h3>复盘流程</h3><p>每周、每月复盘日志,找出你在重复什么:最好的形态(多做),漏钱的地方(砍掉),以及市场规律。真正的学习发生在复盘,而非交易本身。要诚实——日志是给你自己看的,不是用来炫耀的。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li><li><a href="https://tradingcalculator.pro/zh/learn/valuing-a-company-in-depth/">深入估值一家公司</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

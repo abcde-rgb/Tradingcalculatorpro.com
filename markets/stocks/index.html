@@ -14,16 +14,21 @@
 <meta name="description" content="Una acción es una participación en la propiedad de una empresa. Cuando compras una acción de Apple eres, literalmente, socio de Apple en la proporción…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/markets/stocks/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/stocks/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/stocks/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/stocks/">
-<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/stocks/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/stocks/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/aktien/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/actions/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/aktsii/">
 <link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/stocks/">
 <link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/stocks/">
 <link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/stocks/">
-<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/stocks/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/stocks/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/acoes/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/azioni/">
 <link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/stocks/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -33,7 +38,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="es_ES">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Mercados","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"Acciones","item":"https://tradingcalculator.pro/markets/stocks/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Mercados","item":"https://tradingcalculator.pro/markets/"},{"@type":"ListItem","position":3,"name":"Acciones","item":"https://tradingcalculator.pro/markets/stocks/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"es","mainEntity":[{"@type":"Question","name":"¿Cómo se calcula la capitalización bursátil de una empresa?","acceptedAnswer":{"@type":"Answer","text":"Multiplicando el precio de la acción por el número de acciones en circulación. Si una empresa cotiza a 50 $ y tiene 1.000 millones de acciones, su capitalización es de 50.000 millones de dólares. Es la forma correcta de comparar el tamaño de dos empresas: el precio por acción por sí solo no dice nada."}},{"@type":"Question","name":"¿Cuáles son las empresas más grandes del mundo por capitalización?","acceptedAnswer":{"@type":"Answer","text":"El grupo de cabeza lo ocupan de forma persistente las tecnológicas estadounidenses —Apple, Microsoft, NVIDIA, Alphabet, Amazon, Meta— junto con Saudi Aramco. El orden exacto cambia cada semana; la tabla en vivo de esta página muestra el ranking actualizado."}},{"@type":"Question","name":"¿Qué es un PER y qué se considera alto?","acceptedAnswer":{"@type":"Answer","text":"El PER (precio/beneficio) es el precio de la acción dividido entre el beneficio por acción. La media histórica del S&P 500 ronda 16-18. Por encima de 25 el mercado está pagando expectativas de crecimiento fuerte; por debajo de 10 suele haber un problema —o una oportunidad—. Solo es comparable entre empresas del mismo sector."}},{"@type":"Question","name":"¿Qué horario tiene la bolsa estadounidense?","acceptedAnswer":{"@type":"Answer","text":"De 9:30 a 16:00 hora de Nueva York (15:30-22:00 CET en horario de verano europeo). Hay pre-mercado desde las 4:00 y after-hours hasta las 20:00 ET, con mucha menos liquidez y horquillas más amplias."}},{"@type":"Question","name":"¿Qué es el free float y por qué importa?","acceptedAnswer":{"@type":"Answer","text":"Son las acciones realmente disponibles para negociar, excluyendo las bloqueadas en manos de fundadores, el Estado o insiders. Con un free float pequeño, unas pocas órdenes mueven el precio muchísimo: es la característica que comparten casi todos los valores fácilmente manipulables."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,10 +71,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">Mercados</a><a href="https://tradingcalculator.pro/pricing">Precios</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/learn/">Aprender</a><a href="https://tradingcalculator.pro/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/markets/">Mercados</a><a href="https://tradingcalculator.pro/strategies/">Estrategias de opciones</a><a href="https://tradingcalculator.pro/patterns/">Patrones de Gráficos</a><a href="https://tradingcalculator.pro/candles/">Patrones de Velas</a><a href="https://tradingcalculator.pro/pricing">Precios</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Inicio</a> › <a href="https://tradingcalculator.pro/education">Mercados</a> › Acciones</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Inicio</a> › <a href="https://tradingcalculator.pro/markets/">Mercados</a> › Acciones</div>
   <h1>Acciones</h1>
   <p class="lead">Una acción es una participación en la propiedad de una empresa. Cuando compras una acción de Apple eres, literalmente, socio de Apple en la proporción que te corresponde. El precio sube o baja según lo que el mercado cree que valdrán los beneficios futuros de esa empresa. Se negocian en bolsas reguladas con horario fijo.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Empieza 7 días gratis →</a>
@@ -80,7 +85,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <div class="card"><h2>Otros mercados</h2><ul><li><a href="https://tradingcalculator.pro/markets/forex/">Forex</a></li><li><a href="https://tradingcalculator.pro/markets/crypto/">Cripto</a></li><li><a href="https://tradingcalculator.pro/markets/commodities/">Materias Primas</a></li><li><a href="https://tradingcalculator.pro/markets/indices/">Índices</a></li><li><a href="https://tradingcalculator.pro/markets/etfs/">ETFs</a></li><li><a href="https://tradingcalculator.pro/markets/futures/">Futuros</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/education">Aprender</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">Inicio</a><a href="https://tradingcalculator.pro/learn/">Aprender</a><a href="https://tradingcalculator.pro/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/markets/">Mercados</a><a href="https://tradingcalculator.pro/strategies/">Estrategias de opciones</a><a href="https://tradingcalculator.pro/patterns/">Patrones de Gráficos</a><a href="https://tradingcalculator.pro/candles/">Patrones de Velas</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.</div>
 </div></footer>
 </body>

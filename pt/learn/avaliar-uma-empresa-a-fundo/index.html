@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Avaliar uma empresa a fundo | TradingCalculator.Pro</title>
+<meta name="description" content="A análise fundamental procura o que uma empresa vale de verdade e compara-o com o que custa em bolsa. Preço ≠ valor: uma grande empresa pode ser um mau…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/pt/learn/avaliar-uma-empresa-a-fundo/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/como-valorar-una-empresa/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/valuing-a-company-in-depth/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/ein-unternehmen-fundiert-bewerten/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/valoriser-une-entreprise-en-profondeur/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/glubokaya-otsenka-kompanii/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/valuing-a-company-in-depth/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/valuing-a-company-in-depth/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/valuing-a-company-in-depth/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/avaliar-uma-empresa-a-fundo/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/valutare-un-azienda-a-fondo/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/como-valorar-una-empresa/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Avaliar uma empresa a fundo | TradingCalculator.Pro">
+<meta property="og:description" content="A análise fundamental procura o que uma empresa vale de verdade e compara-o com o que custa em bolsa. Preço ≠ valor: uma grande empresa pode ser um mau…">
+<meta property="og:url" content="https://tradingcalculator.pro/pt/learn/avaliar-uma-empresa-a-fundo/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="pt_PT">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Avaliar uma empresa a fundo","url":"https://tradingcalculator.pro/pt/learn/avaliar-uma-empresa-a-fundo/","inLanguage":"pt","description":"A análise fundamental procura o que uma empresa vale de verdade e compara-o com o que custa em bolsa. Preço ≠ valor: uma grande empresa pode ser um mau…","teaches":["Preço vs valor","A demonstração de resultados","Margens","Fluxo de caixa livre (FCF)","Dívida e solidez do balanço","Rentabilidade: ROE e ROIC","O fosso (moat / vantagem competitiva)","Avaliação por múltiplos","Avaliação por DCF (fluxo descontado)","Ler um relatório de resultados"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Início","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Aprender","item":"https://tradingcalculator.pro/pt/learn/"},{"@type":"ListItem","position":3,"name":"Avaliar uma empresa a fundo","item":"https://tradingcalculator.pro/pt/learn/avaliar-uma-empresa-a-fundo/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/pricing">Preços</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Início</a> › <a href="https://tradingcalculator.pro/pt/learn/">Aprender</a> › Avaliar uma empresa a fundo</div>
+  <span class="free">7 dias grátis</span>
+  <h1>Avaliar uma empresa a fundo</h1>
+  <p class="lead">A análise fundamental procura o que uma empresa vale de verdade e compara-o com o que custa em bolsa. Preço ≠ valor: uma grande empresa pode ser um mau investimento se pagar demais, e uma medíocre pode ser uma pechincha. Aqui aprende a ler os seus números e a estimar o seu valor, para lá dos 4 rácios básicos.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=company-valuation">Abrir o módulo completo →</a></p>
+  
+  
+  <div class="card"><h2>O que vai aprender</h2><h3>Preço vs valor</h3><p>O mercado põe um PREÇO a cada segundo; o VALOR é o que a empresa realmente produz (caixa, lucros, ativos). Investir com fundamentais é comprar quando o preço está claramente abaixo do valor, com uma margem de segurança. O objetivo não é acertar no número exato, mas evitar pagar a mais.</p><h3>A demonstração de resultados</h3><p>Conta a história do lucro de cima para baixo: Receitas (vendas) → menos custo do vendido = Lucro bruto → menos gastos operacionais = Lucro operacional → menos juros e impostos = Lucro líquido. O importante não é um número solto, mas como cresce cada linha ano após ano.</p><h3>Margens</h3><p>Quanto é que a empresa fica de cada euro que vende. Margem bruta (preço vs custo do produto), operacional (depois dos gastos do negócio) e líquida (o que chega ao fim). Margens altas e estáveis = poder de fixar preços e eficiência. Uma margem que se estreita ano após ano é um alerta precoce.</p><h3>Fluxo de caixa livre (FCF)</h3><p>A caixa real que o negócio gera depois de investir para se manter. É mais difícil de maquilhar do que o lucro contabilístico: uma empresa pode reportar 'lucro' sem gerar caixa. FCF sustentado e crescente (idealmente ≥ o lucro líquido) é o sinal de um negócio saudável. Sem caixa, não há dividendos nem recompras.</p><h3>Dívida e solidez do balanço</h3><p>Demasiada dívida torna a empresa frágil: numa crise, os juros afogam-na. Olhe para Dívida/Capitais próprios (quanto deve face ao que é seu) e para se a caixa cobre os vencimentos. Dívida baixa ou controlável = aguenta os maus anos; dívida alta com margens finas = perigo.</p><h3>Rentabilidade: ROE e ROIC</h3><p>Medem quão bem a gestão usa o dinheiro. ROE = lucro / capitais próprios; ROIC = lucro / capital investido (melhor, ignora truques de dívida). Um ROIC sustentado acima de ~15% costuma indicar uma empresa de qualidade que reinveste com sucesso. Baixo e decrescente = destrói valor.</p><h3>O fosso (moat / vantagem competitiva)</h3><p>O que impede que a concorrência lhe coma o negócio: marca forte (Apple), efeito de rede (Visa), custo de mudança (software empresarial), escala/custo (Amazon) ou patentes. Um fosso largo protege margens altas durante anos. Buffett só compra empresas com fosso; sem ele, os lucros erodem-se.</p><h3>Avaliação por múltiplos</h3><p>A forma rápida de ver se está cara ou barata, sempre EM RELATIVO. PER (preço/lucro), EV/EBITDA (melhor para comparar empresas com dívida diferente), P/S (vendas), PEG (PER ajustado pelo crescimento). Compare-a com o seu próprio histórico e com os rivais; um múltiplo alto só se justifica com mais crescimento.</p><h3>Avaliação por DCF (fluxo descontado)</h3><p>O método do 'valor intrínseco': projeta os fluxos de caixa futuros e traz-los para hoje com uma taxa de desconto (o dinheiro de amanhã vale menos do que o de hoje). O resultado é uma estimativa de quanto vale a empresa. Muito sensível às hipóteses: use intervalos e seja conservador; serve mais para pensar do que para um número exato.</p><h3>Ler um relatório de resultados</h3><p>Todos os trimestres a empresa publica os seus números. A ação não se move pelo valor absoluto, mas pela SURPRESA face ao esperado e, sobretudo, pela GUIDANCE (previsão da gestão) para os próximos trimestres. Olhe para: receitas e EPS vs estimativa, tendência das margens, e o que diz a gestão. Um bom resultado com guidance fraca pode derrubar a ação.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
+  <div class="related card"><h2>Mais temas</h2><ul><li><a href="https://tradingcalculator.pro/pt/learn/margem-cruzada/">Margem cruzada</a></li><li><a href="https://tradingcalculator.pro/pt/learn/comece-aqui/">Comece aqui</a></li><li><a href="https://tradingcalculator.pro/pt/learn/fundamentos-do-trading/">Fundamentos do Trading</a></li><li><a href="https://tradingcalculator.pro/pt/learn/mecanica-do-mercado/">Mecânica do Mercado</a></li><li><a href="https://tradingcalculator.pro/pt/learn/estilos-de-trading/">Estilos de Trading</a></li><li><a href="https://tradingcalculator.pro/pt/learn/analise-fundamental/">Análise Fundamental</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.</div>
+</div></footer>
+</body>
+</html>

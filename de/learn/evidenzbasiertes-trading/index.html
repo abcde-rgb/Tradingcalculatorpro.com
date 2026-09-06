@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Evidenzbasiertes Trading | TradingCalculator.Pro</title>
+<meta name="description" content="Was ist mit DATEN belegt — und nicht mit Versprechen? Hier bündeln wir, was akademische Studien, Regulierer und ein Jahrhundert an Daten von Fonds, Banken…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/de/learn/evidenzbasiertes-trading/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/trading-basado-en-evidencia/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/evidenzbasiertes-trading/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/trading-fonde-sur-les-preuves/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/treyding-na-osnove-dokazatelstv/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/trading-baseado-em-evidencia/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/trading-basato-sull-evidenza/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/trading-basado-en-evidencia/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Evidenzbasiertes Trading | TradingCalculator.Pro">
+<meta property="og:description" content="Was ist mit DATEN belegt — und nicht mit Versprechen? Hier bündeln wir, was akademische Studien, Regulierer und ein Jahrhundert an Daten von Fonds, Banken…">
+<meta property="og:url" content="https://tradingcalculator.pro/de/learn/evidenzbasiertes-trading/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="de_DE">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Evidenzbasiertes Trading","url":"https://tradingcalculator.pro/de/learn/evidenzbasiertes-trading/","inLanguage":"de","description":"Was ist mit DATEN belegt — und nicht mit Versprechen? Hier bündeln wir, was akademische Studien, Regulierer und ein Jahrhundert an Daten von Fonds, Banken…","teaches":["Die Zahlen, die dir niemand zeigt","Das Gesetz der großen Zahlen (das Casino-Modell)","Erwartungswert: dein einziger Kompass","Der Index schlägt die Profis (SPIVA)","Die belohnten Faktoren: Value, Momentum, Qualität, Low Volatility","Momentum: die robusteste Anomalie","Trendfolge: ein Jahrhundert an Evidenz","Die Größe ist (fast) alles: Kelly und fixes Risiko","Wie professionelle Desks Risiko steuern","Deine Verzerrungen, in Geld gemessen"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Start","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Lernen","item":"https://tradingcalculator.pro/de/learn/"},{"@type":"ListItem","position":3,"name":"Evidenzbasiertes Trading","item":"https://tradingcalculator.pro/de/learn/evidenzbasiertes-trading/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/pricing">Preise</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Start</a> › <a href="https://tradingcalculator.pro/de/learn/">Lernen</a> › Evidenzbasiertes Trading</div>
+  <span class="free">7 Tage gratis</span>
+  <h1>Evidenzbasiertes Trading</h1>
+  <p class="lead">Was ist mit DATEN belegt — und nicht mit Versprechen? Hier bündeln wir, was akademische Studien, Regulierer und ein Jahrhundert an Daten von Fonds, Banken und Trading-Desks zeigen: wie viele wirklich verlieren, welche Strategien Jahrzehnte der Statistik überlebt haben und wie Profis Risiko steuern. Der rote Faden ist das Gesetz der großen Zahlen: ein Trade ist Glück; tausend Trades sind Statistik.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=evidence-based">Vollständiges Modul öffnen →</a></p>
+  
+  
+  <div class="card"><h2>Was du lernst</h2><h3>Die Zahlen, die dir niemand zeigt</h3><p>Der europäische Regulierer (ESMA) zwingt Broker, es zu veröffentlichen: zwischen 74% und 89% der CFD-Privatkonten VERLIEREN Geld. Und die größte Daytrading-Studie (brasilianische Futures, alle mit 300+ Sitzungen 2013-2015): 97% verloren, nur 0,4% verdienten mehr als ein Bankangestellter. Das soll dich nicht entmutigen: es ist dein realer Ausgangspunkt. Wer die Basisraten kennt, spielt ein anderes Spiel.</p><h3>Das Gesetz der großen Zahlen (das Casino-Modell)</h3><p>Das Casino kennt den nächsten Wurf nicht — und gewinnt trotzdem IMMER zum Jahresende: es hat einen kleinen Vorteil (Edge) und wiederholt ihn millionenfach. Das ist das Gesetz der großen Zahlen: mit den Wiederholungen konvergiert dein reales Ergebnis zu deinem Erwartungswert. Auf Trading übersetzt: hör auf, an DEN Trade zu denken, denk an die NÄCHSTEN 100. Dein Job ist nicht raten, sondern einen kleinen Edge oft auszuführen — wie ein Versicherer oder Market Maker.</p><h3>Erwartungswert: dein einziger Kompass</h3><p>Erwartungswert = (Trefferquote × Ø-Gewinn) − (Fehlquote × Ø-Verlust). Ist er positiv und du wiederholst ihn oft genug, gewinnst du; ist er negativ, rettet dich KEINE Psychologie. Deshalb kannst du mit nur 40% Trefferquote profitieren (wenn deine Gewinne doppelt so groß sind wie deine Verluste) oder mit 70% pleitegehen. Profis prahlen nicht mit Trefferquoten: sie messen den Erwartungswert pro Trade und verfolgen ihn über Hunderte protokollierte Trades — genau dafür ist das Journal da.</p><h3>Der Index schlägt die Profis (SPIVA)</h3><p>S&amp;P misst jedes Jahr die Profi-Manager gegen ihren Index (SPIVA-Report). Ergebnis über 15 Jahre: 89,5% der US-Large-Cap-Aktienfonds verlieren gegen den S&amp;P 500, und KEINE der 22 untersuchten Kategorien hat eine gewinnende Mehrheit. Die Ursache ist mathematisch: Gebühren und Kosten verzinsen sich gegen dich. Doppelte Lektion: den Index günstig und langfristig zu kaufen ist die am besten belegte Strategie überhaupt, und den Markt zu schlagen ist so schwer, dass es Methode verlangt, keine Meinungen.</p><h3>Die belohnten Faktoren: Value, Momentum, Qualität, Low Volatility</h3><p>Die akademische Forschung (Fama und French, Carhart) und Quant-Häuser wie AQR haben 'Faktorprämien' dokumentiert, die über Jahrzehnte und Dutzende Länder bestehen: VALUE (günstig relativ zu Fundamentaldaten kaufen), MOMENTUM (was steigt, steigt tendenziell weiter), QUALITÄT (profitable, solide Firmen) und LOW VOLATILITY. Sie funktionieren nicht jedes Jahr — es gibt lange Durststrecken — aber sie gehören zu dem Wenigen, das ernsthafte Statistik überlebt hat. Ein Großteil des institutionellen 'Smart Beta' ist genau das.</p><h3>Momentum: die robusteste Anomalie</h3><p>Jegadeesh und Titman (1993) haben es gemessen: die Aktien mit dem stärksten Anstieg der letzten 3-12 Monate schlugen weiter jene mit dem stärksten Fall, mit fast 1% monatlicher Überrendite 1965-1989. Seitdem in 30 Jahren Out-of-Sample-Daten, in rund 40 Ländern und über einem Dutzend Anlageklassen bestätigt. Es ist die statistische Bestätigung von 'handle mit dem Trend'. Achte auf die Achillesferse: scharfe Marktwenden ('Momentum-Crashes').</p><h3>Trendfolge: ein Jahrhundert an Evidenz</h3><p>AQR hat die Trendfolge-Strategie bis 1880 zurück über 67 Märkte und 4 Anlageklassen rekonstruiert ('A Century of Evidence on Trend-Following'): positive Rendite in JEDEM Jahrzehnt von 1880 bis 2016, durch Krieg und Frieden, Inflation und Deflation. Und sie schnitt in 8 der 10 größten Krisen eines 60/40-Portfolios gut ab. Genau das machen die 'Managed Futures'-Fonds von Banken und Vermögensverwaltern: kaufen, was steigt, verkaufen, was fällt, mit Regeln und Stops — kein Raten von Böden und Decken.</p><h3>Die Größe ist (fast) alles: Kelly und fixes Risiko</h3><p>Kellys Mathematik (1956), von Ed Thorp an die Märkte gebracht, beweist etwas Brutales: MIT demselben Edge führt zu großes Setzen pro Trade trotzdem in den Ruin — die Varianz tötet dich, bevor das Gesetz der großen Zahlen dich retten kann. Deshalb riskieren Profis einen kleinen, FIXEN Bruchteil des Kapitals (das berühmte ~1% pro Trade ist eine konservative Version davon) und nie das volle Kelly. Überleben ist die Voraussetzung jeder Statistik.</p><h3>Wie professionelle Desks Risiko steuern</h3><p>In einer Bank oder einem Fonds ist Disziplin nicht optional: sie ist ein auferlegtes LIMIT. Tagesverlustlimit (überschreitest du es, wird dein Handel gestoppt), Limits pro Position und Strategie, VaR-Limits und Diversifikation über schwach korrelierte Strategien. Der Trader entscheidet nicht, wie viel er riskiert: das Risikomanagement tut es. Kopiere das System im Kleinen: lege deinen maximalen Tages- und Wochenverlust VOR dem Handeln fest und respektiere ihn, als hätte ihn dein Chef verhängt — denn statistisch ist es das, was dich im Spiel hält.</p><h3>Deine Verzerrungen, in Geld gemessen</h3><p>Barber und Odean analysierten 66.465 echte Konten (1991-1996): wer am MEISTEN handelte, verdiente 11,4% pro Jahr gegenüber 17,9% des Marktes — Overtrading kostete ~6,5 Punkte pro Jahr, fast alles Kosten. Und Odean maß den Dispositionseffekt: wir verkaufen Gewinner zu früh und halten Verlierer, und die verkauften Gewinner stiegen weiter stärker als die gehaltenen Verlierer. Zwei datenbasierte Schlüsse: handle WENIGER, und Verluste begrenzen / Gewinne laufen lassen ist kein Slogan — es ist Statistik.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <div class="related card"><h2>Weitere Themen</h2><ul><li><a href="https://tradingcalculator.pro/de/learn/cross-margin/">Cross-Margin</a></li><li><a href="https://tradingcalculator.pro/de/learn/hier-starten/">Hier starten</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">Trading-Grundlagen</a></li><li><a href="https://tradingcalculator.pro/de/learn/marktmechanik/">Marktmechanik</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-stile/">Trading-Stile</a></li><li><a href="https://tradingcalculator.pro/de/learn/fundamentalanalyse/">Fundamentalanalyse</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.</div>
+</div></footer>
+</body>
+</html>

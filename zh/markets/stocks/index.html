@@ -14,16 +14,21 @@
 <meta name="description" content="A share is a unit of ownership in a company. When you buy one share of Apple you are, literally, a part-owner of Apple in that proportion. The price…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/zh/markets/stocks/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/stocks/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/stocks/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/stocks/">
-<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/stocks/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/stocks/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/aktien/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/actions/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/aktsii/">
 <link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/stocks/">
 <link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/stocks/">
 <link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/stocks/">
-<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/stocks/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/stocks/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/acoes/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/azioni/">
 <link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/stocks/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -33,7 +38,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"市场","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"股票","item":"https://tradingcalculator.pro/zh/markets/stocks/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"市场","item":"https://tradingcalculator.pro/zh/markets/"},{"@type":"ListItem","position":3,"name":"股票","item":"https://tradingcalculator.pro/zh/markets/stocks/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"zh","mainEntity":[{"@type":"Question","name":"How is a company's market capitalization calculated?","acceptedAnswer":{"@type":"Answer","text":"Multiply the share price by the number of shares outstanding. A company trading at $50 with 1 billion shares has a $50 billion market cap. This is the correct way to compare the size of two companies — the share price alone tells you nothing."}},{"@type":"Question","name":"What are the largest companies in the world by market cap?","acceptedAnswer":{"@type":"Answer","text":"The top of the table is persistently occupied by US technology companies — Apple, Microsoft, NVIDIA, Alphabet, Amazon, Meta — alongside Saudi Aramco. The exact order changes weekly; the live table on this page shows the current ranking."}},{"@type":"Question","name":"What is a P/E ratio and what counts as high?","acceptedAnswer":{"@type":"Answer","text":"The price-to-earnings ratio is the share price divided by earnings per share. The S&P 500 historical average sits around 16-18. Above 25 the market is paying for strong expected growth; below 10 there is usually a problem — or an opportunity. It is only comparable between companies in the same sector."}},{"@type":"Question","name":"What are US stock market hours?","acceptedAnswer":{"@type":"Answer","text":"9:30 to 16:00 New York time. Pre-market runs from 4:00 and after-hours until 20:00 ET, both with far less liquidity and much wider spreads."}},{"@type":"Question","name":"What is free float and why does it matter?","acceptedAnswer":{"@type":"Answer","text":"It is the shares actually available to trade, excluding those locked up with founders, the state or insiders. With a small float a handful of orders move the price enormously — the feature shared by nearly every easily manipulated stock."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,10 +71,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">市场</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/education">市场</a> › 股票</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/markets/">市场</a> › 股票</div>
   <h1>股票</h1>
   <p class="lead">A share is a unit of ownership in a company. When you buy one share of Apple you are, literally, a part-owner of Apple in that proportion. The price moves on what the market believes the company's future profits are worth. Shares trade on regulated exchanges with fixed hours.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
@@ -77,10 +82,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 
   <div class="card"><h2>常见问题</h2><h3>How is a company's market capitalization calculated?</h3><p>Multiply the share price by the number of shares outstanding. A company trading at $50 with 1 billion shares has a $50 billion market cap. This is the correct way to compare the size of two companies — the share price alone tells you nothing.</p><h3>What are the largest companies in the world by market cap?</h3><p>The top of the table is persistently occupied by US technology companies — Apple, Microsoft, NVIDIA, Alphabet, Amazon, Meta — alongside Saudi Aramco. The exact order changes weekly; the live table on this page shows the current ranking.</p><h3>What is a P/E ratio and what counts as high?</h3><p>The price-to-earnings ratio is the share price divided by earnings per share. The S&amp;P 500 historical average sits around 16-18. Above 25 the market is paying for strong expected growth; below 10 there is usually a problem — or an opportunity. It is only comparable between companies in the same sector.</p><h3>What are US stock market hours?</h3><p>9:30 to 16:00 New York time. Pre-market runs from 4:00 and after-hours until 20:00 ET, both with far less liquidity and much wider spreads.</p><h3>What is free float and why does it matter?</h3><p>It is the shares actually available to trade, excluding those locked up with founders, the state or insiders. With a small float a handful of orders move the price enormously — the feature shared by nearly every easily manipulated stock.</p></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
-  <div class="card"><h2>其他市场</h2><ul><li><a href="https://tradingcalculator.pro/zh/markets/forex/">外汇</a></li><li><a href="https://tradingcalculator.pro/zh/markets/crypto/">加密货币</a></li><li><a href="https://tradingcalculator.pro/zh/markets/commodities/">大宗商品</a></li><li><a href="https://tradingcalculator.pro/zh/markets/indices/">指数</a></li><li><a href="https://tradingcalculator.pro/zh/markets/etfs/">ETF</a></li><li><a href="https://tradingcalculator.pro/zh/markets/futures/">期货</a></li></ul></div>
+  <div class="card"><h2>其他市场</h2><ul><li><a href="https://tradingcalculator.pro/zh/markets/forex/">外汇</a></li><li><a href="https://tradingcalculator.pro/zh/markets/crypto/">加密货币</a></li><li><a href="https://tradingcalculator.pro/zh/markets/commodities/">大宗商品</a></li><li><a href="https://tradingcalculator.pro/zh/markets/indices/">指数</a></li><li><a href="https://tradingcalculator.pro/zh/markets/etf/">ETF</a></li><li><a href="https://tradingcalculator.pro/zh/markets/futures/">期货</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/education">学习</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
 </div></footer>
 </body>

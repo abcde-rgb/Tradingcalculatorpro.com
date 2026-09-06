@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>التحليل الفني | TradingCalculator.Pro</title>
+<meta name="description" content="استخدام الرسوم البيانية والمؤشرات للتنبؤ بتحركات السوق">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ar/learn/technical-analysis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/technical-analysis/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/technische-analyse/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/analyse-technique/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/tehnicheskiy-analiz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/technical-analysis/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/technical-analysis/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/technical-analysis/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/analise-tecnica/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/analisi-tecnica/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="التحليل الفني | TradingCalculator.Pro">
+<meta property="og:description" content="استخدام الرسوم البيانية والمؤشرات للتنبؤ بتحركات السوق">
+<meta property="og:url" content="https://tradingcalculator.pro/ar/learn/technical-analysis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ar_SA">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"التحليل الفني","url":"https://tradingcalculator.pro/ar/learn/technical-analysis/","inLanguage":"ar","description":"استخدام الرسوم البيانية والمؤشرات للتنبؤ بتحركات السوق","teaches":["المقياس الخطي (الحسابي) — مقياس «التلقائي»","المقياس اللوغاريتمي (نصف اللوغاريتمي) — مقياس المحترفين","متى تستخدم كلاً منهما","لماذا يغيّر تحليلك (الأهم)","مستوى الدعم","مستوى المقاومة","مناطق الدعم/المقاومة","الاختراقات","اتجاه صاعد","اتجاه هابط","عرضي","هيكل الاتجاه","SMA","EMA","RSI","MACD","بولنجر باند","فيبوناتشي","المفهوم","النهج من الأعلى للأسفل"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"تعلّم","item":"https://tradingcalculator.pro/ar/learn/"},{"@type":"ListItem","position":3,"name":"التحليل الفني","item":"https://tradingcalculator.pro/ar/learn/technical-analysis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/pricing">الأسعار</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">الرئيسية</a> › <a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a> › التحليل الفني</div>
+  <span class="free">7 أيام مجانًا</span>
+  <h1>التحليل الفني</h1>
+  <p class="lead">استخدام الرسوم البيانية والمؤشرات للتنبؤ بتحركات السوق</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=tech-analysis">افتح الوحدة كاملة →</a></p>
+  
+  
+  <div class="card"><h2>ما ستتعلمه</h2><h3>المقياس الخطي (الحسابي) — مقياس «التلقائي»</h3><p>كل تقسيم رأسي يساوي نفس عدد الدولارات. حركة بـ 10 دولارات تأخذ نفس الارتفاع سواء كان السعر عند 20 أو 500 دولار. وهو الإعداد الافتراضي في معظم المنصات.
+المشكلة بالأرقام: من 10 إلى 20 دولاراً هي +100% (تضاعف مالك)؛ ومن 100 إلى 110 دولارات هي +10% فقط. على الخطي كلتا الحركتين 10 دولارات ← تأخذان نفس الارتفاع تماماً، رغم أن إحداهما أهم بعشر مرات لمحفظتك. يشوّه إدراك المخاطرة بمجرد اتساع نطاق السعر.</p><h3>المقياس اللوغاريتمي (نصف اللوغاريتمي) — مقياس المحترفين</h3><p>كل تقسيم رأسي يساوي نفس النسبة المئوية، لا نفس الدولارات. +50% تأخذ نفس الارتفاع عند أي سعر.
+بالأرقام: من 10 إلى 20 (+100%) تأخذ ما تأخذه من 100 إلى 200 (+100%) أو من 1000 إلى 2000 (+100%). يعكس الرسم ما يهم فعلاً —العائد بالنسبة المئوية— بدل القيمة المطلقة. لهذا في الأصول التي تضاعفت كثيراً (بيتكوين من 100 إلى 60000 دولار، إنفيديا…) هو الطريقة الوحيدة لرؤية القصة كاملة: على الخطي تكون السنوات الأولى خطاً مسطحاً ملتصقاً بالقاع؛ وعلى اللوغاريتمي ترى كل دورة بوضوح.</p><h3>متى تستخدم كلاً منهما</h3><p>قاعدة عملية:
+• لوغاريتمي ← الرسوم طويلة الأمد (أسبوعي/شهري)، الكريبتو، الأسهم التي ارتفعت كثيراً، وكلما قطع السعر أكثر من ~30-40% على الشاشة. الخيار الافتراضي للتحليل الجاد المتوسط/طويل الأمد.
+• خطي ← داخل اليوم والنطاقات الصغيرة، حيث يتحرك السعر بالكاد بالنسبة المئوية ويبدو المقياسان متطابقين تقريباً. مثال: EUR/USD من 1.0800 إلى 1.1000 نحو 1.9% ← لا فرق بين اللوغاريتمي والخطي.
+تنبيه: «تلقائي» في منصتك ليس مقياساً ثالثاً؛ إنه يضبط التكبير فقط. يبقى المقياس خطياً أو لوغاريتمياً حسب ما اخترت.</p><h3>لماذا يغيّر تحليلك (الأهم)</h3><p>المفتاح الذي لا يشرحه أحد تقريباً: خطوط الاتجاه والقنوات والنماذج وفيبوناتشي تُرسم بشكل مختلف على اللوغاريتمي عنه على الخطي. خط اتجاه يصمد على الخطي قد يكون مكسوراً على اللوغاريتمي —والعكس— فيعطيك إشارات متعاكسة على الرسم نفسه.
+بالأرقام: اتجاه صاعد يصل 100 ← 200 ← 400 دولار. على اللوغاريتمي كل مقطع +100%، فتشكّل النقاط الثلاث خطاً مستقيماً مثالياً ويكون خط الاتجاه موثوقاً. على الخطي يكون الصعود نفسه منحنى متسارعاً؛ وإذا رسمت خطاً مستقيماً ابتعد عن السعر وأعطى اختراقات كاذبة. لهذا يختار المحترفون مقياساً (لوغاريتمي دائماً تقريباً للمدى الطويل)، ويثبّتونه ويبقون متسقين: تغيير المقياس في منتصف التحليل خداع للنفس.</p><h3>مستوى الدعم</h3><p>منطقة سعرية أسفل السوق يميل الشراء فيها إلى وقف الهبوط. كلما ارتد السعر منها أكثر، زادت موثوقيتها — وارسمها كنطاق لا كخط دقيق. لا تشترِ فقط 'لأن هناك دعمًا': انتظر التأكيد (شمعة رفض أو ارتفاع في الحجم). وإذا كُسرت بوضوح، يتحول هذا الدعم إلى مقاومة.</p><h3>مستوى المقاومة</h3><p>منطقة سعرية أعلى السوق يميل البيع فيها إلى إيقاف الصعود: 'السقف' حيث يجني كثيرون أرباحهم. تُتداول مثل الدعم لكن بالعكس (ابحث عن إشارات الرفض للبيع أو تأمين الأرباح). وإذا اخترقها السعر بقوة وحجم، تتحول هذه المقاومة عادةً إلى دعم.</p><h3>مناطق الدعم/المقاومة</h3><p>عمليًا لا ينعكس السعر عند رقم دقيق بل ضمن منطقة. رسم الدعم/المقاومة كنطاقات (مثل 99.5–100.2) بدل خط واحد يمنع القفزة أو الظل من إخراجك مبكرًا، ويعكس سلوك السوق الحقيقي بشكل أفضل.</p><h3>الاختراقات</h3><p>عندما يخترق السعر دعمًا أو مقاومة. الاختراق بحجم مرتفع غالبًا حقيقي ويفتح موجة جديدة؛ أما بحجم ضعيف فيكون عادةً فخًا (اختراق كاذب) يعود إلى النطاق. نصيحة للمبتدئ: انتظر إغلاق الشمعة خارج المستوى، لا مجرد لمسه.</p><h3>اتجاه صاعد</h3><p>يصنع السعر قمماً وقيعاناً أعلى تباعاً: كل تصحيح يتوقف فوق سابقه. هنا يكون الربح أسهل — بالشراء عند التصحيحات. وطالما صمد آخر قاع مهم، يبقى الاتجاه الصاعد حيًا ('الاتجاه صديقك').</p><h3>اتجاه هابط</h3><p>يصنع السعر قمماً وقيعاناً أدنى تباعاً: كل ارتداد يفشل دون سابقه. الطبيعي هنا هو البيع أو البيع على المكشوف عند الارتدادات، لا 'الشراء الرخيص'. ومحاولة التقاط القاع مبكراً من الأخطاء التي تدمّر أكثر الحسابات.</p><h3>عرضي</h3><p>يتحرك السعر أفقيًا داخل نطاق بين الدعم والمقاومة بلا اتجاه واضح. الاستراتيجية: الشراء قرب القاع والبيع قرب القمة، أو البقاء خارج السوق حتى يحدث الاختراق. السوق في نطاق 60-70% من الوقت، لذا معرفة متى لا تتداول هنا مهارة بحد ذاتها.</p><h3>هيكل الاتجاه</h3><p>البنية هي 'العمود الفقري' للاتجاه: قمم وقيعان صاعدة (صعود) أو هابطة (هبوط). وحين تنكسر هذه السلسلة — مثلاً في اتجاه صاعد يصنع السعر قاعاً أدنى — تكون أول إنذار باحتمال تغيّر الاتجاه (تغيّر الطابع).</p><h3>SMA</h3><p>المتوسط المتحرك البسيط: متوسط أسعار الإغلاق لآخر N فترة (مثل 50 أو 200). يُنعّم الضجيج ويُظهر الاتجاه: السعر فوقه = ميل صاعد. المتوسطان 50 و200 الأكثر متابعة، وتقاطعهما (التقاطع الذهبي/تقاطع الموت) يتابعه نصف السوق. بطيء الاستجابة لكنه موثوق.</p><h3>EMA</h3><p>المتوسط المتحرك الأسّي: مثل البسيط لكنه يرجّح الأسعار الحديثة أكثر، فيستدير أسرع ويلتصق بالسعر. الشائعة: 9 و20 و50. أفضل للتداول السريع؛ المقابل إشارات كاذبة أكثر من البسيط. كثيرون يستخدمون الأسّي للدخول والمتوسط 200 للسياق العام.</p><h3>RSI</h3><p>مؤشر القوة النسبية (0-100): يقيس إن كان السعر صعد أو هبط بسرعة مفرطة. أعلى من 70 = تشبّع شرائي، أقل من 30 = تشبّع بيعي. لكن في اتجاه قوي قد يبقى 'مشبعًا شرائيًا' طويلاً — لا تستخدمه وحده للتداول عكس الحركة. أقوى إشاراته هي الانفراج (السعر يصنع قمة جديدة والمؤشر لا).</p><h3>MACD</h3><p>يقيس الزخم بمقارنة متوسطين (12 و26) بخط إشارة. عندما يعبر خط الماكد فوق خط الإشارة = زخم صاعد؛ وتحته = هابط. ويُظهر المدرّج التكراري إن كان الزخم يتسارع أم يخبو. ممتاز لتأكيد الاتجاه، وغير موثوق في السوق العرضي.</p><h3>بولنجر باند</h3><p>نطاقات بولينجر: متوسط لـ20 فترة مع نطاقين عند ±2 انحراف معياري. نحو 90% من السعر يبقى داخل النطاقين، لذا فلمس النطاق وحده ليس إشارة انعكاس. أقوى استخدام لها هو التقلّب: عندما يضيق النطاقان (انضغاط) غالبًا ما تتبع حركة قوية.</p><h3>فيبوناتشي</h3><p>تصحيحات فيبوناتشي: بعد حركة، غالبًا ما يرتد السعر إلى مستويات 38.2% أو 50% أو 61.8% قبل أن يواصل. تُرسم من بداية الموجة إلى نهايتها وتُستخدم لإيجاد مناطق دخول مع الاتجاه. المستوى 61.8% الأكثر متابعة؛ وتحته تفقد الحركة قوّتها.</p><h3>المفهوم</h3><p>تحليل الأصل نفسه على عدة أطر زمنية في آنٍ واحد. الإطار الأكبر (يومي/4 ساعات) يحدّد الاتجاه، والأصغر (15/5 دقائق) يضبط الدخول. وهذا يتفادى خطأ المبتدئ الكلاسيكي: الشراء على شارت 5 دقائق بينما اليومي يهبط.</p><h3>النهج من الأعلى للأسفل</h3><p>منهج من الأعلى إلى الأسفل: اقرأ أولاً الإطار الأكبر لتحديد الميل (صاعد أم هابط؟)، ثم انزل إلى إطار متوسط لتحديد المنطقة، وأخيرًا إلى إطار صغير لمُحفّز الدخول. والتداول دائمًا في اتجاه الإطار الأكبر يرفع نسبة نجاحك كثيرًا.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <div class="related card"><h2>مواضيع أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/learn/cross-margin/">الهامش المتقاطع</a></li><li><a href="https://tradingcalculator.pro/ar/learn/start-here/">ابدأ من هنا</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">أساسيات التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/market-mechanics/">ميكانيكا السوق</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-styles/">أساليب التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">التحليل الأساسي</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.</div>
+</div></footer>
+</body>
+</html>

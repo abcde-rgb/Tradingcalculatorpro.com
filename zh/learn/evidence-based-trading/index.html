@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>循证交易 | TradingCalculator.Pro</title>
+<meta name="description" content="什么是用数据、而不是用承诺『证明』过的?这里汇集了学术研究、监管机构以及基金、银行和交易台一个世纪的数据所展示的东西:到底有多少人亏损、哪些策略经受住了几十年的统计考验、专业人士如何管理风险。贯穿始终的主线是大数定律:一笔交易是运气,一千笔交易才是统计。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/evidence-based-trading/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/trading-basado-en-evidencia/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/evidenzbasiertes-trading/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/trading-fonde-sur-les-preuves/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/treyding-na-osnove-dokazatelstv/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/evidence-based-trading/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/trading-baseado-em-evidencia/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/trading-basato-sull-evidenza/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/trading-basado-en-evidencia/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="循证交易 | TradingCalculator.Pro">
+<meta property="og:description" content="什么是用数据、而不是用承诺『证明』过的?这里汇集了学术研究、监管机构以及基金、银行和交易台一个世纪的数据所展示的东西:到底有多少人亏损、哪些策略经受住了几十年的统计考验、专业人士如何管理风险。贯穿始终的主线是大数定律:一笔交易是运气,一千笔交易才是统计。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/evidence-based-trading/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"循证交易","url":"https://tradingcalculator.pro/zh/learn/evidence-based-trading/","inLanguage":"zh","description":"什么是用数据、而不是用承诺『证明』过的?这里汇集了学术研究、监管机构以及基金、银行和交易台一个世纪的数据所展示的东西:到底有多少人亏损、哪些策略经受住了几十年的统计考验、专业人士如何管理风险。贯穿始终的主线是大数定律:一笔交易是运气,一千笔交易才是统计。","teaches":["没人告诉你的数字","大数定律(赌场模型)","数学期望:你唯一的罗盘","指数跑赢专业人士(SPIVA)","被奖励的因子:价值、动量、质量、低波动","动量:最稳健的异象","趋势跟踪:一个世纪的证据","仓位(几乎)决定一切:凯利与固定风险","专业交易台如何管理风险","你的偏差,用钱来度量"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"循证交易","item":"https://tradingcalculator.pro/zh/learn/evidence-based-trading/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 循证交易</div>
+  <span class="free">7 天免费试用</span>
+  <h1>循证交易</h1>
+  <p class="lead">什么是用数据、而不是用承诺『证明』过的?这里汇集了学术研究、监管机构以及基金、银行和交易台一个世纪的数据所展示的东西:到底有多少人亏损、哪些策略经受住了几十年的统计考验、专业人士如何管理风险。贯穿始终的主线是大数定律:一笔交易是运气,一千笔交易才是统计。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=evidence-based">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>没人告诉你的数字</h3><p>欧洲监管机构(ESMA)强制经纪商公布:74% 到 89% 的散户 CFD 账户在亏钱。规模最大的日内交易研究(巴西期货,2013-2015 年坚持 300+ 个交易日的所有人):97% 亏损,只有 0.4% 赚得比银行柜员多。这不是为了泼冷水:这是你真实的起点。了解基础概率的人,玩的是另一场游戏。</p><h3>大数定律(赌场模型)</h3><p>赌场不知道下一把开什么,但年底它总是赢:它有一点小优势(edge),并把它重复几百万次。这就是大数定律:随着重复次数增加,你的实际结果会收敛到你的数学期望。翻译成交易语言:别再想『这一笔』,去想『接下来的 100 笔』。你的工作不是去猜,而是像保险公司或做市商那样,把一个小优势执行很多很多次。</p><h3>数学期望:你唯一的罗盘</h3><p>期望 =(胜率 × 平均盈利)−(败率 × 平均亏损)。如果它为正并且重复足够多次,你就赢;如果为负,任何心理学都救不了你。所以你可以只有 40% 的胜率却盈利(只要盈利是亏损的两倍),也可以 70% 的胜率却破产。专业人士不炫耀胜率:他们衡量每笔交易的期望,并用数百笔有记录的交易来跟踪它——交易日志正是为此而生。</p><h3>指数跑赢专业人士(SPIVA)</h3><p>标普每年用 SPIVA 报告把专业基金经理和他们的基准指数做对比。15 年的结果:89.5% 的美国大盘股基金输给标普 500,被分析的 22 个类别中没有一个类别的多数基金能赢。原因是数学性的:费用和成本在复利地消耗你。双重教训:低成本长期买指数是现存最被证明的策略;而跑赢市场难到需要方法,而不是观点。</p><h3>被奖励的因子:价值、动量、质量、低波动</h3><p>学术研究(法玛和弗伦奇、卡哈特)以及 AQR 等量化机构记录了在几十年、几十个国家都持续存在的『因子溢价』:价值(相对基本面便宜时买入)、动量(在涨的往往继续涨)、质量(盈利稳健的公司)和低波动。它们不是每年都有效——会经历漫长的低谷——但它们是少数经受住严肃统计考验的东西。机构的『smart beta』很大程度上就是这个。</p><h3>动量:最稳健的异象</h3><p>杰加迪什和蒂特曼(1993)测量过:过去 3-12 个月涨得最多的股票,继续跑赢跌得最多的,1965-1989 年间每月超额收益接近 1%。此后在 30 年的样本外数据、约 40 个国家和十几种资产类别中得到证实。这是『顺势交易』的统计学验证。注意它的阿喀琉斯之踵:市场剧烈反转(『动量崩溃』)。</p><h3>趋势跟踪:一个世纪的证据</h3><p>AQR 把趋势跟踪策略回溯重建到 1880 年,覆盖 67 个市场、4 类资产(《趋势跟踪投资的百年证据》):从 1880 到 2016 的每一个十年都取得正收益,历经战争与和平、通胀与通缩。在 60/40 组合最大的 10 次危机中,有 8 次表现良好。这正是银行和资管的『管理期货』基金在做的:买上涨的、卖下跌的,靠规则和止损——从不猜顶猜底。</p><h3>仓位(几乎)决定一切:凯利与固定风险</h3><p>凯利公式(1956),经埃德·索普带入市场,证明了一件残酷的事:即使优势相同,每笔押注过大照样会破产——在大数定律来救你之前,方差就先杀死你。所以专业人士只用资金中一个小而固定的比例冒险(著名的每笔约 1% 就是它的保守版),而且从不满仓凯利。活下来,是一切统计的前提。</p><h3>专业交易台如何管理风险</h3><p>在银行或基金里,纪律不是可选项:它是被强加的『限额』。日亏损限额(一旦触及,你的交易权限就被切断)、单一仓位和单一策略限额、VaR 限额,以及在低相关策略之间做分散。交易员不决定自己能冒多少险:风控部门才决定。把这套系统微缩复制到自己身上:在交易之前设定每日和每周最大亏损,并像老板强加给你那样遵守——因为从统计上讲,这正是让你留在牌桌上的东西。</p><h3>你的偏差,用钱来度量</h3><p>巴伯和奥丁分析了 66,465 个真实账户(1991-1996):交易最频繁的人年化收益 11.4%,而市场是 17.9%——过度交易每年吞掉约 6.5 个百分点,几乎全是成本。奥丁还测量了处置效应:我们过早卖出盈利股、死守亏损股,而被卖掉的盈利股后来比被留着的亏损股涨得更多。两条有数据支撑的结论:少交易;『截断亏损、让利润奔跑』不是口号——是统计。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

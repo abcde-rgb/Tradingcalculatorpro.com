@@ -1,87 +1,11 @@
 <!doctype html>
-<html lang="it">
+<html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
-     script externo ni iframe—, así que aquí sí se puede prohibir el script por
-     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
-     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
-     necesitando cabeceras (ver G-10). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
-
-<title>Opzioni — Che cos'è · TradingCalculator.Pro</title>
-<meta name="description" content="An option gives the RIGHT — not the obligation — to buy (call) or sell (put) an asset at a fixed price (strike) before or on a set date. The buyer pays a…">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<link rel="canonical" href="https://tradingcalculator.pro/it/markets/options/">
-<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/options/">
-<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/options/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/options/">
-<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/options/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/options/">
-<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/options/">
-<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/options/">
-<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/options/">
-<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/options/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/options/">
-<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/options/">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="TradingCalculator.Pro">
-<meta property="og:title" content="Opzioni — Che cos'è · TradingCalculator.Pro">
-<meta property="og:description" content="An option gives the RIGHT — not the obligation — to buy (call) or sell (put) an asset at a fixed price (strike) before or on a set date. The buyer pays a…">
-<meta property="og:url" content="https://tradingcalculator.pro/it/markets/options/">
-<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
-<meta property="og:locale" content="it_IT">
-<meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Mercati","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"Opzioni","item":"https://tradingcalculator.pro/it/markets/options/"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"it","mainEntity":[{"@type":"Question","name":"What is a call option and a put option?","acceptedAnswer":{"@type":"Answer","text":"A call gives the right to BUY the asset at the strike price; you buy one expecting the price to rise. A put gives the right to SELL at that price; you buy one expecting a fall or to protect a portfolio. In both cases the buyer risks at most the premium paid."}},{"@type":"Question","name":"How much does one options contract cost?","acceptedAnswer":{"@type":"Answer","text":"The quoted premium multiplied by the contract multiplier, which on US equity options is 100. A $3.20 premium means $320 per contract, not $3.20. It is the confusion that costs beginners the most money."}},{"@type":"Question","name":"What do buy to open and sell to close mean?","acceptedAnswer":{"@type":"Answer","text":"Buy to open starts a long position by paying the premium. Sell to close unwinds it by selling the contract in the market. If instead you opened by selling (sell to open, collecting the premium), you close by buying (buy to close). Confusing opening with closing leaves you short a contract you never meant to sell."}},{"@type":"Question","name":"What happens if I let an option expire?","acceptedAnswer":{"@type":"Answer","text":"If it expires out of the money (OTM) it becomes worthless and you lose the entire premium. If it expires in the money (ITM) it is exercised or cash-settled automatically: on equity options that means receiving or delivering 100 shares per contract, which can demand capital you do not have. That is why professionals close before expiry."}},{"@type":"Question","name":"Why did I lose money on the option when I got the direction right?","acceptedAnswer":{"@type":"Answer","text":"Almost always two reasons: theta (time value evaporates daily and accelerates in the final weeks) and an implied volatility crush (if you bought at high IV — before earnings, say — and IV collapses after the event, the premium falls even as the price moves your way). Getting the direction right is only one of the three things you have to get right."}}]}</script>
-<style>
-:root{color-scheme:dark}*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
-a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
-.wrap{max-width:820px;margin:0 auto;padding:0 20px}
-header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
-header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
-.brand .mark{flex:none;vertical-align:middle}
-nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
-.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
-h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
-.lead{font-size:17px;color:#c7c7c7;margin:0 0 22px}
-.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
-.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
-.card h2{font-size:19px;color:#fff;margin:0 0 12px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:start;padding:9px 10px;border-bottom:1px solid #202020;vertical-align:top}
-th{color:#fff;font-weight:700;width:34%}td{color:#b8b8b8}
-td.num{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:end;color:#e5e5e5;white-space:nowrap}
-.note{font-size:13px;color:#8f8f8f;border-top:1px solid #262626;margin-top:12px;padding-top:12px}
-.qa{border-bottom:1px solid #202020;padding:12px 0}.qa:last-child{border-bottom:0}
-.qa h3{font-size:15px;color:#fff;margin:0 0 6px}.qa p{margin:0;color:#b8b8b8;font-size:14px}
-ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
-footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
-footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
-</style>
+<meta http-equiv="refresh" content="0; url=/it/markets/opzioni/">
+<link rel="canonical" href="https://tradingcalculator.pro/it/markets/opzioni/">
+<meta name="robots" content="follow">
+<title>Opzioni</title>
 </head>
-<body>
-<header class="top"><div class="wrap">
-  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">Mercati</a><a href="https://tradingcalculator.pro/pricing">Prezzi</a></nav>
-</div></header>
-<main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/education">Mercati</a> › Opzioni</div>
-  <h1>Opzioni</h1>
-  <p class="lead">An option gives the RIGHT — not the obligation — to buy (call) or sell (put) an asset at a fixed price (strike) before or on a set date. The buyer pays a premium and risks only that premium. The seller collects the premium and takes on the obligation: on a naked call the risk is unlimited — price has no ceiling; on a naked put it is capped, but at the full strike times the multiplier, which can be more than you hold. It is the only instrument that lets you build a bespoke risk profile.</p>
-  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
-  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fundamentals&amp;market=options">Apri la scheda interattiva →</a></p>
-
-  <div class="card"><h2>Domande frequenti</h2><h3>What is a call option and a put option?</h3><p>A call gives the right to BUY the asset at the strike price; you buy one expecting the price to rise. A put gives the right to SELL at that price; you buy one expecting a fall or to protect a portfolio. In both cases the buyer risks at most the premium paid.</p><h3>How much does one options contract cost?</h3><p>The quoted premium multiplied by the contract multiplier, which on US equity options is 100. A $3.20 premium means $320 per contract, not $3.20. It is the confusion that costs beginners the most money.</p><h3>What do buy to open and sell to close mean?</h3><p>Buy to open starts a long position by paying the premium. Sell to close unwinds it by selling the contract in the market. If instead you opened by selling (sell to open, collecting the premium), you close by buying (buy to close). Confusing opening with closing leaves you short a contract you never meant to sell.</p><h3>What happens if I let an option expire?</h3><p>If it expires out of the money (OTM) it becomes worthless and you lose the entire premium. If it expires in the money (ITM) it is exercised or cash-settled automatically: on equity options that means receiving or delivering 100 shares per contract, which can demand capital you do not have. That is why professionals close before expiry.</p><h3>Why did I lose money on the option when I got the direction right?</h3><p>Almost always two reasons: theta (time value evaporates daily and accelerates in the final weeks) and an implied volatility crush (if you bought at high IV — before earnings, say — and IV collapses after the event, the premium falls even as the price moves your way). Getting the direction right is only one of the three things you have to get right.</p></div>
-  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
-  <div class="card"><h2>Altri mercati</h2><ul><li><a href="https://tradingcalculator.pro/it/markets/forex/">Forex</a></li><li><a href="https://tradingcalculator.pro/it/markets/stocks/">Azioni</a></li><li><a href="https://tradingcalculator.pro/it/markets/crypto/">Cripto</a></li><li><a href="https://tradingcalculator.pro/it/markets/commodities/">Materie Prime</a></li><li><a href="https://tradingcalculator.pro/it/markets/indices/">Indici</a></li><li><a href="https://tradingcalculator.pro/it/markets/etfs/">ETF</a></li></ul></div>
-</main>
-<footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/education">Impara</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
-  <div class="disc">TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.</div>
-</div></footer>
-</body>
+<body><p>→ <a href="/it/markets/opzioni/">Opzioni</a></p></body>
 </html>

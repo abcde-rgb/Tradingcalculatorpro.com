@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Macro: cycle, rates &amp; rotation | TradingCalculator.Pro</title>
+<meta name="description" content="The macro backdrop moves whole markets — more than any single chart. Interest rates, inflation and growth set the tide that lifts or sinks every boat. It…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/en/learn/macro-cycle-rates-rotation/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/macro-ciclo-tipos-y-rotacion-sectorial/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/macro-cycle-rates-rotation/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/makro-zyklus-zinsen-rotation/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/macro-cycle-taux-et-rotation/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/makro-tsikl-stavki-i-rotatsiya/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/macro-cycle-rates-rotation/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/macro-cycle-rates-rotation/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/macro-cycle-rates-rotation/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/macro-ciclo-taxas-e-rotacao/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/macro-ciclo-tassi-e-rotazione/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/macro-ciclo-tipos-y-rotacion-sectorial/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Macro: cycle, rates &amp; rotation | TradingCalculator.Pro">
+<meta property="og:description" content="The macro backdrop moves whole markets — more than any single chart. Interest rates, inflation and growth set the tide that lifts or sinks every boat. It…">
+<meta property="og:url" content="https://tradingcalculator.pro/en/learn/macro-cycle-rates-rotation/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Macro: cycle, rates & rotation","url":"https://tradingcalculator.pro/en/learn/macro-cycle-rates-rotation/","inLanguage":"en","description":"The macro backdrop moves whole markets — more than any single chart. Interest rates, inflation and growth set the tide that lifts or sinks every boat. It…","teaches":["What macro analysis is","The economic cycle","Interest rates (the economy's remote)","The yield curve","Curve inversion = recession signal #1","Cyclical vs defensive sectors","Sector rotation","Leading vs lagging indicators"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://tradingcalculator.pro/en/learn/"},{"@type":"ListItem","position":3,"name":"Macro: cycle, rates & rotation","item":"https://tradingcalculator.pro/en/learn/macro-cycle-rates-rotation/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/en/learn/">Learn</a> › Macro: cycle, rates &amp; rotation</div>
+  <span class="free">7-day free trial</span>
+  <h1>Macro: cycle, rates &amp; rotation</h1>
+  <p class="lead">The macro backdrop moves whole markets — more than any single chart. Interest rates, inflation and growth set the tide that lifts or sinks every boat. It isn't about predicting it but positioning for it: know which phase of the cycle we're in and what tends to work there.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=macro">Open the full module →</a></p>
+  
+  
+  <div class="card"><h2>What you will learn</h2><h3>What macro analysis is</h3><p>The top-down picture: rates, inflation, growth and employment. It doesn't tell you which stock to buy, it tells you the ENVIRONMENT — risk-on (appetite for risk) or risk-off (flight to safety). When the tide turns, correlations spike and being on the right side of the cycle matters more than picking the perfect stock.</p><h3>The economic cycle</h3><p>The economy breathes in 4 phases: expansion (growth, jobs, rising profits) → peak (overheating, inflation, high rates) → recession (contraction, layoffs, falling profits) → recovery (bottoming, rate cuts, green shoots). Key: the stock market moves ahead of the economy — it prices the next phase, not the current one.</p><h3>Interest rates (the economy's remote)</h3><p>The central bank's policy rate is the master dial. Cutting rates = cheap money, stimulates growth and lifts risk assets; hiking = expensive money, cools inflation and pressures stocks and bonds. 'Don't fight the Fed': the DIRECTION of rates decides whether the wind is at your back or in your face.</p><h3>The yield curve</h3><p>Plot government-bond yields from short maturities (3 months, 2 years) to long ones (10, 30 years). Normally it slopes up: longer term, higher yield — a sign of a healthy economy. When it flattens or slopes down (inverts), the market is pricing rate cuts ahead: a warning that growth is slowing.</p><h3>Curve inversion = recession signal #1</h3><p>When short rates rise above long rates (the 10-year minus 2-year spread goes negative), it has preceded nearly every US recession of the last 50 years, usually 6-18 months ahead. It won't time your entry, but it's the loudest macro warning there is. Tellingly, the recession usually begins around when the curve un-inverts.</p><h3>Cyclical vs defensive sectors</h3><p>Cyclicals (tech, industrials, consumer discretionary, banks) soar in expansion and crash in recession — they ride the cycle. Defensives (utilities, healthcare, staples) hold up in downturns because people still pay the electricity bill, take their medicine and eat. Knowing which is which tells you where money hides in fear and where it runs in greed.</p><h3>Sector rotation</h3><p>As the cycle turns, leadership rotates: early recovery → banks, tech and consumer discretionary; full expansion → industrials and materials; late/peak → energy and commodities; recession → defensives. It's the 'sector clock'. Big money rotates BEFORE the turn, so watching which sectors lead hints at which phase the market thinks we're in.</p><h3>Leading vs lagging indicators</h3><p>Leading indicators turn BEFORE the economy: PMI/ISM, the yield curve itself, building permits, new orders and the stock market itself. Lagging ones confirm AFTER: unemployment, GDP, already-reported earnings. To anticipate, watch the leading ones; by the time GDP or unemployment confirms a recession, the market has usually already moved months ago.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <div class="related card"><h2>More topics</h2><ul><li><a href="https://tradingcalculator.pro/en/learn/cross-margin/">Cross margin</a></li><li><a href="https://tradingcalculator.pro/en/learn/start-here/">Start here</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">Trading Fundamentals</a></li><li><a href="https://tradingcalculator.pro/en/learn/market-mechanics/">Market Mechanics</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-styles/">Trading Styles</a></li><li><a href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">Fundamental Analysis</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.</div>
+</div></footer>
+</body>
+</html>

@@ -1,87 +1,11 @@
 <!doctype html>
-<html lang="de">
+<html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
-     script externo ni iframe—, así que aquí sí se puede prohibir el script por
-     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
-     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
-     necesitando cabeceras (ver G-10). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
-
-<title>Rohstoffe — Was es ist · TradingCalculator.Pro</title>
-<meta name="description" content="Commodities are physical goods: crude oil, natural gas, gold, copper, wheat, coffee. They trade almost entirely through FUTURES, which expire and must be…">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<link rel="canonical" href="https://tradingcalculator.pro/de/markets/commodities/">
-<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/commodities/">
-<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/commodities/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/commodities/">
-<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/commodities/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/commodities/">
-<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/commodities/">
-<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/commodities/">
-<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/commodities/">
-<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/commodities/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/commodities/">
-<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/commodities/">
-<meta property="og:type" content="article">
-<meta property="og:site_name" content="TradingCalculator.Pro">
-<meta property="og:title" content="Rohstoffe — Was es ist · TradingCalculator.Pro">
-<meta property="og:description" content="Commodities are physical goods: crude oil, natural gas, gold, copper, wheat, coffee. They trade almost entirely through FUTURES, which expire and must be…">
-<meta property="og:url" content="https://tradingcalculator.pro/de/markets/commodities/">
-<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
-<meta property="og:locale" content="de_DE">
-<meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Märkte","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"Rohstoffe","item":"https://tradingcalculator.pro/de/markets/commodities/"}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"de","mainEntity":[{"@type":"Question","name":"How big is one oil contract?","acceptedAnswer":{"@type":"Answer","text":"A standard WTI contract (symbol CL) is 1,000 barrels. With oil at $75, notional is $75,000. The minimum tick is $0.01 per barrel, i.e. $10 per contract. A mini (QM, 500 barrels) and a micro (MCL, 100 barrels) exist for smaller accounts."}},{"@type":"Question","name":"How much is one gold contract worth?","acceptedAnswer":{"@type":"Answer","text":"The standard contract (GC) is 100 troy ounces. With gold at $2,400/oz, notional is $240,000. Every $1 move in the ounce is $100 per contract. The micro (MGC) is 10 ounces."}},{"@type":"Question","name":"What drives the natural gas price?","acceptedAnswer":{"@type":"Answer","text":"Mainly weather — heating demand in winter, cooling demand in summer — plus storage levels (the weekly EIA report), production, and in Europe the geopolitics of supply. It is the most volatile future in the energy complex: 5-10% daily moves are routine."}},{"@type":"Question","name":"What is contango and why does it hurt me?","acceptedAnswer":{"@type":"Answer","text":"Contango is when far-dated contracts trade above near-dated ones. Holding a long position means rolling every month: selling the cheap one and buying the expensive one, losing money on each roll even if spot never moves. It is why many commodity ETFs underperform the commodity they track."}},{"@type":"Question","name":"Can you trade commodities without futures?","acceptedAnswer":{"@type":"Answer","text":"Yes: through ETFs and ETCs (which suffer the roll effect), miner and oil-producer shares (which add company risk), or CFDs (with a daily financing cost). Each route changes the risk — none gives you pure spot exposure for free."}}]}</script>
-<style>
-:root{color-scheme:dark}*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
-a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
-.wrap{max-width:820px;margin:0 auto;padding:0 20px}
-header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
-header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
-.brand .mark{flex:none;vertical-align:middle}
-nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
-.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
-h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
-.lead{font-size:17px;color:#c7c7c7;margin:0 0 22px}
-.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
-.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
-.card h2{font-size:19px;color:#fff;margin:0 0 12px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:start;padding:9px 10px;border-bottom:1px solid #202020;vertical-align:top}
-th{color:#fff;font-weight:700;width:34%}td{color:#b8b8b8}
-td.num{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:end;color:#e5e5e5;white-space:nowrap}
-.note{font-size:13px;color:#8f8f8f;border-top:1px solid #262626;margin-top:12px;padding-top:12px}
-.qa{border-bottom:1px solid #202020;padding:12px 0}.qa:last-child{border-bottom:0}
-.qa h3{font-size:15px;color:#fff;margin:0 0 6px}.qa p{margin:0;color:#b8b8b8;font-size:14px}
-ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
-footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
-footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
-</style>
+<meta http-equiv="refresh" content="0; url=/de/markets/rohstoffe/">
+<link rel="canonical" href="https://tradingcalculator.pro/de/markets/rohstoffe/">
+<meta name="robots" content="follow">
+<title>Rohstoffe</title>
 </head>
-<body>
-<header class="top"><div class="wrap">
-  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">Märkte</a><a href="https://tradingcalculator.pro/pricing">Preise</a></nav>
-</div></header>
-<main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Start</a> › <a href="https://tradingcalculator.pro/education">Märkte</a> › Rohstoffe</div>
-  <h1>Rohstoffe</h1>
-  <p class="lead">Commodities are physical goods: crude oil, natural gas, gold, copper, wheat, coffee. They trade almost entirely through FUTURES, which expire and must be rolled. Each contract represents a specific physical quantity, and that quantity is what determines how much you make or lose per unit of price movement.</p>
-  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
-  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fundamentals&amp;market=commodities">Interaktives Datenblatt öffnen →</a></p>
-
-  <div class="card"><h2>Häufige Fragen</h2><h3>How big is one oil contract?</h3><p>A standard WTI contract (symbol CL) is 1,000 barrels. With oil at $75, notional is $75,000. The minimum tick is $0.01 per barrel, i.e. $10 per contract. A mini (QM, 500 barrels) and a micro (MCL, 100 barrels) exist for smaller accounts.</p><h3>How much is one gold contract worth?</h3><p>The standard contract (GC) is 100 troy ounces. With gold at $2,400/oz, notional is $240,000. Every $1 move in the ounce is $100 per contract. The micro (MGC) is 10 ounces.</p><h3>What drives the natural gas price?</h3><p>Mainly weather — heating demand in winter, cooling demand in summer — plus storage levels (the weekly EIA report), production, and in Europe the geopolitics of supply. It is the most volatile future in the energy complex: 5-10% daily moves are routine.</p><h3>What is contango and why does it hurt me?</h3><p>Contango is when far-dated contracts trade above near-dated ones. Holding a long position means rolling every month: selling the cheap one and buying the expensive one, losing money on each roll even if spot never moves. It is why many commodity ETFs underperform the commodity they track.</p><h3>Can you trade commodities without futures?</h3><p>Yes: through ETFs and ETCs (which suffer the roll effect), miner and oil-producer shares (which add company risk), or CFDs (with a daily financing cost). Each route changes the risk — none gives you pure spot exposure for free.</p></div>
-  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
-  <div class="card"><h2>Weitere Märkte</h2><ul><li><a href="https://tradingcalculator.pro/de/markets/forex/">Forex</a></li><li><a href="https://tradingcalculator.pro/de/markets/stocks/">Aktien</a></li><li><a href="https://tradingcalculator.pro/de/markets/crypto/">Krypto</a></li><li><a href="https://tradingcalculator.pro/de/markets/indices/">Indizes</a></li><li><a href="https://tradingcalculator.pro/de/markets/etfs/">ETFs</a></li><li><a href="https://tradingcalculator.pro/de/markets/futures/">Futures</a></li></ul></div>
-</main>
-<footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/education">Lernen</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
-  <div class="disc">TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.</div>
-</div></footer>
-</body>
+<body><p>→ <a href="/de/markets/rohstoffe/">Rohstoffe</a></p></body>
 </html>

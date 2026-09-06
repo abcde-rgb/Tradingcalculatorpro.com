@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>الهامش المتقاطع | TradingCalculator.Pro</title>
+<meta name="description" content="أحد عشر وحدة عن الآلية التي تقرر بقاء حساب مرفوع أو انهياره: ما هو الهامش، وإلى ماذا ينظر الوسيط ليغلق عليك، ولماذا لا تكاد الدرجة الثانية من السلّم تُنفَّذ…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ar/learn/cross-margin/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/margen-cruzado-margin-call-y-stop-out/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/cross-margin/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/cross-margin/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/marge-croisee/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/kross-marzha/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/cross-margin/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/cross-margin/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/cross-margin/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/margem-cruzada/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/margine-incrociato/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/margen-cruzado-margin-call-y-stop-out/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="الهامش المتقاطع | TradingCalculator.Pro">
+<meta property="og:description" content="أحد عشر وحدة عن الآلية التي تقرر بقاء حساب مرفوع أو انهياره: ما هو الهامش، وإلى ماذا ينظر الوسيط ليغلق عليك، ولماذا لا تكاد الدرجة الثانية من السلّم تُنفَّذ…">
+<meta property="og:url" content="https://tradingcalculator.pro/ar/learn/cross-margin/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ar_SA">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"الهامش المتقاطع","url":"https://tradingcalculator.pro/ar/learn/cross-margin/","inLanguage":"ar","description":"أحد عشر وحدة عن الآلية التي تقرر بقاء حساب مرفوع أو انهياره: ما هو الهامش، وإلى ماذا ينظر الوسيط ليغلق عليك، ولماذا لا تكاد الدرجة الثانية من السلّم تُنفَّذ…","teaches":["المعادلة","لماذا هذا الخلط مكلف","الأرقام الأربعة","العتبتان","كيف يعمل كل منهما","متى يكون المتقاطع الخيار الصحيح","المسافتان، بالقياس","والهامش نفسه يتحرك أيضاً","حالة محسوبة","أي سعر يفتحها","التحقق","القواعد الثلاث","إشارة الإنذار","ما يحدث فعلاً","ما لا يحدث","النموذج مهم، وكثيراً","الأرقام","السقف","التفصيل الذي لا يكاد أحد يذكره","رتبة المقدار","ما لا يظهر على الرسم البياني","معادلة الإفلاس","المقايضة","اختبار الاتساق","الحدود","ما تخسره خارج الإطار"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"تعلّم","item":"https://tradingcalculator.pro/ar/learn/"},{"@type":"ListItem","position":3,"name":"الهامش المتقاطع","item":"https://tradingcalculator.pro/ar/learn/cross-margin/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/pricing">الأسعار</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">الرئيسية</a> › <a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a> › الهامش المتقاطع</div>
+  <span class="free">7 أيام مجانًا</span>
+  <h1>الهامش المتقاطع</h1>
+  <p class="lead">أحد عشر وحدة عن الآلية التي تقرر بقاء حساب مرفوع أو انهياره: ما هو الهامش، وإلى ماذا ينظر الوسيط ليغلق عليك، ولماذا لا تكاد الدرجة الثانية من السلّم تُنفَّذ أبداً، ولماذا لا تتيح لك زيادة الرافعة مخاطرة أكبر. كل رقم في هذه الدورة يمكن إعادة إنتاجه في محاكي السلّم داخل لوحة التحكم.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=cross-margin">افتح الوحدة كاملة →</a></p>
+  
+  
+  <div class="card"><h2>ما ستتعلمه</h2><h3>المعادلة</h3><p>الهامش = اللوتات × حجم العقد × السعر ÷ الرافعة. في XAUUSD اللوت 100 أونصة تروي، فعند 4,600 دولار ورافعة 1:500 يحتجز اللوت الواحد 920 دولاراً بينما يتحكم بذهب قيمته 460,000 دولار.</p><h3>لماذا هذا الخلط مكلف</h3><p>إن ظننت أنك تخاطر بـ920 دولاراً فستحدد الحجم كما لو كنت تخاطر بـ920 دولاراً. لكن حركة 10 دولارات في الذهب تساوي 1,000 دولار على ذلك اللوت: تكون قد خسرت أكثر من الهامش المحتجز. الهامش يحدّ كم يمكنك أن «تفتح»، لا كم يمكن أن تخسر.</p><h3>الأرقام الأربعة</h3><p>الرصيد هو المال المحقق. وحقوق الملكية هي الرصيد زائد العائم. والهامش المستخدم هو ما تحتجزه المراكز المفتوحة. والهامش الحر هو حقوق الملكية ناقص الهامش المستخدم، وهو وحده ما يقرر تنفيذ الأمر التالي.</p><h3>العتبتان</h3><p>نداء الهامش عادةً قرب 100 % والإغلاق الإجباري بين 20 % و50 % حسب الوسيط؛ وقاعدة الإغلاق الأوروبية تحدده عند 50 % من الحد الأدنى للهامش المطلوب. الأول تحذير؛ والثاني يغلق المراكز من تلقاء نفسه بدءاً بالأكثر خسارة. وفي سوق سريعة قد تعبر الاثنين دون أن ترى التحذير.</p><h3>كيف يعمل كل منهما</h3><p>في المعزول لكل مركز ضماناته الخاصة، وتصفيته لا تمسّ الباقي. وفي المتقاطع تضمن حقوق الملكية كلها كل شيء، فيلتهم المركز الخاسر وسادة بقية المراكز.</p><h3>متى يكون المتقاطع الخيار الصحيح</h3><p>مع تعرّضات مترابطة أو متحوَّط لها، ورافعة معتدلة، وصفقات تشكّل فكرة واحدة. هناك يمنع التصفية بسبب ذيل شمعة عابر. أما مع البناء الهرمي العدواني فيفعل العكس: يقصّر المسافة بين نداء الهامش والتصفية، لأن كل شيء يتقاسم الضمانات نفسها.</p><h3>المسافتان، بالقياس</h3><p>خمسة لوتات ذهب مشتراة عند 4,328.15 برافعة 1:500. في المعزول يفقد المركز هامشه على بُعد 8.66 دولاراً — السعر ÷ الرافعة، ولا علاقة له بالحجم. وفي المتقاطع، برصيد 5,000 دولار وإغلاق إجباري عند 50 %، يأتي الإغلاق على بُعد 5.68 دولاراً: عند 4,322.47. الحساب ذو الضمانات «الأكبر» يُصفَّى أولاً، لأن عتبة الوسيط ليست فقدان الهامش بل النزول تحت نصفه.</p><h3>والهامش نفسه يتحرك أيضاً</h3><p>في عقود الفروقات يُعاد حساب الهامش بسعر السوق ولا يتجمّد عند الدخول: فحين ينخفض سعر مركز شراء، يتقلّص الهامش المطلوب. أثر ذلك على الوسادة صغير — هنا ينتقل من 5.672 إلى 5.678 دولاراً — وهو في صالحك، فليس هناك يكمن الخطر. ويستحق أن تعرفه للسبب المعاكس تماماً: من يذكره باعتباره المشكلة الكبرى للهامش المتقاطع لم يُجرِ الحساب. المشكلة هي العتبة.</p><h3>حالة محسوبة</h3><p>حساب 5,000 دولار، رافعة 1:500، خمسة لوتات ذهب عند 4,328.15. الهامش المستخدم 4,328.15 والحر 671.85. يرتفع السعر خمسة سنتات وتريد إضافة خمسة لوتات أخرى: المطلوب 4,328.20 والمتاح 696.80. الأمر مرفوض؛ ولا يتسع إلا لـ0.80 لوت. الخطة كلها كانت تستند إلى خطوة لا تحدث.</p><h3>أي سعر يفتحها</h3><p>لا تُنفَّذ الدرجة الثانية قبل 4,335.49، وعندها يصبح الهامش الحر صفراً. أي إن سلّماً بمسافة خمسة سنتات يتطلب أن يقطع السعر سبعة دولارات أولاً — مئة ضعف المسافة التي خططت لها. وبمسافة 10 دولارات تُنفَّذ الخطة نفسها كاملةً، لأن الربح العائم ينمو أسرع من الهامش. هذا هو الفرق بين البناء الهرمي والتكديس.</p><h3>التحقق</h3><p>تكلفة الدرجة ليست «اللوتات × هامش الوحدة»، بل الفرق بين الهامش المستخدم قبلها وبعدها. هكذا فقط يصحّ الحساب حين تسير الدرجة في الاتجاه المعاكس فتقلّص التعرض الصافي بدل أن تزيده.</p><h3>القواعد الثلاث</h3><p>أضف فقط عند التأكيد، واجعل كل درجة أصغر من سابقتها، وارفع وقف الخسارة مع كل إضافة كي لا تتجاوز المخاطرة الكلية ما حددته عند الدخول الأول. وحذف أي واحدة من الثلاث يقلب الأسلوب إلى نقيضه.</p><h3>إشارة الإنذار</h3><p>إذا كانت الوسادة حتى الإغلاق الإجباري «تضيق» كلما أضفت درجات، فأنت لا تبني هرماً. في سلّم المحاكي بمسافة 10 دولارات مع الاتجاه، تنتقل الوسادة من 5.68 دولاراً بعد الدرجة الأولى إلى 17.65 دولاراً بعد إغلاق الخامسة: الصفقة تسير لصالحك وحقوق الملكية ترتفع أسرع من الهامش. اجعل السلّم نفسه ضد الاتجاه ولن تُنفَّذ الدرجة الثانية أصلاً.</p><h3>ما يحدث فعلاً</h3><p>في نموذج الهامش الصافي، خمسة مراكز شراء وخمسة بيع تعطي تعرضاً صفرياً وهامشاً صفرياً: ينتقل مستوى الهامش من 116 % إلى غير معرَّف، ويُنفَّذ الأمر حتى لو لم يكن لديك هامش حر يُذكر.</p><h3>ما لا يحدث</h3><p>إن استخدمت ذلك الهامش لإضافة خمسة مراكز شراء، تعود صافياً إلى خمسة لوتات ويعود الهامش إلى مبلغه الأصلي. النقطة نفسها، ناقص فارق السعر لأربع صفقات. وعند فك القفل يعود التعرض الكامل دفعةً واحدة: إغلاق الساق الحامية ومستوى الهامش عند 100 % يستدعي الإغلاق الإجباري في التذبذب التالي.</p><h3>النموذج مهم، وكثيراً</h3><p>ليس كل الوسطاء يجرون مقاصة. ففي النموذج الذي يحتسب الساقين كاملتين، تنتقل اللوتات الخمسة المتحوَّط لها نفسها من 4,328 دولاراً هامشاً إلى 8,656، ويهبط مستوى الهامش من 116 % إلى 58 %: على بُعد ثماني نقاط من الإغلاق الإجباري عند 50 %. فالتحوّط، الذي قُصد به الحماية، هو ما يُطلق التصفية. تحقق من ذلك في مواصفات الأداة مسبقاً، لا لاحقاً.</p><h3>الأرقام</h3><p>بـ5,000 دولار، والذهب عند 4,328.15، واشتراط تحمّل حركة معاكسة قدرها 70 دولاراً دون تصفية: عند 1:200 يتسع 0.620 لوت؛ وعند 1:500، 0.673؛ وعند 1:1000، 0.693؛ وعند 1:2000، 0.704. الانتقال من 1:500 إلى 1:1000 يمنحك 3 % فقط من الحجم القابل للدفاع.</p><h3>السقف</h3><p>المعادلة تقترب من الرصيد ÷ (العقد × الوسادة). بـ5,000 دولار ووسادة 70 دولاراً يكون السقف 0.714 لوت، ولا رافعة تتجاوزه. وحين لا يكفي حساب لمركز، فالمشكلة في رأس المال لا في الرافعة.</p><h3>التفصيل الذي لا يكاد أحد يذكره</h3><p>بالنسبة لمركز «حُدّد حجمه سلفاً»، تمنح الرافعة الأعلى وسادة أكبر فعلاً: خمسة لوتات تتحمل 5.68 دولاراً عند 1:500 و7.84 دولاراً عند 1:1000، لأن عتبة الإغلاق الإجباري نسبة من هامش أصغر. لم تكن الرافعة يوماً هي الخطر. الخطر هو الحجم الذي تغريك بفتحه.</p><h3>رتبة المقدار</h3><p>فارق سعري قدره 0.25 دولار على الذهب عبر خمسة لوتات يساوي 125 دولاراً للصفقة. وفتح قفل وإغلاقه أربع صفقات: 500 دولار. ومقابل 671.85 دولاراً من الهامش الحر في الحالة المحسوبة، يذهب 74 % في التنفيذ وحده.</p><h3>ما لا يظهر على الرسم البياني</h3><p>يتسع الفارق السعري عند البيانات الاقتصادية وقرب الإغلاق الأسبوعي. ويُحتسب التبييت كل ليلة، وفي المركز المقفل يُحتسب عادةً على الساقين معاً. وقد تقفز فجوة افتتاح الأحد فوق مستوى إغلاقك الإجباري بالكامل: فالتصفية تقع عند أول سعر متاح، لا عند السعر الذي حسبته.</p><h3>معادلة الإفلاس</h3><p>من دون انحراف، احتمال بلوغ +a قبل خسارة −b هو b ÷ (a + b). وبوسادة 7.66 دولاراً وهدف 260 دولاراً تكون النتيجة 2.9 %. وإضافة اتجاه صاعد قوي — 20 دولاراً يومياً بتقلّب يومي قدره 60 دولاراً — ترفعها إلى 8.6 %: وتبقى خطة تفشل تسع مرات من كل عشر.</p><h3>المقايضة</h3><p>تقليل حجم الدخول يرفع الوسادة والاحتمال، مقابل اشتراط مسافة أطول للربح النقدي نفسه. هذه المقايضة هي القرار كله، ويُتخذ عند الأمر الأول: بعده لا يمكن تغييره دون إغلاق.</p><h3>اختبار الاتساق</h3><p>إذا كانت الخطة تشترط مضاعفة الحساب ثلاث مرات قبل البدء، وكنت تعرف كيف تفعل ذلك، فالخطة زائدة عن الحاجة: تكرار الشيء نفسه يبلغ مدى أبعد دون المرور بنداء هامش قط. وكل خطة تستند إلى أنك حللت مسبقاً مشكلة أصعب منها هي خطة دائرية.</p><h3>الحدود</h3><p>أزواج العملات الرئيسية 30:1؛ والأزواج غير الرئيسية والمؤشرات الرئيسية والذهب 20:1؛ وباقي السلع والمؤشرات غير الرئيسية 10:1؛ والأسهم 5:1؛ والعملات المشفّرة 2:1. يُضاف إلى ذلك الإغلاق الإلزامي للمراكز عند 50 % من الحد الأدنى للهامش المطلوب، والحماية من الرصيد السالب لكل حساب.</p><h3>ما تخسره خارج الإطار</h3><p>برافعة 20:1 تتطلب خمسة لوتات ذهب عند 4,330 هامشاً قدره 108,250 دولاراً بدل 4,330. والرافعة العالية لا تظهر إلا لدى جهات في اختصاصات مثل بليز أو سيشل أو موريشيوس، حيث الحماية من الرصيد السالب غير مضمونة بنص تنظيمي ومسار الشكوى مختلف. قبل التداول بالرافعة، تحقق كتابةً مما إذا كانت متاحة لك.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <div class="related card"><h2>مواضيع أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/learn/start-here/">ابدأ من هنا</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">أساسيات التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/market-mechanics/">ميكانيكا السوق</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-styles/">أساليب التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">التحليل الأساسي</a></li><li><a href="https://tradingcalculator.pro/ar/learn/valuing-a-company-in-depth/">تقييم شركة بعمق</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.</div>
+</div></footer>
+</body>
+</html>

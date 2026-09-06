@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Die Gann-Box: Schritt für Schritt aufbauen und handeln | TradingCalculator.Pro</title>
+<meta name="description" content="Die Gann-Box ist ein Zeichenwerkzeug der technischen Analyse, das von einem wichtigen Pivot ausgeht und die Spanne in ein Raster aus Preis und Zeit…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/a-caixa-de-gann-como-se-monta-e-se-opera-passo-a-passo/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/la-gann-box-come-si-costruisce-e-si-opera-passo-dopo-passo/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Die Gann-Box: Schritt für Schritt aufbauen und handeln | TradingCalculator.Pro">
+<meta property="og:description" content="Die Gann-Box ist ein Zeichenwerkzeug der technischen Analyse, das von einem wichtigen Pivot ausgeht und die Spanne in ein Raster aus Preis und Zeit…">
+<meta property="og:url" content="https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="de_DE">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Die Gann-Box: Schritt für Schritt aufbauen und handeln","url":"https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/","inLanguage":"de","description":"Die Gann-Box ist ein Zeichenwerkzeug der technischen Analyse, das von einem wichtigen Pivot ausgeht und die Spanne in ein Raster aus Preis und Zeit…","teaches":["Was sie ist und warum die 1×1-Diagonale regiert","An welchem Hoch oder Tief man sie verankert","Wie man sie Schritt für Schritt aufbaut","Welche Proportionen sie hat (0-25-50-75-100)","Wie man die Niveaus handelt","Richtung: Schlusskurse unter einem Niveau","Auf welchen Zeitebenen sie funktioniert","Mythos vs. Realität (lies das)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Start","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Lernen","item":"https://tradingcalculator.pro/de/learn/"},{"@type":"ListItem","position":3,"name":"Die Gann-Box: Schritt für Schritt aufbauen und handeln","item":"https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/pricing">Preise</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Start</a> › <a href="https://tradingcalculator.pro/de/learn/">Lernen</a> › Die Gann-Box: Schritt für Schritt aufbauen und handeln</div>
+  <span class="free">7 Tage gratis</span>
+  <h1>Die Gann-Box: Schritt für Schritt aufbauen und handeln</h1>
+  <p class="lead">Die Gann-Box ist ein Zeichenwerkzeug der technischen Analyse, das von einem wichtigen Pivot ausgeht und die Spanne in ein Raster aus Preis und Zeit unterteilt. Hier siehst du, wie sie im Chart wirklich genutzt wird — an welchem Hoch oder Tief man sie verankert, wie man sie aufbaut, welche Proportionen sie hat und wie man sie handelt — ohne den esoterischen Nebel, der sie meist begleitet. Sie ist der geometrische Cousin des Fibonacci: eine Karte von Niveaus, an denen der Preis gern reagiert, nützlich, wenn man sie mit Disziplin und Kontext einsetzt.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">Vollständiges Modul öffnen →</a></p>
+  
+  
+  <div class="card"><h2>Was du lernst</h2><h3>Was sie ist und warum die 1×1-Diagonale regiert</h3><p>Die Gann-Box umschließt eine Preisbewegung und teilt sie in ein Raster: waagerechte Linien (Preisniveaus) und senkrechte Linien (Zeitniveaus). Ihr Herz ist die 1×1-Diagonale, eine 45°-Linie, die das perfekte Gleichgewicht zwischen Preis und Zeit darstellt: eine Preiseinheit pro Zeiteinheit. Über der 1×1 ist der Markt &quot;stark&quot;, darunter &quot;schwach&quot;. Die übrigen Linien sind Unterteilungen der Spanne, die als Unterstützung und Widerstand wirken.</p><h3>An welchem Hoch oder Tief man sie verankert</h3><p>Die Box wird IMMER an einem bedeutenden Pivot verankert, nie an einem beliebigen Punkt. Für eine bullische Box beginnt sie an einem relevanten Swing-Tief und reicht bis zum Hoch; für eine bärische von einem relevanten Swing-Hoch bis zum Tief. Wähle das klarste, jüngste Extrem der Bewegung, die du untersuchen willst: das Tief oder Hoch der letzten Welle, den Ursprung eines Impulses. Eine schlechte Verankerung verschiebt das ganze Raster; springt der Pivot nicht ins Auge, ist er kein guter Ausgangspunkt.</p><h3>Wie man sie Schritt für Schritt aufbaut</h3><p>In TradingView: 1) wähle das Gann-Box-Werkzeug; 2) klicke auf den Ursprungspivot (das Tief bei einer bullischen Box); 3) ziehe bis zum gegenüberliegenden Extrem der Bewegung (das Hoch) und legst so die Preis- und Zeitspanne fest; 4) passe die SKALIERUNG des Charts an, damit die 1×1-Diagonale nahe 45° liegt, sonst verlieren die Winkel ihren Sinn. Die Box projiziert ihre Niveaus nach rechts (in die Zukunft): dort suchst du die Reaktionen. Die Winkel lassen sich ein- oder ausschalten, je nachdem, ob du nur mit Niveaus oder auch mit Diagonalen arbeiten willst.</p><h3>Welche Proportionen sie hat (0-25-50-75-100)</h3><p>Das Standardraster teilt die Spanne in Viertel: 0%, 25%, 50%, 75% und 100%; viele ergänzen die Drittel (33,3% und 66,6%). Das meistbeachtete Niveau ist 50%, die Mitte der Bewegung, genau wie beim Fibonacci. Bei den Diagonalen kommen neben der 1×1 auch die 1×2 und 2×1 vor (der Preis läuft doppelt oder halb so schnell wie die Zeit) und in feineren Varianten 1×4 oder 1×8. Du brauchst nicht alle: die 1×1 und die Niveaus 25/50/75% bündeln 90% des praktischen Nutzens.</p><h3>Wie man die Niveaus handelt</h3><p>Jede Rasterlinie ist eine mögliche Unterstützung oder ein Widerstand. Das Grundspiel: warten, bis der Preis ein Niveau ERREICHT, und seine Reaktion lesen. Weist er das Niveau ab (Docht und Umkehr), handelst du zugunsten des Niveaus mit dem Stop auf der anderen Seite; bricht er es entschlossen, suchst du die Fortsetzung zur nächsten Stufe der Box. Die Konfluenz entscheidet: ein Gann-Niveau, das mit einer früheren Unterstützung, einer runden Zahl oder einem Fibonacci zusammenfällt, ist weit mehr wert als ein isoliertes. Handle das Niveau nie &quot;einfach so&quot;: es braucht ein Preissignal zur Bestätigung.</p><h3>Richtung: Schlusskurse unter einem Niveau</h3><p>Entscheidend ist der SCHLUSSKURS, nicht der Docht. Eine Kerze, die unter einem Schlüsselniveau schließt (den 50% oder der 1×1-Diagonale), gilt als Verlust dieses Niveaus: die Tendenz wird bärisch und das natürliche Ziel ist die nächste Stufe darunter (50% → 25% → Basis 0%). Umgekehrt bei Schlusskursen darüber. Aber Vorsicht: ein Docht, der das Niveau durchsticht und innerhalb derselben Kerze zurückerobert, ist meist ein Fehlausbruch (Fakeout), eine Liquiditätsfalle, und viele nutzen ihn, um in die Gegenrichtung einzusteigen. Deshalb verlangt man meist Schlusskurs + Retest, bevor man den Bruch für echt hält.</p><h3>Auf welchen Zeitebenen sie funktioniert</h3><p>Die Box funktioniert auf jeder Zeitebene, aber je höher der Rahmen, desto verlässlicher die Niveaus: eine im Swing des Tages- oder Wochencharts verankerte Box markiert Zonen, die weit mehr Leute beachten als eine im 1-Minuten-Chart. Empfohlenes Vorgehen: baue die Box auf der hohen Zeitebene (Tag oder 4h) für die Niveaukarte und geh nur zum Feinjustieren des Einstiegs auf eine niedrigere (1h oder 15m), wenn der Preis ein Niveau erreicht. Im reinen Intraday verliert sie durch das Rauschen an Robustheit. Und denk daran, den Chart auf jeder Ebene richtig zu skalieren, denn der 1×1-Winkel hängt von der Skalierung ab.</p><h3>Mythos vs. Realität (lies das)</h3><p>Sei ehrlich zum Werkzeug: es gibt keinen Beleg, dass Fonds oder Institutionen mit Gann-Boxen handeln — es ist Folklore des Privatanleger-Tradings, keine Methode institutioneller Handelstische. W.D. Gann selbst ist umstritten: die Zahl der &quot;50 Millionen&quot; wurde nie belegt, und laut seinem Sohn verdiente er mehr mit dem Verkauf von Kursen als mit dem Handel. Warum reagieren dann manche Niveaus? Nicht durch magische Geometrie, sondern weil 50%, runde Zahlen und frühere Hochs und Tiefs von vielen beachtet werden und sich selbst erfüllen, genau wie Fibonacci. Nutze sie als disziplinierte Karte von Niveaus, nicht als Kristallkugel.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <div class="related card"><h2>Weitere Themen</h2><ul><li><a href="https://tradingcalculator.pro/de/learn/cross-margin/">Cross-Margin</a></li><li><a href="https://tradingcalculator.pro/de/learn/hier-starten/">Hier starten</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">Trading-Grundlagen</a></li><li><a href="https://tradingcalculator.pro/de/learn/marktmechanik/">Marktmechanik</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-stile/">Trading-Stile</a></li><li><a href="https://tradingcalculator.pro/de/learn/fundamentalanalyse/">Fundamentalanalyse</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.</div>
+</div></footer>
+</body>
+</html>

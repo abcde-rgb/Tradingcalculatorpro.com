@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Liquidité macro : la plomberie qui meut le marché | TradingCalculator.Pro</title>
+<meta name="description" content="Le moteur caché des Bourses que presque personne n'explique : combien d'argent « utilisable » il y a vraiment dans le système. Ce ne sont pas que les taux…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/liquidite-macro-la-plomberie-qui-meut-le-marche/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/liquidez-macro-fed-tga-repo-inverso/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/makro-liquiditat-die-klempnerei-die-den-markt-bewegt/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/liquidite-macro-la-plomberie-qui-meut-le-marche/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/makrolikvidnost-santehnika-kotoraya-dvizhet-rynkom/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/liquidez-macro-a-canalizacao-que-move-o-mercado/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/liquidita-macro-l-impianto-idraulico-che-muove-il-mercato/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/liquidez-macro-fed-tga-repo-inverso/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Liquidité macro : la plomberie qui meut le marché | TradingCalculator.Pro">
+<meta property="og:description" content="Le moteur caché des Bourses que presque personne n'explique : combien d'argent « utilisable » il y a vraiment dans le système. Ce ne sont pas que les taux…">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/liquidite-macro-la-plomberie-qui-meut-le-marche/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Liquidité macro : la plomberie qui meut le marché","url":"https://tradingcalculator.pro/fr/learn/liquidite-macro-la-plomberie-qui-meut-le-marche/","inLanguage":"fr","description":"Le moteur caché des Bourses que presque personne n'explique : combien d'argent « utilisable » il y a vraiment dans le système. Ce ne sont pas que les taux…","teaches":["Ce qu'est la liquidité nette","Le bilan de la Fed : QE et QT","La TGA : le compte du Trésor","Le reverse repo (RRP)","La corrélation avec le S&P","Attention : corrélation n'est pas causalité"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"Liquidité macro : la plomberie qui meut le marché","item":"https://tradingcalculator.pro/fr/learn/liquidite-macro-la-plomberie-qui-meut-le-marche/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › Liquidité macro : la plomberie qui meut le marché</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>Liquidité macro : la plomberie qui meut le marché</h1>
+  <p class="lead">Le moteur caché des Bourses que presque personne n'explique : combien d'argent « utilisable » il y a vraiment dans le système. Ce ne sont pas que les taux ou les bénéfices, mais la liquidité nette — ce que la Réserve fédérale injecte ou draine — que beaucoup de gros acteurs surveillent. Elle se calcule à partir de trois pièces (bilan de la Fed − TGA − reverse repo) et a corrélé autour de 0,95 avec le S&amp;P 500. Voici la plomberie, pièce par pièce, et ses limites.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>Ce qu'est la liquidité nette</h3><p>La formule qu'utilisent ceux qui observent la « marée » de l'argent : Liquidité nette = bilan de la Fed (WALCL) − compte du Trésor (TGA) − reverse repo (RRP). C'est une approximation du nombre de dollars réellement disponibles pour les marchés. Quand cette marée monte, elle tend à soulever les actifs risqués ; quand elle baisse, elle les fait couler. Rien de magique : suivre l'argent au lieu des nouvelles.</p><h3>Le bilan de la Fed : QE et QT</h3><p>Le bilan (WALCL), ce sont les actifs que détient la Réserve fédérale. Il monte quand elle fait de l'assouplissement quantitatif (QE) : elle achète des obligations et crée des réserves → elle injecte de la liquidité. Il baisse quand elle fait du resserrement quantitatif (QT) : elle laisse les obligations arriver à échéance sans réinvestir → elle draine la liquidité. C'est la grande pièce lente de l'équation : elle fixe la direction de fond de la marée d'argent, le courant sur lequel flotte tout le reste.</p><h3>La TGA : le compte du Trésor</h3><p>Le Treasury General Account est le compte courant du Gouvernement américain à la Fed. Quand le Trésor y accumule de l'argent (par exemple après avoir émis beaucoup de dette), cet argent sort du système et reste garé → il draine la liquidité. Quand il dépense et vide la TGA, cet argent entre dans l'économie → il injecte de la liquidité. C'est pourquoi les épisodes de « plafond de la dette » bougent tant : ils changent la TGA d'un coup, et avec elle la marée.</p><h3>Le reverse repo (RRP)</h3><p>Le Reverse Repo, c'est de l'argent — surtout des fonds monétaires — garé chaque nuit à la Fed contre des obligations : de la liquidité « gelée » qui ne travaille pas dans les marchés. Si le RRP baisse, cet argent tend à sortir en quête d'actifs plus rémunérateurs → la liquidité entre dans le système et l'appétit pour le risque monte. C'est la pièce la plus rapide et volatile des trois ; en surveiller la tendance donne des indices précoces de l'humeur du marché.</p><h3>La corrélation avec le S&amp;P</h3><p>Depuis les gros achats de la Fed après 2008 et le Covid, la liquidité nette et le S&amp;P 500 ont bougé presque main dans la main : certaines analyses citent des corrélations autour de 0,95, avec un décalage d'environ deux semaines entre le changement de liquidité et celui du prix. Traduction pratique : quand la plomberie injecte, le vent souffle en général en faveur des actions ; quand elle draine, contre elles. C'est pourquoi tant de gérants gardent ce chiffre sur leur écran principal.</p><h3>Attention : corrélation n'est pas causalité</h3><p>Un avertissement essentiel : une corrélation élevée ne garantit pas qu'elle tiendra, et ce « 0,95 » regarde le passé, pas l'avenir. La liquidité est un vent de fond, pas un chronomètre d'entrées : elle peut pousser des semaines ou faillir quand une autre force (taux, géopolitique, bénéfices) prend le dessus. Utilise-la pour comprendre le CONTEXTE — la marée monte-t-elle ou descend-elle ? — pas pour chronométrer le prochain retournement à la minute. C'est une boussole, pas une horloge.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

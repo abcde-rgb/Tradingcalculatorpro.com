@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Technical Analysis | TradingCalculator.Pro</title>
+<meta name="description" content="Using price charts and indicators to predict future market movements">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/en/learn/technical-analysis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/technical-analysis/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/technische-analyse/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/analyse-technique/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/tehnicheskiy-analiz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/technical-analysis/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/technical-analysis/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/technical-analysis/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/analise-tecnica/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/analisi-tecnica/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Technical Analysis | TradingCalculator.Pro">
+<meta property="og:description" content="Using price charts and indicators to predict future market movements">
+<meta property="og:url" content="https://tradingcalculator.pro/en/learn/technical-analysis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Technical Analysis","url":"https://tradingcalculator.pro/en/learn/technical-analysis/","inLanguage":"en","description":"Using price charts and indicators to predict future market movements","teaches":["Linear (arithmetic) scale — the «auto» one","Logarithmic (semi-log) scale — the professional one","When to use each","Why it changes your ANALYSIS (the key part)","Support Level","Resistance Level","S/R Zones","Breakouts","Uptrend","Downtrend","Sideways","Trend Structure","SMA","EMA","RSI","MACD","Bollinger Bands","Fibonacci","The Concept","Top-Down Approach"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://tradingcalculator.pro/en/learn/"},{"@type":"ListItem","position":3,"name":"Technical Analysis","item":"https://tradingcalculator.pro/en/learn/technical-analysis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/en/learn/">Learn</a> › Technical Analysis</div>
+  <span class="free">7-day free trial</span>
+  <h1>Technical Analysis</h1>
+  <p class="lead">Using price charts and indicators to predict future market movements</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=tech-analysis">Open the full module →</a></p>
+  
+  
+  <div class="card"><h2>What you will learn</h2><h3>Linear (arithmetic) scale — the «auto» one</h3><p>Each vertical division is worth the SAME dollars. A $10 move takes the same height whether price is at $20 or $500. It is the default on almost every platform.
+The problem in numbers: $10 to $20 is +100% (you double your money); $100 to $110 is only +10%. On linear BOTH moves are $10 → they take EXACTLY the same height, even though one is ten times more important for your wallet. It distorts risk perception as soon as the price range is wide.</p><h3>Logarithmic (semi-log) scale — the professional one</h3><p>Each vertical division is worth the same PERCENTAGE, not the same dollars. A +50% takes the same height at any price.
+In numbers: $10 to $20 (+100%) takes the same as $100 to $200 (+100%) or $1,000 to $2,000 (+100%). The chart reflects what really matters —percentage return— instead of the absolute value. That is why on assets that have multiplied (Bitcoin from $100 to $60,000, Nvidia…) it is the only way to see the whole story: on linear the early years are a flat line stuck to the floor; on log you see every cycle clearly.</p><h3>When to use each</h3><p>Practical rule:
+• LOG → long-term charts (weekly/monthly), crypto, stocks that have risen a lot, and whenever price travels more than ~30-40% on screen. It is the default of serious mid/long-term analysis.
+• LINEAR → intraday and small ranges, where price barely moves in % and both scales look almost identical. E.g. EUR/USD from 1.0800 to 1.1000 is ~1.9% → log or linear makes no difference.
+Note: «Auto» on your platform is NOT a third scale; it only auto-fits the zoom. The scale is still linear or log depending on what you have selected.</p><h3>Why it changes your ANALYSIS (the key part)</h3><p>The key almost nobody explains: trendlines, channels, patterns and Fibonacci are drawn DIFFERENTLY on log than on linear. A trendline that holds on linear may already be broken on log —and vice versa— giving you opposite signals on the same chart.
+In numbers: an uptrend connecting $100 → $200 → $400. On log each leg is +100%, so the three points form a PERFECT straight line and the trendline is reliable. On linear that same rise is a curve that accelerates; draw a straight line and it drifts away from price, giving false breakouts. That is why pros CHOOSE a scale (almost always log for long-term), keep it fixed and stay consistent: switching scale mid-analysis is fooling yourself.</p><h3>Support Level</h3><p>A price area below the market where buying tends to halt declines. The more times price bounces there, the more reliable it is — and draw it as a band, not an exact line. Don't buy just 'because there's support': wait for confirmation (a rejection candle or volume pickup). If it clearly breaks, that support becomes resistance.</p><h3>Resistance Level</h3><p>A price area above the market where selling tends to stall rallies: the 'ceiling' where many take profit. Trade it like support but inverted (look for rejections to sell or lock in gains). If price breaks through it with force and volume, that resistance usually becomes support.</p><h3>S/R Zones</h3><p>In practice price doesn't turn at an exact number but in an area. Drawing S/R as zones (say 99.5–100.2) instead of a single line stops a spike or a wick from knocking you out early and reflects how the real market actually behaves.</p><h3>Breakouts</h3><p>When price pushes through a support or resistance. A breakout on high volume tends to be real and starts a new leg; on weak volume it's often a trap (false breakout) that snaps back into the range. Beginner tip: wait for the candle to close beyond the level, not just touch it.</p><h3>Uptrend</h3><p>Price makes higher highs and higher lows: each pullback bottoms above the last one. This is where making money is easiest — by buying the dips. As long as the last significant low holds, the uptrend is alive ('the trend is your friend').</p><h3>Downtrend</h3><p>Price makes lower highs and lower lows: each bounce fails below the previous one. The natural play here is to sell or short the bounces, not to 'buy the dip'. Trying to catch the bottom too early is one of the mistakes that blow up the most accounts.</p><h3>Sideways</h3><p>Price moves sideways within a range between support and resistance, with no clear direction. Play: buy near the floor and sell near the ceiling, or stay out until it breaks. Markets range 60-70% of the time, so knowing when NOT to trade here is a skill in itself.</p><h3>Trend Structure</h3><p>Structure is the 'backbone' of a trend: rising highs and lows (up) or falling ones (down). When that sequence breaks — say, in an uptrend price prints a lower low — it's the first warning of a possible trend change (a change of character).</p><h3>SMA</h3><p>Simple Moving Average: the average closing price over the last N periods (e.g. 50 or 200). It smooths the noise and shows direction: price above it = bullish bias. The 50 and 200 are the most watched; their cross (golden/death) is followed by half the market. Slow to react, but reliable.</p><h3>EMA</h3><p>Exponential Moving Average: like the SMA but weighting recent prices more, so it turns sooner and hugs price tighter. Popular ones: 9, 20, 50. Better for fast trading; the trade-off is more false signals than the SMA. Many use the EMA to time entries and the 200 SMA for the big-picture context.</p><h3>RSI</h3><p>Relative Strength Index (0-100): measures whether price has risen or fallen too fast. &gt;70 = overbought, &lt;30 = oversold. But in a strong trend it can stay 'overbought' for a long time — don't use it alone to fade the move. Its strongest signal is divergence (price makes a new high, the RSI doesn't).</p><h3>MACD</h3><p>Measures momentum by comparing two moving averages (12 and 26) against a signal line. When the MACD line crosses above the signal = bullish momentum; below = bearish. The histogram shows whether momentum is accelerating or fading. Great to confirm a trend, unreliable in a sideways market.</p><h3>Bollinger Bands</h3><p>Bollinger Bands: a 20-period average with two bands at ±2 standard deviations. About 90% of price stays inside the bands, so touching a band is not, by itself, a reversal signal. Their strongest use is volatility: when the bands squeeze tight, a big move often follows.</p><h3>Fibonacci</h3><p>Fibonacci retracements: after a move, price often pulls back to the 38.2%, 50% or 61.8% levels before continuing. You draw them from the start to the end of the swing and use them to find entry zones with the trend. The 61.8% is the most watched; below it, the move loses conviction.</p><h3>The Concept</h3><p>Analyzing the same asset across several timeframes at once. The higher one (daily/4h) sets the direction; the lower one (15m/5m) fine-tunes the entry. It prevents the classic beginner mistake: buying on the 5-minute chart right when the daily is falling.</p><h3>Top-Down Approach</h3><p>Top-down approach: first read the higher timeframe to decide the bias (bullish or bearish?), then drop to a middle one to locate the zone, and finally to a small one for the entry trigger. Always trading in the direction of the higher timeframe lifts your hit rate substantially.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <div class="related card"><h2>More topics</h2><ul><li><a href="https://tradingcalculator.pro/en/learn/cross-margin/">Cross margin</a></li><li><a href="https://tradingcalculator.pro/en/learn/start-here/">Start here</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">Trading Fundamentals</a></li><li><a href="https://tradingcalculator.pro/en/learn/market-mechanics/">Market Mechanics</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-styles/">Trading Styles</a></li><li><a href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">Fundamental Analysis</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.</div>
+</div></footer>
+</body>
+</html>

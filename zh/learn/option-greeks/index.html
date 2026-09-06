@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>期权希腊字母 | TradingCalculator.Pro</title>
+<meta name="description" content="希腊字母衡量当各变量（标的、时间、波动率、利率）变动时期权价格如何变化。它们是期权交易者的仪表盘——没有它们你就是盲飞。每张卡片都附数字示例；之后可在&quot;期权&quot;版块用Black-Scholes计算器实践。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/option-greeks/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/griegas-de-opciones/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/option-greeks/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/options-griechen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/les-grecques-des-options/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/greki-optsionov/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/option-greeks/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/option-greeks/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/option-greeks/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/gregas-de-opcoes/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/greche-delle-opzioni/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/griegas-de-opciones/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="期权希腊字母 | TradingCalculator.Pro">
+<meta property="og:description" content="希腊字母衡量当各变量（标的、时间、波动率、利率）变动时期权价格如何变化。它们是期权交易者的仪表盘——没有它们你就是盲飞。每张卡片都附数字示例；之后可在&quot;期权&quot;版块用Black-Scholes计算器实践。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/option-greeks/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"期权希腊字母","url":"https://tradingcalculator.pro/zh/learn/option-greeks/","inLanguage":"zh","description":"希腊字母衡量当各变量（标的、时间、波动率、利率）变动时期权价格如何变化。它们是期权交易者的仪表盘——没有它们你就是盲飞。每张卡片都附数字示例；之后可在\"期权\"版块用Black-Scholes计算器实践。","teaches":["Delta（Δ）——方向","Gamma（Γ）——加速度","Theta（Θ）——时间的租金","Vega（V）——波动率敏感度","Rho（ρ）——利率","隐含波动率（IV）及其分位"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"期权希腊字母","item":"https://tradingcalculator.pro/zh/learn/option-greeks/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 期权希腊字母</div>
+  <span class="free">7 天免费试用</span>
+  <h1>期权希腊字母</h1>
+  <p class="lead">希腊字母衡量当各变量（标的、时间、波动率、利率）变动时期权价格如何变化。它们是期权交易者的仪表盘——没有它们你就是盲飞。每张卡片都附数字示例；之后可在&quot;期权&quot;版块用Black-Scholes计算器实践。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=option-greeks">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>Delta（Δ）——方向</h3><p>标的每涨$1权利金变动多少。Delta 0.50的看涨期权每$1约赚$0.50；看跌期权Delta为负。平值≈±0.50；深度实值→±1；深度虚值→0。也可读作到期成为实值的近似概率（Delta 0.30≈30%），以及股票等价关系：一张0.50 Delta的看涨≈50股（乘数100）。</p><h3>Gamma（Γ）——加速度</h3><p>标的每涨$1时DELTA变动多少。Delta 0.50、Gamma 0.08时，上涨$1后Delta变为0.58。临近到期的平值期权Gamma最大——所以最后一周期权价格波动剧烈。买方为正Gamma（加速对你有利）；卖方为负Gamma（对你不利）。</p><h3>Theta（Θ）——时间的租金</h3><p>其他不变时期权每天损失多少。Theta -0.05 = 每张合约每天流失$5（乘数100）。非线性：平值期权最后30-45天衰减急剧加速。买方每天付这份&quot;租金&quot;；卖方收取。所以买入短期虚值期权干等，就是一台亏钱机器。</p><h3>Vega（V）——波动率敏感度</h3><p>隐含波动率上升1个百分点时权利金变动多少。Vega 0.12 = IV从30%到31%每张合约+$12。财报期尤为关键：公告前IV膨胀、公告后崩塌（IV crush）——方向看对也可能亏钱，因为你买贵了Vega。持有期权=正Vega；卖出=负Vega。</p><h3>Rho（ρ）——利率</h3><p>无风险利率上升1个点时权利金变动多少。Rho 0.04 = 每张合约+$4。这是最少被关注的希腊字母，因为短期影响小，但对LEAPS（一年以上期权）和激进加息周期很重要：利率走高看涨期权升值、看跌期权贬值。</p><h3>隐含波动率（IV）及其分位</h3><p>IV是市场在权利金中&quot;报价&quot;的波动率——对未来波动的预期，而非过去。务必用IV Rank/Percentile与其自身历史对比：40%的IV在指数上可能极贵，在生物科技股上却便宜。专业规则：高IV（rank&gt;50）利于卖方策略（收取膨胀的权利金）；低IV利于买入期权。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

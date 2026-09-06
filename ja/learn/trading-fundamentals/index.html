@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>トレードの基礎 | TradingCalculator.Pro</title>
+<meta name="description" content="異なる市場でのトレードの核心概念を理解する">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/osnovy-treydinga/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/fundamentos-do-trading/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/fondamenti-del-trading/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="トレードの基礎 | TradingCalculator.Pro">
+<meta property="og:description" content="異なる市場でのトレードの核心概念を理解する">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"トレードの基礎","url":"https://tradingcalculator.pro/ja/learn/trading-fundamentals/","inLanguage":"ja","description":"異なる市場でのトレードの核心概念を理解する","teaches":["FX","株式","暗号資産","コモディティ","指数","ETF","先物","債券 / 債券市場","オプション","CFD（差金決済）","個人投資家","機関投資家","投資銀行・商業銀行","ヘッジファンド","年金・投資信託","マーケットメーカー","HFT・アルゴリズム","ブローカー・ディーラー","事業会社・ヘッジャー","中央銀行","シドニー（太平洋）","アジアセッション","シドニー–東京の重複","ロンドンセッション","ロンドン/NY重複時間","ニューヨークセッション"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"トレードの基礎","item":"https://tradingcalculator.pro/ja/learn/trading-fundamentals/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › トレードの基礎</div>
+  <span class="free">7日間無料</span>
+  <h1>トレードの基礎</h1>
+  <p class="lead">異なる市場でのトレードの核心概念を理解する</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fundamentals">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>FX</h3><p>為替市場:ある通貨を別の通貨に交換する(EUR/USDなど)。世界最大かつ最も流動的で(1日あたり約6.6兆ドル)、月〜金は24時間開き、レバレッジで取引される。金利とマクロで動く。スプレッドは低いが、高いレバレッジが初心者最大の危険。</p><h3>株式</h3><p>株を買うとは、企業(アップル、トヨタなど)のごく一部を買うこと。価格が上がれば利益、ときに配当も得られる。取引所の時間内で取引され(24時間ではない)、最も規制が整い直感的な入口。値動きは決算・ニュース・市場全体のムードで決まる。</p><h3>暗号資産</h3><p>デジタル資産(ビットコイン、イーサリアムなど)。24時間365日、営業時間も引けもなく取引される。極端に高いボラティリティで、1日で10%動くこともあり、好機とリスクが同じだけある。レバレッジと無登録の取引所に注意。始めるなら少額で、失っても困らないお金だけを。</p><h3>コモディティ</h3><p>現物の商品:金・銀(安全資産)、原油・ガス(エネルギー)、小麦・コーヒー(農産物)。価格は実際の需給・地政学・ドルで決まる。金は恐怖が高まると上げやすく、原油は景気や紛争で動く。主に先物・ETF・CFDで取引される。</p><h3>指数</h3><p>市場全体を測るバスケット:S&amp;P500(米大手500社)、日経225、ナスダックなど。1銘柄を当てにいく代わりに、全体の方向を取引する。個別株よりノイズが少なく注目度が高い。先物・ETF・CFDで取引される。</p><h3>ETF</h3><p>株のように取引されるが、一度に多くの資産(指数・セクター・金など)を保有するファンド。1回の購入で分散でき、1社に依存せずに済む。安くて簡単で、長期投資家に人気の入口。例:SPYというETFはS&amp;P500に連動する。</p><h3>先物</h3><p>資産(指数・原油・金)を、今日決めた価格で将来受け渡す売買契約。レバレッジが内蔵され満期があるため、乗り換え(ロールオーバー)が必要。プロがヘッジや投機に使う。強力だが難度が高く、初日に触る商品ではない。</p><h3>債券 / 債券市場</h3><p>政府や企業が発行する債務。規模では世界最大の市場で、国債利回り（米10年債など）はあらゆる資産価格の基準となる『リスクフリー』金利を決めます。金利とは逆に動きます。</p><h3>オプション</h3><p>満期前に決められた価格で原資産を買う（コール）／売る（プット）『権利』（義務ではない）を与える契約。ヘッジ・収益獲得・レバレッジと限定リスクでの投機に使われます。価格はボラティリティと時間に依存します。</p><h3>CFD（差金決済）</h3><p>差金決済取引：資産を保有せずに価格変動だけを取引でき、レバレッジをかけて買い・売り両方が可能。欧州で株価指数・FX・商品に人気ですが、レバレッジは損失を拡大し、コスト（スプレッド/オーバーナイト金利）がかさみます。</p><h3>個人投資家</h3><p>あなたのような個人トレーダー。自宅から自己資金で、業者を通じて取引する。人数は最も多いが、動かす出来高の割合は最も小さい。インサイダー情報も規模もない代わりに、強みは柔軟性:誰にも報告せず、完璧な一手を待てる。</p><h3>機関投資家</h3><p>『大口の資金』:ヘッジファンド、年金基金、保険会社、銀行など、数億を動かす主体。規模は強みであり制約でもある:一度に出入りすると価格を動かすため、注文を数時間〜数日に分割する。その足跡(フロー)を追うのが、賢い個人トレーダーの狙いだ。</p><h3>投資銀行・商業銀行</h3><p>市場のインフラ。マーケットメイク、巨額の顧客注文の執行、自己勘定デスクの運営を行い、FXを支配します。そのリサーチと注文フローが短期の方向性を左右します。</p><h3>ヘッジファンド</h3><p>規制の緩いファンドで、積極的で柔軟な戦略（ロング・ショート、マクロ、裁定、クオンツ）で絶対収益を狙います。相場を素早く動かすことがあり、個人トレードの反対側にいる『スマートマネー』であることが多いです。</p><h3>年金・投資信託</h3><p>最大級の長期資金の担い手。年金や貯蓄のためにゆっくり大口で投資します。そのリバランスの資金フローや指数採用の判断は、数週間〜数か月かけてセクター全体を動かします。</p><h3>マーケットメーカー</h3><p>『マーケットを作る』業者:買値と売値を同時に提示し、その差(スプレッド)で稼ぐ。あなたがいつでも出入りできる流動性を供給するが、その利害はあなたと逆。ストップが溜まる場所では、反転前にその流動性を『狩る』ために価格を押し込むことがある。</p><h3>HFT・アルゴリズム</h3><p>高頻度取引（HFT）業者は超高速アルゴリズムでマイクロ秒単位の取引を行い、現在の流動性の多くを供給し、数百万の注文でわずかなスプレッドを積み重ねます。日中の出来高を支配します。</p><h3>ブローカー・ディーラー</h3><p>市場へのアクセスを提供する仲介者。注文を取引所に流す業者（ECN/STP）もあれば、反対側を取る業者（マーケットメイカー/ディーラー）もあります。注文の回し方が約定とコストに影響します。</p><h3>事業会社・ヘッジャー</h3><p>実体のある企業（航空会社・輸出企業・鉱山会社）が、投機ではなく燃料・通貨・原材料といった実際のエクスポージャーをヘッジするために先物やFXを使います。その安定した方向性のないフローが商品・FX市場の土台です。</p><h3>中央銀行</h3><p>最も強力なプレーヤー:FRB、ECBなど。金利を決め、マネー供給を操ることで、通貨・債券・株式市場全体を動かす。求めるのは利益ではなく安定。その議長が話すと市場は耳を澄ます:たった一文で根底のトレンドが反転しうる。</p><h3>シドニー（太平洋）</h3><p>取引週の始まりを告げるセッション。流動性が薄くボラティリティは低め。主にAUD・NZD・JPYのペア。レンジ戦略に向き、値動きが不安定になりやすいためブレイクアウトにはリスクがあります。</p><h3>アジアセッション</h3><p>東京・香港・シンガポール。ボラティリティは中程度でレンジは狭め:JPY・AUD・アジア資産に最適な時間帯。ここで作ったレンジを、のちにロンドンが破ることが多い。レンジ戦略に向く一方、流動性が低いためブレイクは難しめ。</p><h3>シドニー–東京の重複</h3><p>アジア太平洋が本格稼働：AUD・NZD・JPYやアジア株価指数が最も活発になる時間帯。地域指標や中国に左右される中程度のボラティリティ。</p><h3>ロンドンセッション</h3><p>最も重要な時間帯:ロンドンは世界の為替の約35%を動かす。ボラティリティが高くトレンドがきれいで、特にEUR・GBP絡みの通貨ペアで顕著。最初の1時間でその日の方向を決めることが多い。値幅の大きさと厚い流動性から、多くのトレーダーに好まれる。</p><h3>ロンドン/NY重複時間</h3><p>ロンドンとニューヨークが同時に動く4時間(UTC 13:00〜17:00):一日で最も流動的でボラティリティの高い時間帯。最大できれいな値動きが生まれ、多くのデイトレーダーが取引をここに集中させる。計画なしで飛び込めば、最もリスクの高い時間でもある。</p><h3>ニューヨークセッション</h3><p>ニューヨークは米国の主要マクロ指標(雇用・インフレ・金利)とともに始まるため、ボラティリティのピークが集中する。ロンドンとの重複帯は一日で最も動く時間。欧州クローズ後は流動性が落ち、トレンドは失速しやすい。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li><li><a href="https://tradingcalculator.pro/ja/learn/valuing-a-company-in-depth/">企業を深く評価する</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

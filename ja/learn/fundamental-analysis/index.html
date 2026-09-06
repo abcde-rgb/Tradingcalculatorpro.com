@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>ファンダメンタル分析 | TradingCalculator.Pro</title>
+<meta name="description" content="長期的な市場動向を動かす経済的要因を分析">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-fundamental/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/fundamentalanalyse/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/fundamentalnyy-analiz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/analise-fundamental/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/analisi-fondamentale/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-fundamental/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="ファンダメンタル分析 | TradingCalculator.Pro">
+<meta property="og:description" content="長期的な市場動向を動かす経済的要因を分析">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"ファンダメンタル分析","url":"https://tradingcalculator.pro/ja/learn/fundamental-analysis/","inLanguage":"ja","description":"長期的な市場動向を動かす経済的要因を分析","teaches":["GDP成長率","CPI(消費者物価)","政策金利","NFP","失業率","使い方","影響度レベル","PER","EPS","売上成長率","配当"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"ファンダメンタル分析","item":"https://tradingcalculator.pro/ja/learn/fundamental-analysis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › ファンダメンタル分析</div>
+  <span class="free">7日間無料</span>
+  <h1>ファンダメンタル分析</h1>
+  <p class="lead">長期的な市場動向を動かす経済的要因を分析</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fund-analysis">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>GDP成長率</h3><p>GDPは一国が四半期に生み出すすべてを測る、経済の体温計。予想を上回って伸びれば通貨は上げやすく(経済が強い→利上げの可能性)、期待外れなら下げる。市場を動かすのは数字そのものではなく、予想とのズレ(サプライズ)だ。</p><h3>CPI(消費者物価)</h3><p>CPIはインフレ、つまり消費者物価がどれだけ上がったかを測る。中央銀行は高インフレを抑えるため利上げするので、最も相場を動かす指標の一つ。予想超えのCPI→利上げ→通貨高だが株は神経質に。エネルギーと食品を除く『コア』を重視する。</p><h3>政策金利</h3><p>中央銀行が決める金利はお金の値段であり、通貨を動かす最大の要因。金利が高いほど外国資本を呼び込み通貨を強くするが、景気を冷やし株の重しになりやすい。重要なのは決定そのものだけでなく、今後数か月への『トーン』(タカ派/ハト派)だ。</p><h3>NFP</h3><p>非農業部門雇用者数(NFP)は毎月第1金曜に出る米雇用統計で、世界で最も注目されるマクロ指標。発表直後の1分で、ドル・金・株価指数に巨大なボラティリティの山を作る。初心者の鉄則:直前にポジションを持たない。スプレッドが急拡大し価格が飛ぶ。</p><h3>失業率</h3><p>失業率は、職を探しているのに無職の人の割合を測る。失業が低い=経済が強い=金利と通貨への上昇圧力。NFPや賃金と併せて読む:『過熱』した労働市場はインフレ懸念を高める。他のマクロ指標同様、価格を動かすのは予想とのかい離だ。</p><h3>使い方</h3><p>経済カレンダーは、どの指標が何時に、どれほどの影響予想で出るかを一覧にする。考えとは逆に使う:反応を『当てる』ためではなく、いつ取引しないかを知るため。毎朝その日の高影響イベントを確認し、『赤』の発表直前の数分はポジションを持たない。</p><h3>影響度レベル</h3><p>イベントは影響度で色分けされる:赤(高:金利・CPI・NFP)、オレンジ(中)、黄(低)。赤は数秒で相場を数百ポイント動かし、スプレッドは極端に広がりスリッページも出る。初心者は数字の当てくじではなく、発表が過ぎてから反応を取引するのが賢明。</p><h3>PER</h3><p>PER(株価収益率)は、その株に現在の利益の何年分を払っているかを示す。PER15は『普通』、40超は市場が高成長を織り込む(割高で、期待外れなら脆い)、極端に低いと割安…あるいは問題を抱えた企業のことも。同業種や自社の過去と比べて初めて意味を持つ。</p><h3>EPS</h3><p>EPS(1株当たり利益)は、企業の利益を株式数で割ったもの:1株でいくら稼ぐか。四半期ごとに市場が最も注目する数字で、予想を上回れば株価はふつう上がる。大事なのは推移(毎年伸びているか)と、アナリスト予想とのサプライズだ。</p><h3>売上成長率</h3><p>売上成長は、売上高が前年比でどれだけ伸びたかを測る。事業が本当に拡大している最もクリアなサインで、まだ黒字でない若い企業では特に重要。売上の加速=モメンタム、売上の停滞=警告(コスト削減で利益が保たれていても)。</p><h3>配当</h3><p>配当は、企業が利益の一部を現金で株主に配るもので、通常は四半期ごと。『配当利回り』(配当÷株価)で年にいくら受け取れるか分かる。長期投資やインカム狙いに魅力的だが要注意:異常に高い利回りは、衰退企業を隠していることがある。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/valuing-a-company-in-depth/">企業を深く評価する</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

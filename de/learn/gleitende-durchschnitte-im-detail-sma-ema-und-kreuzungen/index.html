@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Gleitende Durchschnitte im Detail: SMA, EMA und Kreuzungen | TradingCalculator.Pro</title>
+<meta name="description" content="Der gleitende Durchschnitt ist der meistgenutzte Indikator der technischen Analyse: Er glättet das Preisrauschen und zeigt dir auf einen Blick, wohin der…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/de/learn/gleitende-durchschnitte-im-detail-sma-ema-und-kreuzungen/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/medias-moviles-sma-ema-cruces/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/moving-averages-in-depth-sma-ema-and-crossovers/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/gleitende-durchschnitte-im-detail-sma-ema-und-kreuzungen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/les-moyennes-mobiles-en-profondeur-sma-ema-et-croisements/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/skolzyaschie-srednie-podrobno-sma-ema-i-peresecheniya/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/sma-ema/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/sma-ema/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/sma-ema/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/medias-moveis-a-fundo-sma-ema-e-cruzamentos/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/medie-mobili-a-fondo-sma-ema-e-incroci/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/medias-moviles-sma-ema-cruces/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Gleitende Durchschnitte im Detail: SMA, EMA und Kreuzungen | TradingCalculator.Pro">
+<meta property="og:description" content="Der gleitende Durchschnitt ist der meistgenutzte Indikator der technischen Analyse: Er glättet das Preisrauschen und zeigt dir auf einen Blick, wohin der…">
+<meta property="og:url" content="https://tradingcalculator.pro/de/learn/gleitende-durchschnitte-im-detail-sma-ema-und-kreuzungen/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="de_DE">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Gleitende Durchschnitte im Detail: SMA, EMA und Kreuzungen","url":"https://tradingcalculator.pro/de/learn/gleitende-durchschnitte-im-detail-sma-ema-und-kreuzungen/","inLanguage":"de","description":"Der gleitende Durchschnitt ist der meistgenutzte Indikator der technischen Analyse: Er glättet das Preisrauschen und zeigt dir auf einen Blick, wohin der…","teaches":["SMA vs. EMA: welche nutzen","Welche Periode wählen","Strategie 1: Preis-/MA-Kreuzung","Strategie 2: Zwei-MA-Kreuzung","Strategie 3: Dreifachkreuzung mit Filter","Golden Cross und Death Cross","Die MA als Unterstützung/Widerstand","Indikatorfamilien"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Start","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Lernen","item":"https://tradingcalculator.pro/de/learn/"},{"@type":"ListItem","position":3,"name":"Gleitende Durchschnitte im Detail: SMA, EMA und Kreuzungen","item":"https://tradingcalculator.pro/de/learn/gleitende-durchschnitte-im-detail-sma-ema-und-kreuzungen/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/pricing">Preise</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Start</a> › <a href="https://tradingcalculator.pro/de/learn/">Lernen</a> › Gleitende Durchschnitte im Detail: SMA, EMA und Kreuzungen</div>
+  <span class="free">7 Tage gratis</span>
+  <h1>Gleitende Durchschnitte im Detail: SMA, EMA und Kreuzungen</h1>
+  <p class="lead">Der gleitende Durchschnitt ist der meistgenutzte Indikator der technischen Analyse: Er glättet das Preisrauschen und zeigt dir auf einen Blick, wohin der Trend läuft. Hier erfährst du, was sie wirklich sind, welche Perioden man nutzt, die Kreuzungsstrategien (inklusive Golden und Death Cross) und wie man sie als dynamische Unterstützung und Widerstand einsetzt. Denk daran: Es sind nachlaufende Indikatoren – sie bestätigen den Trend, sie erraten ihn nicht.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=moving-averages">Vollständiges Modul öffnen →</a></p>
+  
+  
+  <div class="card"><h2>Was du lernst</h2><h3>SMA vs. EMA: welche nutzen</h3><p>Ein gleitender Durchschnitt ist der Durchschnittspreis der letzten N Sitzungen, bei jeder Kerze neu berechnet. Die SMA (einfach) behandelt alle Daten gleich; die EMA (exponentiell) gewichtet aktuelle Daten stärker, reagiert also früher, liefert aber auch mehr Fehlsignale. Keine ist „besser&quot;: Die SMA ist glatter und verlässlicher für den Grundtrend, die EMA schneller für kurzfristiges Handeln. Beide sind NACHLAUFENDE Indikatoren: Sie bewegen sich, nachdem der Preis bereits gedreht hat.</p><h3>Welche Periode wählen</h3><p>Die Periode (N) bestimmt den Charakter des Durchschnitts. Kurz (5-20): Momentum und unmittelbare Unterstützung/Widerstand. Mittel (20-100): Korrektur- und Retracement-Ziele. Lang (100, 150, 200): der Grundtrend – die 200er ist die institutionelle Referenz. Manche nutzen Fibonacci-Perioden (89, 144, 233). Faustregel: je größer N, desto glatter und langsamer; je kleiner N, desto schneller und verrauschter. Passe N an deinen Zeitrahmen an.</p><h3>Strategie 1: Preis-/MA-Kreuzung</h3><p>Die einfachste. Kaufsignal, wenn der Preis die MA von unten nach oben kreuzt und darüber bleibt (Aufwärtstrend); Verkaufssignal, wenn er sie von oben nach unten kreuzt und darunter bleibt (Abwärtstrend). Sie funktioniert gut in gerichteten Märkten und versagt in Seitwärtsphasen (Fehlausbrüche). Nutze sie als Richtungsfilter, nicht als einzigen Auslöser.</p><h3>Strategie 2: Zwei-MA-Kreuzung</h3><p>Statt den Preis zu beobachten, beobachtest du die Kreuzung einer schnellen und einer langsamen MA (z. B. 30 und 100). Kaufe, wenn die schnelle die langsame nach oben kreuzt; verkaufe, wenn sie nach unten kreuzt. Sie filtert mehr Rauschen als die Preiskreuzung, aber auf Kosten von mehr Verzögerung: Du steigst später ein. Ein Klassiker des Trendfolgens.</p><h3>Strategie 3: Dreifachkreuzung mit Filter</h3><p>Du fügst eine dritte, langsame MA (z. B. 200) als Trendfilter hinzu. Du kaufst nur, wenn die zwei schnelleren MAs über dem Filter liegen; du verkaufst nur, wenn sie darunter liegen. Das reduziert Fehlsignale, weil nur in Richtung des Grundtrends gehandelt wird – Häufigkeit gegen Qualität getauscht. Weniger Trades, aber sauberere.</p><h3>Golden Cross und Death Cross</h3><p>Die zwei berühmtesten Kreuzungen, zwischen der 50er- und der 200er-MA. Golden Cross: die 50 kreuzt die 200 nach OBEN → langfristig bullisches Signal. Death Cross: die 50 kreuzt die 200 nach UNTEN → bärisches Signal. Sie sind langsam und kommen spät (die Wende hat schon begonnen), aber so viele Trader und Medien folgen ihnen, dass sie von selbst relevant werden. Besser als Kontext denn als exakter Auslöser.</p><h3>Die MA als Unterstützung/Widerstand</h3><p>Der Preis neigt dazu, lange MAs als Entscheidungszonen zu respektieren. Prallt er kräftig an der MA ab, ist eine Trendfortsetzung wahrscheinlich; bricht er sie klar, eine Umkehr; berührt er sie und zögert, kann er in beide Richtungen brechen. Der Wert steigt mit Konfluenz: Wenn die MA mit einem horizontalen Niveau, einem Fibonacci oder einer runden Zahl zusammenfällt, wiegt diese Zone viel mehr.</p><h3>Indikatorfamilien</h3><p>Die MA ist ein Trendindikator (nachlaufend): Sie glänzt in gerichteten Märkten und versagt in Seitwärtsphasen. Es lohnt sich, sie mit anderen Familien zu kombinieren: Oszillatoren (RSI, Stochastik, CCI), die Wenden vorwegnehmen, aber in Trends versagen; Volatilität (Bollinger-Bänder, das sind MAs ± Abweichungen); Trendstärke (ADX); und Volumen. Der Schlüssel ist nicht, Indikatoren zu häufen, sondern Familien zu kombinieren, die sich ausgleichen.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7 Tage gratis starten →</a>
+  <div class="related card"><h2>Weitere Themen</h2><ul><li><a href="https://tradingcalculator.pro/de/learn/cross-margin/">Cross-Margin</a></li><li><a href="https://tradingcalculator.pro/de/learn/hier-starten/">Hier starten</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">Trading-Grundlagen</a></li><li><a href="https://tradingcalculator.pro/de/learn/marktmechanik/">Marktmechanik</a></li><li><a href="https://tradingcalculator.pro/de/learn/trading-stile/">Trading-Stile</a></li><li><a href="https://tradingcalculator.pro/de/learn/fundamentalanalyse/">Fundamentalanalyse</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Start</a><a href="https://tradingcalculator.pro/de/learn/">Lernen</a><a href="https://tradingcalculator.pro/de/tools/">Rechner</a><a href="https://tradingcalculator.pro/de/markets/">Märkte</a><a href="https://tradingcalculator.pro/de/strategies/">Optionsstrategien</a><a href="https://tradingcalculator.pro/de/patterns/">Chart-Muster</a><a href="https://tradingcalculator.pro/de/candles/">Kerzenmuster</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.</div>
+</div></footer>
+</body>
+</html>

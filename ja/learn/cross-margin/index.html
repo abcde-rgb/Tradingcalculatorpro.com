@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>クロスマージン | TradingCalculator.Pro</title>
+<meta name="description" content="レバレッジ口座が生き残れるかどうかを決める仕組みを11のモジュールで扱います。証拠金とは何か、ブローカーは何を見て強制決済するのか、なぜラダーの2段目はほとんど通らないのか、そしてなぜレバレッジを上げてもリスクを増やせないのか。コース中のすべての数字は、ダッシュボードのラダー・シミュレーターで再現できます。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/cross-margin/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/margen-cruzado-margin-call-y-stop-out/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/cross-margin/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/cross-margin/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/marge-croisee/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/kross-marzha/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/cross-margin/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/cross-margin/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/cross-margin/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/margem-cruzada/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/margine-incrociato/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/margen-cruzado-margin-call-y-stop-out/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="クロスマージン | TradingCalculator.Pro">
+<meta property="og:description" content="レバレッジ口座が生き残れるかどうかを決める仕組みを11のモジュールで扱います。証拠金とは何か、ブローカーは何を見て強制決済するのか、なぜラダーの2段目はほとんど通らないのか、そしてなぜレバレッジを上げてもリスクを増やせないのか。コース中のすべての数字は、ダッシュボードのラダー・シミュレーターで再現できます。">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/cross-margin/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"クロスマージン","url":"https://tradingcalculator.pro/ja/learn/cross-margin/","inLanguage":"ja","description":"レバレッジ口座が生き残れるかどうかを決める仕組みを11のモジュールで扱います。証拠金とは何か、ブローカーは何を見て強制決済するのか、なぜラダーの2段目はほとんど通らないのか、そしてなぜレバレッジを上げてもリスクを増やせないのか。コース中のすべての数字は、ダッシュボードのラダー・シミュレーターで再現できます。","teaches":["計算式","この誤解が高くつく理由","4つの数字","2つの閾値","それぞれの仕組み","クロスが正解になる場面","2つの距離を実測する","しかも証拠金自体も動く","計算例","どの価格で解除されるか","確認すべきこと","3つのルール","警告サイン","実際に起きること","起きないこと","モデルの違いは非常に大きい","数字","天井","ほとんど語られない但し書き","桁の感覚","チャートに映らないもの","破産の公式","トレードオフ","整合性チェック","上限","枠組みの外で失うもの"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"クロスマージン","item":"https://tradingcalculator.pro/ja/learn/cross-margin/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › クロスマージン</div>
+  <span class="free">7日間無料</span>
+  <h1>クロスマージン</h1>
+  <p class="lead">レバレッジ口座が生き残れるかどうかを決める仕組みを11のモジュールで扱います。証拠金とは何か、ブローカーは何を見て強制決済するのか、なぜラダーの2段目はほとんど通らないのか、そしてなぜレバレッジを上げてもリスクを増やせないのか。コース中のすべての数字は、ダッシュボードのラダー・シミュレーターで再現できます。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=cross-margin">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>計算式</h3><p>証拠金 = ロット × 契約サイズ × 価格 ÷ レバレッジ。XAUUSDでは1ロットが100トロイオンスなので、4,600ドル・1:500なら1ロットは920ドルを拘束しつつ、460,000ドル分の金を動かします。</p><h3>この誤解が高くつく理由</h3><p>920ドルのリスクだと思えば、920ドルのリスク前提でサイズを決めてしまいます。しかし金が10ドル動けば、その1ロットで1,000ドル。拘束された証拠金より多く失っている計算です。証拠金が制限するのは「建てられる」量であって、失いうる額ではありません。</p><h3>4つの数字</h3><p>残高は確定した資金。エクイティは残高に含み損益を足したもの。使用証拠金は建玉が拘束している分。余剰証拠金はエクイティから使用証拠金を引いた額で、次の注文が通るかを決めるのはこれだけです。</p><h3>2つの閾値</h3><p>マージンコールは通常100 %付近、ストップアウトはブローカーによって20 %〜50 %。EUの証拠金クローズアウト規則では最低必要証拠金の50 %と定められています。前者は警告、後者は最も含み損の大きい玉から自動で決済します。急変時には警告を見ないまま両方を通過することもあります。</p><h3>それぞれの仕組み</h3><p>分離では各ポジションが自分の担保を持ち、その強制決済は他に波及しません。クロスではエクイティ全体がすべてを担保するため、含み損のポジションが他のポジションのクッションを食いつぶします。</p><h3>クロスが正解になる場面</h3><p>相関のある建玉やヘッジ済みの建玉、控えめなレバレッジ、そして一つの相場観を構成する複数のトレード。そこでは一時的なヒゲによる強制決済を防げます。一方、攻撃的なピラミッディングでは逆に働きます。すべてが担保を共有するため、マージンコールから強制決済までの距離が縮まるのです。</p><h3>2つの距離を実測する</h3><p>1:500で4,328.15にて金5ロットを買った場合。分離ではポジションは8.66ドル先で自分の証拠金を失います（価格 ÷ レバレッジ、サイズには依存しません）。クロスでは、残高5,000ドル・ストップアウト50 %なら決済は5.68ドル先、つまり4,322.47で訪れます。担保が「多い」口座の方が先にロスカットされるのは、ブローカーの閾値が証拠金を失うことではなく、その半分を割ることだからです。</p><h3>しかも証拠金自体も動く</h3><p>CFDでは証拠金は市場価格で再計算され、エントリー価格に固定されません。ロングの価格が下がれば必要証拠金も縮みます。クッションへの影響は小さく——この例では5.672ドルが5.678ドルになるだけ——しかも有利に働くので、危険はそこにはありません。知っておく価値があるのはむしろ逆の理由からです。これをクロスマージン最大の問題として挙げる人は、計算していません。問題は閾値です。</p><h3>計算例</h3><p>口座5,000ドル、1:500、金5ロットを4,328.15で保有。使用証拠金4,328.15、余剰証拠金671.85。価格が5セント上がり、さらに5ロット追加したい——必要額は4,328.20で、手元は696.80。注文は拒否され、入るのは0.80ロットだけ。計画全体が、起こらない一手に乗っていたわけです。</p><h3>どの価格で解除されるか</h3><p>2段目が通るのは4,335.49から。しかもその時点で余剰証拠金はゼロになります。つまり5セント刻みのラダーを成立させるには、価格が先に7ドル進む必要がある——計画した間隔の100倍です。間隔を10ドルにすれば同じ計画は最後まで通ります。含み益が証拠金より速く育つからです。それがピラミッディングと積み上げの違いです。</p><h3>確認すべきこと</h3><p>1段のコストは「ロット × 単位証拠金」ではなく、その段の前後における使用証拠金の差額です。そうして初めて、段が逆方向でネット建玉を増やすのではなく減らす場合にも正しくなります。</p><h3>3つのルール</h3><p>確認が取れたときだけ追加する、各段を前の段より小さくする、追加のたびにストップを引き上げて総リスクが最初のエントリーで決めた水準を超えないようにする。どれか一つを外すと、この手法は正反対のものに変わります。</p><h3>警告サイン</h3><p>段を足すたびにストップアウトまでのクッションが「縮む」なら、それはピラミッディングではありません。シミュレーターの順方向10ドル間隔のラダーでは、クッションは1段目のあと5.68ドルから、5段目を建て終えた時点で17.65ドルに広がります。トレードが順行し、エクイティが証拠金より速く増えているのです。同じラダーを逆方向にすれば、2段目でもう通りません。</p><h3>実際に起きること</h3><p>ネット証拠金モデルでは、ロング5ロットとショート5ロットで建玉ゼロ・証拠金ゼロになります。証拠金維持率は116 %から未定義になり、余剰証拠金がほとんどなくても注文は通ります。</p><h3>起きないこと</h3><p>その証拠金でロングを5ロット足せば、ネットで再び5ロットとなり、証拠金は元の金額に戻ります。出発点は同じで、違いは4回分のスプレッドだけ。しかも両建てを解くと建玉全体が一気に戻ります。証拠金維持率100 %で守り側の脚を閉じれば、次のティックでストップアウトです。</p><h3>モデルの違いは非常に大きい</h3><p>すべてのブローカーがネッティングするわけではありません。両脚を満額で徴収するモデルでは、同じヘッジ済み5ロットの証拠金が4,328ドルから8,656ドルに増え、証拠金維持率は116 %から58 %へ低下——50 %のストップアウトまで8ポイントです。守るつもりのヘッジが、まさに強制決済の引き金になります。事後ではなく事前に銘柄仕様で確認してください。</p><h3>数字</h3><p>5,000ドル、金4,328.15、70ドルの逆行にロスカットされず耐えることを条件にすると、1:200では0.620ロット、1:500では0.673、1:1000では0.693、1:2000では0.704。1:500から1:1000へ上げても、防衛可能サイズは3 %増えるだけです。</p><h3>天井</h3><p>この式は 残高 ÷（契約 × クッション）に収束します。5,000ドル・クッション70ドルなら上限は0.714ロットで、どんなレバレッジもこれを超えません。口座がポジションを支えられないとき、問題は資金であってレバレッジではありません。</p><h3>ほとんど語られない但し書き</h3><p>「すでにサイズが決まった」ポジションについては、レバレッジが高いほどクッションは実際に増えます。5ロットは1:500で5.68ドル、1:1000で7.84ドル耐えられます。ストップアウトの閾値が、より小さな証拠金の一定割合だからです。危険だったのはレバレッジそのものではありません。危険なのは、それが建てたくさせるサイズです。</p><h3>桁の感覚</h3><p>金で0.25ドルのスプレッドは、5ロットなら1回あたり125ドル。両建てを組んで解くと4回の取引で500ドルです。計算例の余剰証拠金671.85ドルに対し、執行だけで74 %が消えます。</p><h3>チャートに映らないもの</h3><p>スプレッドは経済指標の発表時と週末の引けにかけて広がります。スワップは毎晩発生し、両建て中は両脚に課されるのが普通です。日曜の寄り付きの窓は、あなたのストップアウトをまるごと飛び越えることがあります。強制決済は最初に成立する価格で行われ、あなたが計算した価格ではありません。</p><h3>破産の公式</h3><p>ドリフトがなければ、−b を失う前に +a に到達する確率は b ÷ (a + b)。クッション7.66ドル、目標260ドルなら2.9 %です。強い上昇トレンド——日次20ドル、日次ボラティリティ60ドル——を加えても8.6 %まで。依然として10回に9回は失敗する計画です。</p><h3>トレードオフ</h3><p>エントリーサイズを小さくすればクッションと確率は上がりますが、同じ金額の利益により長い値幅が必要になります。このトレードオフこそが判断のすべてで、最初の注文で決まります。あとから変えるには決済するしかありません。</p><h3>整合性チェック</h3><p>ある計画が、始める前に口座を3倍にすることを求めていて、しかもそれができるのなら、その計画は不要です。同じことを繰り返す方が、一度もマージンコールを経ずに遠くまで行けます。自分自身より難しい問題をすでに解いていることを前提にする計画は、すべて循環しています。</p><h3>上限</h3><p>主要通貨ペア30:1、非主要通貨ペア・主要株価指数・金は20:1、その他の商品と非主要指数は10:1、個別株5:1、暗号資産2:1。さらに、最低必要証拠金の50 %での強制決済と、口座単位の負残高保護があります。</p><h3>枠組みの外で失うもの</h3><p>20:1なら、金5ロットを4,330で建てるのに4,330ドルではなく108,250ドルの証拠金が要ります。高レバレッジはベリーズ、セーシェル、モーリシャスといった法域の業者にしか存在せず、そこでは負残高保護が規則で保証されず、苦情申立ての経路も異なります。レバレッジ取引を始める前に、それがあるかどうかを書面で確認してください。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li><li><a href="https://tradingcalculator.pro/ja/learn/valuing-a-company-in-depth/">企業を深く評価する</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

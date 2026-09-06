@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Validare un backtest | TradingCalculator.Pro</title>
+<meta name="description" content="Una bella curva di equity non dimostra nulla: si ottiene provando combinazioni finché una funziona. Ciò che separa un backtest da dilettante da uno…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/it/learn/validare-un-backtest/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/validar-un-backtest/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/einen-backtest-validieren/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/valider-un-backtest/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/proverka-bektesta/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/validating-a-backtest/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/validar-um-backtest/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/validare-un-backtest/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/validar-un-backtest/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Validare un backtest | TradingCalculator.Pro">
+<meta property="og:description" content="Una bella curva di equity non dimostra nulla: si ottiene provando combinazioni finché una funziona. Ciò che separa un backtest da dilettante da uno…">
+<meta property="og:url" content="https://tradingcalculator.pro/it/learn/validare-un-backtest/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="it_IT">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Validare un backtest","url":"https://tradingcalculator.pro/it/learn/validare-un-backtest/","inLanguage":"it","description":"Una bella curva di equity non dimostra nulla: si ottiene provando combinazioni finché una funziona. Ciò che separa un backtest da dilettante da uno…","teaches":["I quattro bias che fabbricano un falso vantaggio","Dentro e fuori campione","Walk-forward: come si sarebbe operato davvero","Monte Carlo sull'ORDINE delle operazioni","Quante operazioni servono","Scontare per quanto hai cercato","Perché un vantaggio pubblicato smette di funzionare"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Impara","item":"https://tradingcalculator.pro/it/learn/"},{"@type":"ListItem","position":3,"name":"Validare un backtest","item":"https://tradingcalculator.pro/it/learn/validare-un-backtest/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/it/learn/">Impara</a><a href="https://tradingcalculator.pro/it/tools/">Calcolatrici</a><a href="https://tradingcalculator.pro/it/markets/">Mercati</a><a href="https://tradingcalculator.pro/it/strategies/">Strategie in opzioni</a><a href="https://tradingcalculator.pro/it/patterns/">Pattern Grafici</a><a href="https://tradingcalculator.pro/it/candles/">Pattern di Candele</a><a href="https://tradingcalculator.pro/pricing">Prezzi</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/it/learn/">Impara</a> › Validare un backtest</div>
+  <span class="free">7 giorni gratis</span>
+  <h1>Validare un backtest</h1>
+  <p class="lead">Una bella curva di equity non dimostra nulla: si ottiene provando combinazioni finché una funziona. Ciò che separa un backtest da dilettante da uno professionale non è il risultato, è cosa si è fatto per non ingannare sé stessi. Questo modulo sono i sei strumenti di quella seconda parte, e le tre schermate dove già esistono.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=backtest-validation">Apri il modulo completo →</a></p>
+  
+  
+  <div class="card"><h2>Cosa imparerai</h2><h3>I quattro bias che fabbricano un falso vantaggio</h3><p>Look-ahead: usare informazioni che allora non esistevano — la chiusura del giorno per decidere a metà seduta. Sopravvivenza: testare solo sugli asset ancora quotati, ignorando quelli falliti. Data snooping: provare mille combinazioni e tenere la migliore, che lo è per caso. Overfitting: aggiungere regole finché il passato combacia alla perfezione, rumore compreso. Tutti e quattro producono risultati eccellenti e nessuno sopravvive al mercato.</p><h3>Dentro e fuori campione</h3><p>Si mette da parte una fetta di storico — l'ultimo 30 %, per dire — e la ricerca dei parametri non la tocca mai. Scelto il miglior set di regole, si valuta lì UNA sola volta. Se guardi quella fetta e ritocchi, non è più fuori campione: è diventata addestramento. Un risultato che esiste solo dentro campione è una descrizione del passato, non una previsione.</p><h3>Walk-forward: come si sarebbe operato davvero</h3><p>Un solo set di parametri adattato a tutta la storia usa informazioni dal futuro: a gennaio non sapevi quale media mobile avrebbe funzionato a dicembre. Il walk-forward riottimizza a finestre — allenare sulla prima, operare la successiva, avanzare — che è come sarebbe andata dal vivo. Il numero che conta è l'efficienza: quanta parte del vantaggio di addestramento sopravvive applicata in avanti. Sotto 0,5 è la firma classica dell'overfitting.</p><h3>Monte Carlo sull'ORDINE delle operazioni</h3><p>Il tuo backtest ti ha mostrato UNA sequenza di operazioni, e il drawdown che hai visto dipende dall'ordine in cui sono arrivate. Rimescolare quelle stesse operazioni migliaia di volte dà la distribuzione dei drawdown che quel sistema avrebbe potuto produrre. Guarda il 95° percentile, non la media: è quello che risponde «quanto devo essere disposto a sopportare?». È quasi sempre parecchio peggiore di quello dell'unica sequenza che hai vissuto.</p><h3>Quante operazioni servono</h3><p>Meno di 30 operazioni non dicono nulla. Cento è il minimo per decidere, duecento convincono, cinquecento danno significatività forte. E c'è uno sconto che quasi nessuno applica: le operazioni CORRELATE — più d'una nello stesso trend, nello stesso giorno, nello stesso settore — pesano meno di un campione indipendente. Trecento operazioni molto correlate informano meno di ottanta che non lo siano. Su campioni piccoli, un errore di cinque punti nella percentuale stimata può triplicare la frazione di Kelly che ne esce.</p><h3>Scontare per quanto hai cercato</h3><p>Prova quarantasette combinazioni su dati del tutto casuali e la migliore sembrerà buona. È aritmetica, non abilità. Lo Sharpe deflazionato calcola cosa avrebbe prodotto per pura fortuna una ricerca della stessa ampiezza su un sistema SENZA alcun vantaggio, ed esige che il tuo lo superi. È ciò che separa «il mio backtest ha fatto il 40 %» da «il mio backtest ha fatto il 40 % ed è più di quanto avrebbe dato la fortuna». Sotto le venti combinazioni provate la correzione è essa stessa imprecisa: superarla lì è un indizio, non una prova.</p><h3>Perché un vantaggio pubblicato smette di funzionare</h3><p>Il caso più pulito è il «pre-FOMC drift»: uno studio del 2015 documentò che buona parte del premio azionario statunitense si guadagnava nelle ventiquattro ore precedenti agli annunci della Fed. Studi successivi, allargando il campione, lo trovano praticamente sparito dopo il 2015. Non che il risultato fosse falso: pubblicarlo lo ha arbitrato via. Per questo un vantaggio storico non garantisce mai quello futuro, e per questo conviene sorvegliare quello che stai operando — l'analitica del diario calcola se il calo recente del tuo sistema va oltre ciò che spiega il caso.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
+  <div class="related card"><h2>Altri temi</h2><ul><li><a href="https://tradingcalculator.pro/it/learn/margine-incrociato/">Margine incrociato</a></li><li><a href="https://tradingcalculator.pro/it/learn/inizia-da-qui/">Inizia da qui</a></li><li><a href="https://tradingcalculator.pro/it/learn/fondamenti-del-trading/">Fondamenti del Trading</a></li><li><a href="https://tradingcalculator.pro/it/learn/meccanica-del-mercato/">Meccanica del Mercato</a></li><li><a href="https://tradingcalculator.pro/it/learn/stili-di-trading/">Stili di Trading</a></li><li><a href="https://tradingcalculator.pro/it/learn/analisi-fondamentale/">Analisi Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/it/learn/">Impara</a><a href="https://tradingcalculator.pro/it/tools/">Calcolatrici</a><a href="https://tradingcalculator.pro/it/markets/">Mercati</a><a href="https://tradingcalculator.pro/it/strategies/">Strategie in opzioni</a><a href="https://tradingcalculator.pro/it/patterns/">Pattern Grafici</a><a href="https://tradingcalculator.pro/it/candles/">Pattern di Candele</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.</div>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>交易基础 | TradingCalculator.Pro</title>
+<meta name="description" content="理解不同市场的核心交易概念">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/osnovy-treydinga/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/fundamentos-do-trading/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/fondamenti-del-trading/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="交易基础 | TradingCalculator.Pro">
+<meta property="og:description" content="理解不同市场的核心交易概念">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"交易基础","url":"https://tradingcalculator.pro/zh/learn/trading-fundamentals/","inLanguage":"zh","description":"理解不同市场的核心交易概念","teaches":["外汇","股票","加密货币","大宗商品","指数","ETF","期货","债券 / 固定收益","期权","差价合约（CFD）","散户","机构","投资银行与商业银行","对冲基金","养老金与共同基金","做市商","高频交易与算法","经纪商与交易商","企业与套期保值者","央行","悉尼（太平洋）","亚洲时段","悉尼–东京重叠","伦敦时段","伦敦/纽约重叠","纽约时段"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"交易基础","item":"https://tradingcalculator.pro/zh/learn/trading-fundamentals/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 交易基础</div>
+  <span class="free">7 天免费试用</span>
+  <h1>交易基础</h1>
+  <p class="lead">理解不同市场的核心交易概念</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fundamentals">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>外汇</h3><p>外汇市场:用一种货币兑换另一种(如 EUR/USD)。它是全球最大、流动性最强的市场(每日约 6.6 万亿美元),周一至周五 24 小时开放,并使用杠杆交易。它随利率和宏观经济而动。点差低,但高杠杆是新手最大的风险。</p><h3>股票</h3><p>买一只股票就是买下一家公司(如 Apple、贵州茅台)的一小部分。价格上涨你就赚,有时还有股息。它在交易所开市时段交易(非 24 小时),是最受监管、最直观的入门之选。涨跌取决于财报、消息和市场整体情绪。</p><h3>加密货币</h3><p>数字资产(比特币、以太坊等)7×24 小时交易,没有开收盘。波动极大:一天可能涨跌 10%,机会与风险并存。谨慎对待杠杆和不受监管的交易所。入门建议:小仓位,且只用你输得起的钱。</p><h3>大宗商品</h3><p>实物商品:黄金白银(避险)、原油天然气(能源)、小麦咖啡(农产品)。价格取决于真实的供需、地缘政治和美元。恐慌时黄金往往上涨;原油则随经济和冲突波动。主要通过期货、ETF 或差价合约交易。</p><h3>指数</h3><p>衡量整个市场的一篮子:标普 500(500 家美国大公司)、沪深 300、纳斯达克……你不必押中某一只股票,而是交易整体方向。它们比单只股票的噪音更小、关注度极高;通过期货、ETF 或差价合约交易。</p><h3>ETF</h3><p>像股票一样交易、却一次持有许多资产的基金(某指数、某行业、黄金……)。一次买入即可分散风险,不必依赖单一公司。便宜又简单:长期投资者最爱的入门方式。例如 SPY 这只 ETF 跟踪标普 500。</p><h3>期货</h3><p>以今天约定的价格、在未来交割来买卖某资产(指数、原油、黄金)的合约。它们自带杠杆并有到期日,所以需要展期(移仓)。专业人士用它来对冲和投机;强大但苛刻,不适合第一天上手。</p><h3>债券 / 固定收益</h3><p>由政府和公司发行的债务。按规模是全球最大的市场；主权债收益率（如美国10年期）设定了为所有其他资产定价的“无风险”利率。与利率呈反向变动。</p><h3>期权</h3><p>赋予权利（而非义务）在到期前以约定价格买入（看涨）或卖出（看跌）资产的合约。用于对冲风险、产生收益或以杠杆和有限风险进行投机。其价格取决于波动率和时间。</p><h3>差价合约（CFD）</h3><p>差价合约：你交易资产的价格变动而不持有它，可加杠杆并可做多做空。在欧洲常用于指数、外汇和大宗商品——但杠杆会放大亏损，且成本（点差/隔夜融资）会累积。</p><h3>散户</h3><p>像你一样的个人交易者,在家用自己的钱通过经纪商交易。人数最多,但贡献的成交量最小。没有内幕消息也没有体量,他们的优势在于灵活:可以等待最完美的机会,无需向任何人交代。</p><h3>机构</h3><p>'大资金':对冲基金、养老基金、保险公司和银行,动辄调动数亿。体量既是力量也是限制:他们无法一次性进出而不推动价格,所以会把订单拆分到数小时或数天。追踪他们的足迹(资金流)正是精明散户所追逐的。</p><h3>投资银行与商业银行</h3><p>市场的“管道系统”：它们做市、执行巨额客户订单、运营自营交易台并主导外汇。其研究与订单流塑造短期方向。</p><h3>对冲基金</h3><p>监管较松的基金，以激进、灵活的策略（多空、宏观、套利、量化）追求绝对回报。它们能快速撬动市场，往往是散户交易对手方的“聪明钱”。</p><h3>养老金与共同基金</h3><p>最大的长期资金池。它们为退休和储蓄而缓慢、大规模地投资；其再平衡资金流和纳入指数的决定会在数周乃至数月内推动整个板块。</p><h3>做市商</h3><p>'做市'的机构:同时报出买价和卖价,靠两者之间的点差获利。他们提供流动性,让你随时能进出,但他们的利益与你相反。在止损密集的区域,他们可能推动价格去'猎取'那部分流动性,然后再反转。</p><h3>高频交易与算法</h3><p>高频交易公司使用超快算法在微秒级交易，提供了当今大量流动性，并在数百万笔订单中捕获极小的点差。它们主导着日内成交量。</p><h3>经纪商与交易商</h3><p>为你提供市场准入的中介。有些将你的订单传递到交易所（ECN/STP）；有些则充当对手方（做市商/交易商）。它们如何路由订单会影响你的成交与成本。</p><h3>企业与套期保值者</h3><p>真实的企业（航空公司、出口商、矿企）使用期货和外汇不是为了投机，而是为了对冲真实敞口——燃料、货币、原材料。其稳定、非方向性的资金流是大宗商品和外汇市场的支柱。</p><h3>央行</h3><p>最强大的玩家:美联储、欧洲央行等。他们设定利率、控制货币供给,从而牵动汇率、债券和整个股市。他们追求的不是利润,而是稳定。当其主席讲话时,市场会屏息聆听:一句话就可能扭转大趋势。</p><h3>悉尼（太平洋）</h3><p>开启交易周的时段。流动性稀薄、波动性低；主要是澳元、纽元和日元货币对。适合区间策略，对突破策略较有风险，因为走势可能不稳定。</p><h3>亚洲时段</h3><p>东京、香港和新加坡。波动适中、区间更窄:是日元、澳元和亚洲资产的最佳时段。它常常勾勒出一个区间,随后被伦敦时段突破。适合区间策略,但因流动性较低,做突破较难。</p><h3>悉尼–东京重叠</h3><p>亚太时段全力运转：澳元、纽元、日元及亚洲指数最活跃的窗口。波动性适中，受区域数据和中国影响。</p><h3>伦敦时段</h3><p>最重要的时段:伦敦占全球外汇约 35% 的交易量。波动大、趋势干净,尤其是欧元和英镑货币对。它常在开盘第一个小时就确定当天方向。因走势宽阔、流动性深厚,是许多交易者的最爱。</p><h3>伦敦/纽约重叠</h3><p>伦敦与纽约同时交易的那 4 个小时(UTC 13:00–17:00):全天流动性和波动性最强的窗口。最大、最干净的行情都发生在这里,许多日内交易者把全部交易都集中于此。若无计划贸然进场,这也是风险最高的时段。</p><h3>纽约时段</h3><p>纽约开盘时会公布大多数美国宏观数据(就业、通胀、利率),因此集中出现波动高峰。它与伦敦的重叠时段是一天中行情最活跃的窗口。欧洲收盘后流动性下降,趋势往往走向衰竭。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li><li><a href="https://tradingcalculator.pro/zh/learn/valuing-a-company-in-depth/">深入估值一家公司</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

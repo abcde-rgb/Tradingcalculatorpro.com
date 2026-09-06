@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>基本面分析 | TradingCalculator.Pro</title>
+<meta name="description" content="分析推动市场长期走势的经济因素">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-fundamental/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/fundamentalanalyse/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/fundamentalnyy-analiz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/analise-fundamental/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/analisi-fondamentale/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-fundamental/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="基本面分析 | TradingCalculator.Pro">
+<meta property="og:description" content="分析推动市场长期走势的经济因素">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"基本面分析","url":"https://tradingcalculator.pro/zh/learn/fundamental-analysis/","inLanguage":"zh","description":"分析推动市场长期走势的经济因素","teaches":["GDP增长","CPI通胀","利率","NFP","失业率","使用方法","影响程度","市盈率","每股收益","营收增长","股息"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"基本面分析","item":"https://tradingcalculator.pro/zh/learn/fundamental-analysis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 基本面分析</div>
+  <span class="free">7 天免费试用</span>
+  <h1>基本面分析</h1>
+  <p class="lead">分析推动市场长期走势的经济因素</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fund-analysis">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>GDP增长</h3><p>GDP 衡量一个国家一个季度内产出的全部:它是经济的温度计。若增长超预期,货币往往走强(经济强劲→可能加息);若不及预期则走弱。真正推动市场的不是数字本身,而是相对预期的意外。</p><h3>CPI通胀</h3><p>CPI 衡量通胀:消费者价格上涨了多少。它是最能撼动市场的数据之一,因为央行会通过加息来抑制高通胀。CPI 高于预期→更高利率→货币走强但股市紧张。要盯'核心'读数(剔除能源和食品)。</p><h3>利率</h3><p>央行设定的利率是资金的价格,也是货币的头号驱动因素。更高的利率吸引外资、令货币走强,但会给经济降温,通常压制股市。重要的不只是决议本身,还有对未来数月的'措辞'(鹰派/鸽派)。</p><h3>NFP</h3><p>非农就业(NFP)是美国每月第一个周五公布的就业报告:全球最受关注的宏观数据。它会在第一分钟内让美元、黄金和指数出现巨大波动峰值。新手守则:公布前不要持仓;点差会瞬间放大,价格会跳动。</p><h3>失业率</h3><p>失业率衡量正在找工作却没有工作的人所占的百分比。失业越低=经济越强=对利率和货币的上行压力。要与非农和薪资一起看:'过热'的就业市场会引发通胀担忧。和所有宏观数据一样,推动价格的是与预期的偏差。</p><h3>使用方法</h3><p>经济日历列出将公布哪些数据、几点公布、预期影响多大。用法要反过来:不是去'猜'反应,而是知道什么时候别交易。每天早上看看当天的高影响事件,在'红色'数据公布前的几分钟内避免开仓。</p><h3>影响程度</h3><p>事件按影响标注:红色(高:利率、CPI、非农)、橙色(中)、黄色(低)。红色事件可能在几秒内让市场波动数百点,伴随极宽点差和滑点。对新手来说,明智之举是等数据出完、交易随后的反应,而不是去赌那个数字。</p><h3>市盈率</h3><p>市盈率(价格/盈利)告诉你为这只股票支付了多少年的当期盈利。市盈率 15 算'正常';40 以上意味着市场预期高增长(贵且一旦不及预期就脆弱);极低可能是便宜货……也可能是陷入困境的公司。只有与同行业及公司自身历史比较才有意义。</p><h3>每股收益</h3><p>每股收益(EPS)是公司利润除以股数:每股赚多少。这是股市每季度最看重的数字;若超预期,股价通常上涨。关键在于趋势(是否逐年增长?)以及相对分析师预期的意外。</p><h3>营收增长</h3><p>营收增长衡量销售额同比增加了多少。它是企业真正在扩张的最干净信号,尤其对尚未盈利的年轻公司而言。销售加速=动能;销售停滞=警讯,即便靠削减成本让利润暂时撑住。</p><h3>股息</h3><p>股息是公司以现金分配给股东的那部分利润,通常每季度一次。'股息率'(股息/股价)告诉你每年能领多少。对长期投资、靠分红生活很有吸引力,但要当心:异常高的股息率有时掩盖着一家在衰退的公司。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/valuing-a-company-in-depth/">深入估值一家公司</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

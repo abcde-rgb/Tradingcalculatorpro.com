@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>الهامش والتصفية في المشتقات | TradingCalculator.Pro</title>
+<meta name="description" content="إذا كنت تتداول العقود الآجلة أو الدائمة برافعة مالية، فالهامش هو شريان حياتك. معظم الحسابات لا تموت بسبب تحليل سيئ، بل بسبب عدم فهم كيف ومتى تقوم المنصة…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ar/learn/margin-liquidation-in-derivatives/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/margen-y-liquidacion/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/margin-liquidation-bei-derivaten/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/marge-et-liquidation-sur-derives/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/marzha-i-likvidatsiya-v-derivativah/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/margin-liquidation-in-derivatives/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/margem-e-liquidacao-em-derivados/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/margine-e-liquidazione-nei-derivati/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/margen-y-liquidacion/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="الهامش والتصفية في المشتقات | TradingCalculator.Pro">
+<meta property="og:description" content="إذا كنت تتداول العقود الآجلة أو الدائمة برافعة مالية، فالهامش هو شريان حياتك. معظم الحسابات لا تموت بسبب تحليل سيئ، بل بسبب عدم فهم كيف ومتى تقوم المنصة…">
+<meta property="og:url" content="https://tradingcalculator.pro/ar/learn/margin-liquidation-in-derivatives/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ar_SA">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"الهامش والتصفية في المشتقات","url":"https://tradingcalculator.pro/ar/learn/margin-liquidation-in-derivatives/","inLanguage":"ar","description":"إذا كنت تتداول العقود الآجلة أو الدائمة برافعة مالية، فالهامش هو شريان حياتك. معظم الحسابات لا تموت بسبب تحليل سيئ، بل بسبب عدم فهم كيف ومتى تقوم المنصة…","teaches":["الهامش المعزول (Isolated)","الهامش المشترك (Cross)","وضع المركز: اتجاه واحد (متوسّط) مقابل التحوط (منفصل)","سعر التصفية وهامش الصيانة","سعر العلامة مقابل آخر سعر مقابل سعر المؤشر","معدل التمويل (Funding)","فتائل التصفية والانهيارات المتسلسلة","محركات مكافحة التلاعب (مثل MP Shield)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"تعلّم","item":"https://tradingcalculator.pro/ar/learn/"},{"@type":"ListItem","position":3,"name":"الهامش والتصفية في المشتقات","item":"https://tradingcalculator.pro/ar/learn/margin-liquidation-in-derivatives/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/pricing">الأسعار</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">الرئيسية</a> › <a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a> › الهامش والتصفية في المشتقات</div>
+  <span class="free">7 أيام مجانًا</span>
+  <h1>الهامش والتصفية في المشتقات</h1>
+  <p class="lead">إذا كنت تتداول العقود الآجلة أو الدائمة برافعة مالية، فالهامش هو شريان حياتك. معظم الحسابات لا تموت بسبب تحليل سيئ، بل بسبب عدم فهم كيف ومتى تقوم المنصة بتصفيتك. يشرح هذا الوحدة أوضاع الهامش وأوضاع المركز وسعر التصفية وكيفية حماية نفسك من فتائل التلاعب.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=margin-liq">افتح الوحدة كاملة →</a></p>
+  
+  
+  <div class="card"><h2>ما ستتعلمه</h2><h3>الهامش المعزول (Isolated)</h3><p>لكل مركز هامشه الخاص: إذا تمت تصفيته تخسر فقط ما خصصته لتلك الصفقة — ويبقى باقي حسابك سليماً. هذا هو الوضع الموصى به للمبتدئين وللرافعة العالية، لأن الضرر الأقصى محدد سلفاً. العيب: التصفية تأتي أبكر، لأن ذلك الهامش وحده هو ما يدعمك.</p><h3>الهامش المشترك (Cross)</h3><p>كامل رصيدك المتاح يدعم جميع مراكزك. التصفية أبعد (وسادة أكبر)، لكن إذا تحرك السعر بقوة ضدك، فصفقة واحدة قد تفرغ الحساب بأكمله. مفيد للتحوط وللمتداولين الخبراء ذوي المخاطر المحسوبة؛ وقاتل عند دمجه مع الرافعة المفرطة وبدون وقف خسارة.</p><h3>وضع المركز: اتجاه واحد (متوسّط) مقابل التحوط (منفصل)</h3><p>في وضع الاتجاه الواحد (one-way) لا يمكنك أن تكون إلا شارياً أو بائعاً: كل دخول إضافي في نفس الاتجاه يُدمَج بالمتوسط في مركز واحد، بسعر متوسط جديد وتصفية جديدة. في وضع التحوط (hedge) يمكنك الاحتفاظ بمركز شراء وبيع معاً، منفصلين ولكل منهما هامشه. يبدو التحوط &quot;آمناً&quot;، لكنك تدفع عمولة مضاعفة وتمويلاً مضاعفاً — وغالباً ما يخفي فقط رفض الاعتراف بأن الدخول كان خاطئاً.</p><h3>سعر التصفية وهامش الصيانة</h3><p>تشترط المنصة حداً أدنى لإبقاء المركز مفتوحاً (هامش الصيانة، ~0.4-1%). عندما تأكل الخسائر غير المحققة هامشك حتى ذلك الحد، يغلق المحرك مركزك قسراً ويتقاضى فوق ذلك رسم تصفية. عند رافعة 100x تكفي حركة ~0.5-0.8% ضدك. انظر دائماً إلى سعر التصفية قبل التأكيد — ولا تستخدمه أبداً &quot;كوقف مجاني&quot;: ستخسر أكثر مما تخسره مع وقف حقيقي.</p><h3>سعر العلامة مقابل آخر سعر مقابل سعر المؤشر</h3><p>آخر سعر = آخر صفقة على تلك المنصة (قابل للتلاعب بحجم صغير). سعر المؤشر = متوسط مرجّح للسعر الفوري عبر عدة منصات كبرى. سعر العلامة (Mark) = المؤشر معدّلاً بالأساس؛ وهو السعر &quot;العادل&quot; الذي تحسب به المنصات الجادة الأرباح غير المحققة والتصفيات. إذا كانت منصتك تُصفّي بآخر سعر، فقد تُخرِجك فتيلة محلية واحدة رغم أن السوق العالمي لم يلمس مستواك. تحقق من ذلك في الوثائق قبل الإيداع.</p><h3>معدل التمويل (Funding)</h3><p>العقود الدائمة لا تنتهي؛ التمويل يبقي سعرها ملتصقاً بالسعر الفوري: عادة كل 8 ساعات يدفع المشترون للبائعين عندما يتداول العقد فوق المؤشر، والعكس صحيح. الاحتفاظ بمركز ضد تمويل مرتفع ينزفك يومياً (0.01% × 3 مرات يومياً يبدو قليلاً؛ مع رافعة 10x لم يعد كذلك). التمويل المتطرف (&gt;0.1%/8س) = سوق مزدحم في اتجاه واحد: إشارة عكسية ووقود للانضغاطات.</p><h3>فتائل التصفية والانهيارات المتسلسلة</h3><p>تتجمع مستويات تصفية آلاف المتداولين في مناطق متوقعة (تحت القيعان الواضحة، فوق القمم). دفع السعر إلى تلك المنطقة يطلق تصفيات قسرية — وهي أوامر سوق → تحرك السعر أكثر → فتُصفّي المجموعة التالية: تسلسل. في المنصات الصغيرة ضعيفة السيولة، يمكن لـ&quot;فتيلة احتيالية&quot; أن تكنس المراكز بينما بقية السوق بالكاد تتحرك. لهذا يهم سعر العلامة وأين تتداول.</p><h3>محركات مكافحة التلاعب (مثل MP Shield)</h3><p>بعض المنصات — Margex بنظامها MP Shield™، والمنصات الجادة عموماً عبر سعر علامة مركّب — تجمع السعر من أكثر من 12 مصدر سيولة وتستبعد الانحرافات الحادة من مصدر واحد، بحيث لا تستطيع فتيلة مصطنعة على منصة واحدة تصفيتك. ليست سحراً: فهي لا تحميك من حركة سوق حقيقية. تحقق من منصتك: هل تُصفّي بسعر العلامة/المؤشر المركب؟ هل تنشر تركيبة المؤشر؟ هل لديها صندوق تأمين وآلية ADL شفافة؟</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <div class="related card"><h2>مواضيع أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/learn/cross-margin/">الهامش المتقاطع</a></li><li><a href="https://tradingcalculator.pro/ar/learn/start-here/">ابدأ من هنا</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">أساسيات التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/market-mechanics/">ميكانيكا السوق</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-styles/">أساليب التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">التحليل الأساسي</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.</div>
+</div></footer>
+</body>
+</html>

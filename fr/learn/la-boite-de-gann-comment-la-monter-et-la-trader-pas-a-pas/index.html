@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>La boîte de Gann : comment la monter et la trader pas à pas | TradingCalculator.Pro</title>
+<meta name="description" content="La boîte de Gann est un outil de dessin de l'analyse technique qui part d'un pivot important et divise la plage en une grille de prix et de temps. Ici tu…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/a-caixa-de-gann-como-se-monta-e-se-opera-passo-a-passo/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/la-gann-box-come-si-costruisce-e-si-opera-passo-dopo-passo/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="La boîte de Gann : comment la monter et la trader pas à pas | TradingCalculator.Pro">
+<meta property="og:description" content="La boîte de Gann est un outil de dessin de l'analyse technique qui part d'un pivot important et divise la plage en une grille de prix et de temps. Ici tu…">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"La boîte de Gann : comment la monter et la trader pas à pas","url":"https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/","inLanguage":"fr","description":"La boîte de Gann est un outil de dessin de l'analyse technique qui part d'un pivot important et divise la plage en une grille de prix et de temps. Ici tu…","teaches":["Ce que c'est et pourquoi la diagonale 1×1 commande","Sur quel plus haut ou plus bas l'ancrer","Comment la monter pas à pas","Quelles proportions elle emploie (0-25-50-75-100)","Comment trader les niveaux","Directionnalité : clôtures sous un niveau","Sur quelles unités de temps elle fonctionne","Mythe vs. réalité (à lire)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"La boîte de Gann : comment la monter et la trader pas à pas","item":"https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › La boîte de Gann : comment la monter et la trader pas à pas</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>La boîte de Gann : comment la monter et la trader pas à pas</h1>
+  <p class="lead">La boîte de Gann est un outil de dessin de l'analyse technique qui part d'un pivot important et divise la plage en une grille de prix et de temps. Ici tu vois comment elle s'utilise vraiment sur le graphique — sur quel plus haut ou plus bas l'ancrer, comment la construire, quelles proportions elle emploie et comment la trader — sans la fumée ésotérique qui l'accompagne d'ordinaire. C'est la cousine géométrique du Fibonacci : une carte de niveaux où le prix a tendance à réagir, utile si tu l'emploies avec discipline et contexte.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>Ce que c'est et pourquoi la diagonale 1×1 commande</h3><p>La boîte de Gann enferme un mouvement de prix et le divise en une grille : lignes horizontales (niveaux de prix) et verticales (niveaux de temps). Son cœur est la diagonale 1×1, une ligne à 45° qui représente l'équilibre parfait entre prix et temps : une unité de prix par unité de temps. Au-dessus de la 1×1 le marché est &quot;fort&quot;, en dessous &quot;faible&quot;. Les autres lignes sont des subdivisions de la plage qui agissent comme supports et résistances.</p><h3>Sur quel plus haut ou plus bas l'ancrer</h3><p>La boîte s'ancre TOUJOURS sur un pivot significatif, jamais sur un point quelconque. Pour une boîte haussière elle part d'un creux pertinent (swing low) et s'étend vers le sommet ; pour une baissière, d'un sommet pertinent (swing high) vers le creux. Choisis l'extrême le plus net et le plus récent du mouvement à étudier : le creux ou le sommet de la dernière vague, l'origine d'une impulsion. Un mauvais ancrage décale toute la grille ; si le pivot ne saute pas aux yeux, ce n'est pas un bon point de départ.</p><h3>Comment la monter pas à pas</h3><p>Sur TradingView : 1) choisis l'outil Gann Box ; 2) clique sur le pivot d'origine (le creux dans une boîte haussière) ; 3) fais glisser jusqu'à l'extrême opposé du mouvement (le sommet), fixant ainsi la plage de prix et de temps ; 4) ajuste l'ÉCHELLE du graphique pour que la diagonale 1×1 ressorte près de 45°, sinon les angles perdent leur sens. La boîte projette ses niveaux vers la droite (le futur) : c'est là que tu cherches les réactions. Tu peux activer ou désactiver les angles selon que tu veux travailler seulement avec les niveaux ou aussi avec les diagonales.</p><h3>Quelles proportions elle emploie (0-25-50-75-100)</h3><p>La grille standard divise la plage en quarts : 0%, 25%, 50%, 75% et 100% ; beaucoup ajoutent les tiers (33,3% et 66,6%). Le niveau le plus surveillé est 50%, le milieu du mouvement, comme dans le Fibonacci. Parmi les diagonales, outre la 1×1 on emploie la 1×2 et la 2×1 (le prix avance deux fois ou deux fois moins vite que le temps) et, dans les versions plus fines, 1×4 ou 1×8. Tu n'as pas besoin de toutes : la 1×1 et les niveaux 25/50/75% concentrent 90% de l'utilité pratique.</p><h3>Comment trader les niveaux</h3><p>Chaque ligne de la grille est un support ou une résistance potentiels. Le jeu de base : attendre que le prix ATTEIGNE un niveau et lire sa réaction. S'il rejette le niveau (mèche et retour), tu trades en faveur du niveau avec le stop de l'autre côté ; s'il le casse franchement, tu cherches la continuation vers le palier suivant de la boîte. La confluence commande : un niveau de Gann qui coïncide avec un support antérieur, un chiffre rond ou un Fibonacci vaut bien plus qu'un niveau isolé. Ne trade jamais le niveau &quot;juste comme ça&quot; : il lui faut un signal de prix pour le confirmer.</p><h3>Directionnalité : clôtures sous un niveau</h3><p>La clé est la CLÔTURE, pas la mèche. Une bougie qui clôture sous un niveau clé (les 50% ou la diagonale 1×1) se lit comme une perte de ce niveau : le biais devient baissier et l'objectif naturel est le palier inférieur suivant (50% → 25% → base 0%). L'inverse pour les clôtures au-dessus. Mais attention : une mèche qui perce le niveau et le récupère dans la même bougie est souvent une fausse cassure (fakeout), un piège de liquidité, et beaucoup s'en servent pour entrer en sens inverse. C'est pourquoi on exige d'ordinaire clôture + retest avant de valider la cassure.</p><h3>Sur quelles unités de temps elle fonctionne</h3><p>La boîte sert sur n'importe quelle unité de temps, mais plus le cadre est élevé, plus les niveaux sont fiables : une boîte ancrée sur le swing du graphique journalier ou hebdomadaire marque des zones que bien plus de monde respecte qu'une du graphique en 1 minute. Approche recommandée : monte la boîte sur le cadre élevé (journalier ou 4h) pour la carte des niveaux et descends sur un cadre inférieur (1h ou 15m) seulement pour affiner l'entrée quand le prix atteint un niveau. En intraday pur elle perd en robustesse à cause du bruit. Et pense à bien mettre le graphique à l'échelle sur chaque cadre, car l'angle 1×1 dépend de l'échelle.</p><h3>Mythe vs. réalité (à lire)</h3><p>Sois honnête avec l'outil : rien ne prouve que les fonds ou les institutions tradent avec des boîtes de Gann — c'est du folklore du trading de détail, pas une méthode de desk institutionnel. W.D. Gann lui-même est contesté : le chiffre des &quot;50 millions&quot; n'a jamais été vérifié et, selon son fils, il a gagné plus en vendant des cours qu'en tradant. Pourquoi certains niveaux réagissent-ils alors ? Non par géométrie magique, mais parce que 50%, les chiffres ronds et les plus hauts et plus bas antérieurs sont surveillés par beaucoup de monde et deviennent auto-réalisateurs, comme le Fibonacci. Utilise-la comme une carte de niveaux disciplinée, pas comme une boule de cristal.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

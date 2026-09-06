@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>صندوق غان: كيف تبنيه وتتداول به خطوة بخطوة | TradingCalculator.Pro</title>
+<meta name="description" content="صندوق غان أداة رسم في التحليل الفني تنطلق من نقطة ارتكاز مهمة وتقسّم النطاق إلى شبكة من السعر والزمن. هنا تراه كما يُستخدم فعلاً على الشارت — من أي قمة أو…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/die-gann-box-schritt-fur-schritt-aufbauen-und-handeln/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-boite-de-gann-comment-la-monter-et-la-trader-pas-a-pas/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/korobka-ganna-kak-postroit-i-torgovat-poshagovo/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/a-caixa-de-gann-como-se-monta-e-se-opera-passo-a-passo/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/la-gann-box-come-si-costruisce-e-si-opera-passo-dopo-passo/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/caja-de-gann-como-se-monta-y-opera/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="صندوق غان: كيف تبنيه وتتداول به خطوة بخطوة | TradingCalculator.Pro">
+<meta property="og:description" content="صندوق غان أداة رسم في التحليل الفني تنطلق من نقطة ارتكاز مهمة وتقسّم النطاق إلى شبكة من السعر والزمن. هنا تراه كما يُستخدم فعلاً على الشارت — من أي قمة أو…">
+<meta property="og:url" content="https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ar_SA">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"صندوق غان: كيف تبنيه وتتداول به خطوة بخطوة","url":"https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/","inLanguage":"ar","description":"صندوق غان أداة رسم في التحليل الفني تنطلق من نقطة ارتكاز مهمة وتقسّم النطاق إلى شبكة من السعر والزمن. هنا تراه كما يُستخدم فعلاً على الشارت — من أي قمة أو…","teaches":["ما هو، ولماذا القُطر 1×1 هو السيّد","من أي قمة أو قاع تثبّته","كيف تبنيه خطوة بخطوة","ما النِّسب التي يعتمدها (0-25-50-75-100)","كيف تتداول المستويات","الاتجاهية: الإغلاق تحت مستوى ما","على أي أطر زمنية يعمل","الأسطورة مقابل الواقع (اقرأه)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"تعلّم","item":"https://tradingcalculator.pro/ar/learn/"},{"@type":"ListItem","position":3,"name":"صندوق غان: كيف تبنيه وتتداول به خطوة بخطوة","item":"https://tradingcalculator.pro/ar/learn/the-gann-box-how-to-set-it-up-and-trade-it-step-by-step/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/pricing">الأسعار</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">الرئيسية</a> › <a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a> › صندوق غان: كيف تبنيه وتتداول به خطوة بخطوة</div>
+  <span class="free">7 أيام مجانًا</span>
+  <h1>صندوق غان: كيف تبنيه وتتداول به خطوة بخطوة</h1>
+  <p class="lead">صندوق غان أداة رسم في التحليل الفني تنطلق من نقطة ارتكاز مهمة وتقسّم النطاق إلى شبكة من السعر والزمن. هنا تراه كما يُستخدم فعلاً على الشارت — من أي قمة أو قاع تثبّته، وكيف تبنيه، وما النِّسب التي يعتمدها، وكيف تتداول به — دون الضباب الغيبي الذي يرافقه عادة. إنه ابن عم فيبوناتشي الهندسي: خريطة مستويات يميل السعر للتفاعل عندها، مفيدة إن استخدمتها بانضباط وسياق.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=gann-box">افتح الوحدة كاملة →</a></p>
+  
+  
+  <div class="card"><h2>ما ستتعلمه</h2><h3>ما هو، ولماذا القُطر 1×1 هو السيّد</h3><p>يحيط صندوق غان بحركة سعرية ويقسّمها إلى شبكة: خطوط أفقية (مستويات سعر) وخطوط عمودية (مستويات زمن). قلبه هو القُطر 1×1، خط بزاوية 45° يمثّل التوازن التام بين السعر والزمن: وحدة سعر مقابل وحدة زمن. فوق 1×1 يكون السوق «قوياً»، وتحته «ضعيفاً». وبقية الخطوط تقسيمات للنطاق تعمل كدعوم ومقاومات.</p><h3>من أي قمة أو قاع تثبّته</h3><p>يُثبَّت الصندوق دائماً على نقطة ارتكاز ذات دلالة، لا على نقطة عشوائية أبداً. للصندوق الصاعد يبدأ من قاع مهم (swing low) ويمتد إلى القمة؛ وللهابط من قمة مهمة (swing high) نزولاً إلى القاع. اختر أوضح وأحدث نقطة قصوى في الحركة التي تدرسها: قاع أو قمة الموجة الأخيرة، أو منشأ دفعة. التثبيت الخاطئ يُزيح الشبكة كلها؛ وإن لم تقفز نقطة الارتكاز إلى عينيك فهي ليست نقطة بداية جيدة.</p><h3>كيف تبنيه خطوة بخطوة</h3><p>في TradingView: 1) اختر أداة Gann Box؛ 2) انقر على نقطة الارتكاز الأصل (القاع في صندوق صاعد)؛ 3) اسحب إلى الطرف المقابل للحركة (القمة)، فتحدّد بذلك نطاق السعر والزمن؛ 4) اضبط مقياس الشارت كي يخرج القُطر 1×1 قرب 45°، وإلا فقدت الزوايا معناها. يُسقِط الصندوق مستوياته نحو اليمين (المستقبل): هناك تبحث عن التفاعلات. يمكنك تفعيل الزوايا أو إيقافها حسب رغبتك في العمل بالمستويات فقط أو بالأقطار أيضاً.</p><h3>ما النِّسب التي يعتمدها (0-25-50-75-100)</h3><p>تقسّم الشبكة القياسية النطاق إلى أرباع: 0% و25% و50% و75% و100%؛ ويضيف كثيرون الأثلاث (33.3% و66.6%). أكثر المستويات مراقبةً هو 50%، منتصف الحركة، تماماً كما في فيبوناتشي. وفي الأقطار، إلى جانب 1×1 تُستخدم 1×2 و2×1 (يتحرك السعر بضعف سرعة الزمن أو بنصفها)، وفي النسخ الأدق 1×4 و1×8. لست بحاجة إليها كلها: القُطر 1×1 ومستويات 25/50/75% تجمع 90% من الفائدة العملية.</p><h3>كيف تتداول المستويات</h3><p>كل خط في الشبكة دعم أو مقاومة محتملة. اللعبة الأساسية: انتظر أن يَصِل السعر إلى مستوى ثم اقرأ تفاعله. إن رفض المستوى (ذيل ثم ارتداد)، تتداول لصالح المستوى مع وقف الخسارة على الجهة الأخرى؛ وإن كسره بحزم، تبحث عن استمرار نحو الدرجة التالية من الصندوق. التقاء العوامل هو السيّد: مستوى غان الذي يتوافق مع دعم سابق أو رقم مستدير أو فيبوناتشي يساوي أكثر بكثير من مستوى منعزل. لا تتداول المستوى «هكذا فقط»: فهو يحتاج إشارة سعرية تؤكده.</p><h3>الاتجاهية: الإغلاق تحت مستوى ما</h3><p>المفتاح هو الإغلاق، لا الذيل. شمعة تغلق تحت مستوى مفتاحي (الـ50% أو القُطر 1×1) تُقرأ كخسارة لذلك المستوى: يتحول الميل هبوطياً ويكون الهدف الطبيعي هو الدرجة الأدنى التالية (50% ← 25% ← القاعدة 0%). والعكس للإغلاق فوقه. لكن انتبه: الذيل الذي يخترق المستوى ثم يستعيده داخل الشمعة نفسها غالباً كسر كاذب (fakeout)، فخّ سيولة، ويستغله كثيرون للدخول في الاتجاه المعاكس. لذلك يُشترط عادة إغلاق + إعادة اختبار قبل اعتبار الكسر حقيقياً.</p><h3>على أي أطر زمنية يعمل</h3><p>يصلح الصندوق على أي إطار زمني، لكن كلما علا الإطار زادت موثوقية المستويات: صندوق مثبّت على تأرجح الشارت اليومي أو الأسبوعي يعلّم مناطق يحترمها عدد أكبر بكثير من الناس مقارنةً بشارت الدقيقة الواحدة. النهج المُوصى به: ابنِ الصندوق على الإطار العالي (يومي أو 4 ساعات) لخريطة المستويات، وانزل إلى إطار أدنى (ساعة أو 15 دقيقة) فقط لضبط الدخول حين يصل السعر إلى مستوى. في المضاربة اليومية الصرفة يفقد متانته بسبب الضجيج. وتذكّر ضبط مقياس الشارت في كل إطار، لأن زاوية 1×1 تعتمد على المقياس.</p><h3>الأسطورة مقابل الواقع (اقرأه)</h3><p>كن صادقاً مع الأداة: لا يوجد دليل على أن الصناديق أو المؤسسات تتداول بصناديق غان — إنه من فولكلور تداول الأفراد، لا منهج طاولات المؤسسات. و.د. غان نفسه محل جدل: رقم «الخمسين مليوناً» لم يُتحقق منه قط، وبحسب ابنه فقد ربح من بيع الدورات أكثر مما ربح من التداول. فلماذا تتفاعل بعض المستويات إذن؟ ليس بهندسة سحرية، بل لأن 50% والأرقام المستديرة والقمم والقيعان السابقة يراقبها كثيرون فتتحقق ذاتياً، تماماً كفيبوناتشي. استخدمه كخريطة مستويات منضبطة، لا ككرة بلورية.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <div class="related card"><h2>مواضيع أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/learn/cross-margin/">الهامش المتقاطع</a></li><li><a href="https://tradingcalculator.pro/ar/learn/start-here/">ابدأ من هنا</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">أساسيات التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/market-mechanics/">ميكانيكا السوق</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-styles/">أساليب التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">التحليل الأساسي</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.</div>
+</div></footer>
+</body>
+</html>

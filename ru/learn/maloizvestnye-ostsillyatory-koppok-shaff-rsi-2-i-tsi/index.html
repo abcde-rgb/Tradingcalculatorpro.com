@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Малоизвестные осцилляторы: Коппок, Шафф, RSI-2 и TSI | TradingCalculator.Pro</title>
+<meta name="description" content="Помимо RSI, MACD и стохастика есть горстка осцилляторов моментума, которыми почти никто не пользуется, но у них есть полезные идеи. Здесь мы собрали четыре…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ru/learn/maloizvestnye-ostsillyatory-koppok-shaff-rsi-2-i-tsi/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/osciladores-raros-coppock-schaff-rsi2-tsi/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/little-known-oscillators-coppock-schaff-rsi-2-and-tsi/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/wenig-bekannte-oszillatoren-coppock-schaff-rsi-2-und-tsi/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/oscillateurs-peu-connus-coppock-schaff-rsi-2-et-tsi/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/maloizvestnye-ostsillyatory-koppok-shaff-rsi-2-i-tsi/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/coppock-schaff-rsi-2-tsi/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/coppock-schaff-rsi-2-tsi/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/rsi-2-tsi/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/osciladores-pouco-conhecidos-coppock-schaff-rsi-2-e-tsi/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/oscillatori-poco-conosciuti-coppock-schaff-rsi-2-e-tsi/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/osciladores-raros-coppock-schaff-rsi2-tsi/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Малоизвестные осцилляторы: Коппок, Шафф, RSI-2 и TSI | TradingCalculator.Pro">
+<meta property="og:description" content="Помимо RSI, MACD и стохастика есть горстка осцилляторов моментума, которыми почти никто не пользуется, но у них есть полезные идеи. Здесь мы собрали четыре…">
+<meta property="og:url" content="https://tradingcalculator.pro/ru/learn/maloizvestnye-ostsillyatory-koppok-shaff-rsi-2-i-tsi/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ru_RU">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Малоизвестные осцилляторы: Коппок, Шафф, RSI-2 и TSI","url":"https://tradingcalculator.pro/ru/learn/maloizvestnye-ostsillyatory-koppok-shaff-rsi-2-i-tsi/","inLanguage":"ru","description":"Помимо RSI, MACD и стохастика есть горстка осцилляторов моментума, которыми почти никто не пользуется, но у них есть полезные идеи. Здесь мы собрали четыре…","teaches":["Зачем другие осцилляторы","Кривая Коппока","Schaff Trend Cycle (STC)","Connors RSI-2","True Strength Index (TSI)","Пределы (честно)"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Главная","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Обучение","item":"https://tradingcalculator.pro/ru/learn/"},{"@type":"ListItem","position":3,"name":"Малоизвестные осцилляторы: Коппок, Шафф, RSI-2 и TSI","item":"https://tradingcalculator.pro/ru/learn/maloizvestnye-ostsillyatory-koppok-shaff-rsi-2-i-tsi/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Главная</a><a href="https://tradingcalculator.pro/ru/learn/">Обучение</a><a href="https://tradingcalculator.pro/ru/tools/">Калькуляторы</a><a href="https://tradingcalculator.pro/ru/markets/">Рынки</a><a href="https://tradingcalculator.pro/ru/strategies/">Опционные стратегии</a><a href="https://tradingcalculator.pro/ru/patterns/">Графические Паттерны</a><a href="https://tradingcalculator.pro/ru/candles/">Свечные Паттерны</a><a href="https://tradingcalculator.pro/pricing">Цены</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Главная</a> › <a href="https://tradingcalculator.pro/ru/learn/">Обучение</a> › Малоизвестные осцилляторы: Коппок, Шафф, RSI-2 и TSI</div>
+  <span class="free">7 дней бесплатно</span>
+  <h1>Малоизвестные осцилляторы: Коппок, Шафф, RSI-2 и TSI</h1>
+  <p class="lead">Помимо RSI, MACD и стохастика есть горстка осцилляторов моментума, которыми почти никто не пользуется, но у них есть полезные идеи. Здесь мы собрали четыре: Коппок (для долгосрочных днищ), Schaff Trend Cycle (более быстрый цикл с меньшим запаздыванием), Connors RSI-2 (для возврата к среднему) и True Strength Index (сильно сглаженный моментум). Ни один не волшебный, но каждый решает что-то конкретное.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=oscillators">Открыть полный модуль →</a></p>
+  
+  
+  <div class="card"><h2>Чему вы научитесь</h2><h3>Зачем другие осцилляторы</h3><p>Все осцилляторы пытаются одно и то же: измерить скорость и силу цены, чтобы уловить истощение или толчок. У классиков (RSI, MACD) известные недостатки — запаздывание, ложные сигналы в тренде, — и эти четыре родились, чтобы решать конкретные задачи: один для больших днищ, другой чтобы срезать запаздывание, третий чтобы покупать просадки, четвёртый чтобы сглаживать шум. Знать их — расширить свой набор инструментов.</p><h3>Кривая Коппока</h3><p>Создана Эдвином Коппоком в 1962 году для нахождения долгосрочных ДНИЩ рынка (задумана для индексов на месячном графике). Она суммирует две скорости изменения (~11 и ~14 месяцев) и сглаживает их. Классический сигнал: когда кривая ниже нуля и РАЗВОРАЧИВАЕТСЯ вверх, она отмечает важное дно и долгосрочную зону покупки. Она не годится для точного тайминга или продаж; это компас длинного цикла.</p><h3>Schaff Trend Cycle (STC)</h3><p>Даг Шафф соединил MACD с цикловой логикой стохастика, создав осциллятор, который реагирует РАНЬШЕ обычного MACD. STC колеблется от 0 до 100 и пытается ловить развороты цикла с меньшим запаздыванием, отмечая перекупленность (~75) и перепроданность (~25). Он быстрее и чище MACD, но взамен даёт больше ложных сигналов на рынках без тренда.</p><h3>Connors RSI-2</h3><p>Ларри Коннорс популяризировал RSI всего с 2 периодами (вместо 14) для возврата к среднему на акциях и индексах: входить, когда очень низкий RSI-2 (например, &lt;5) отмечает крайнюю перепроданность ВНУТРИ фонового восходящего тренда (выше средней 200). Он гиперактивный — постоянно бьёт в крайности, — поэтому работает только с ясным трендовым фильтром и строгими правилами выхода.</p><h3>True Strength Index (TSI)</h3><p>TSI Уильяма Блау — ДВАЖДЫ сглаженный осциллятор моментума: применяет две экспоненциальные средние к изменению цены, чтобы отфильтровать шум и оставить чистую линию, пересекающую нулевую линию и сигнал. Его плюс — меньше ложных сигналов, чем у сырого моментума, а дивергенции довольно надёжны; его цена — некоторое запаздывание из-за двойного сглаживания.</p><h3>Пределы (честно)</h3><p>Ни один из этих осцилляторов не печатает деньги: все они выводятся из прошлой цены, поэтому идут позади, а в сильных трендах любой осциллятор насыщается и обманывает. Не наваливай их все — получишь противоречивые сигналы; выбери один под свой стиль (Коппок для позиционных лонгов, RSI-2 для возврата и т. д.), проверь на данных и используй с конфлюэнцией и управлением риском.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Начать 7 дней бесплатно →</a>
+  <div class="related card"><h2>Ещё темы</h2><ul><li><a href="https://tradingcalculator.pro/ru/learn/kross-marzha/">Кросс-маржа</a></li><li><a href="https://tradingcalculator.pro/ru/learn/nachni-zdes/">Начни здесь</a></li><li><a href="https://tradingcalculator.pro/ru/learn/osnovy-treydinga/">Основы Трейдинга</a></li><li><a href="https://tradingcalculator.pro/ru/learn/mehanika-rynka/">Механика Рынка</a></li><li><a href="https://tradingcalculator.pro/ru/learn/stili-treydinga/">Стили Трейдинга</a></li><li><a href="https://tradingcalculator.pro/ru/learn/fundamentalnyy-analiz/">Фундаментальный Анализ</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Главная</a><a href="https://tradingcalculator.pro/ru/learn/">Обучение</a><a href="https://tradingcalculator.pro/ru/tools/">Калькуляторы</a><a href="https://tradingcalculator.pro/ru/markets/">Рынки</a><a href="https://tradingcalculator.pro/ru/strategies/">Опционные стратегии</a><a href="https://tradingcalculator.pro/ru/patterns/">Графические Паттерны</a><a href="https://tradingcalculator.pro/ru/candles/">Свечные Паттерны</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.</div>
+</div></footer>
+</body>
+</html>

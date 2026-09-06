@@ -14,16 +14,21 @@
 <meta name="description" content="Commodities are physical goods: crude oil, natural gas, gold, copper, wheat, coffee. They trade almost entirely through FUTURES, which expire and must be…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/zh/markets/commodities/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/commodities/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/commodities/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/commodities/">
-<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/commodities/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/commodities/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/rohstoffe/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/matieres-premieres/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/syrevye-tovary/">
 <link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/commodities/">
 <link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/commodities/">
 <link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/commodities/">
-<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/commodities/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/commodities/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/materias-primas/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/materie-prime/">
 <link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/commodities/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -33,7 +38,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="zh_CN">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"市场","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"大宗商品","item":"https://tradingcalculator.pro/zh/markets/commodities/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"市场","item":"https://tradingcalculator.pro/zh/markets/"},{"@type":"ListItem","position":3,"name":"大宗商品","item":"https://tradingcalculator.pro/zh/markets/commodities/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"zh","mainEntity":[{"@type":"Question","name":"How big is one oil contract?","acceptedAnswer":{"@type":"Answer","text":"A standard WTI contract (symbol CL) is 1,000 barrels. With oil at $75, notional is $75,000. The minimum tick is $0.01 per barrel, i.e. $10 per contract. A mini (QM, 500 barrels) and a micro (MCL, 100 barrels) exist for smaller accounts."}},{"@type":"Question","name":"How much is one gold contract worth?","acceptedAnswer":{"@type":"Answer","text":"The standard contract (GC) is 100 troy ounces. With gold at $2,400/oz, notional is $240,000. Every $1 move in the ounce is $100 per contract. The micro (MGC) is 10 ounces."}},{"@type":"Question","name":"What drives the natural gas price?","acceptedAnswer":{"@type":"Answer","text":"Mainly weather — heating demand in winter, cooling demand in summer — plus storage levels (the weekly EIA report), production, and in Europe the geopolitics of supply. It is the most volatile future in the energy complex: 5-10% daily moves are routine."}},{"@type":"Question","name":"What is contango and why does it hurt me?","acceptedAnswer":{"@type":"Answer","text":"Contango is when far-dated contracts trade above near-dated ones. Holding a long position means rolling every month: selling the cheap one and buying the expensive one, losing money on each roll even if spot never moves. It is why many commodity ETFs underperform the commodity they track."}},{"@type":"Question","name":"Can you trade commodities without futures?","acceptedAnswer":{"@type":"Answer","text":"Yes: through ETFs and ETCs (which suffer the roll effect), miner and oil-producer shares (which add company risk), or CFDs (with a daily financing cost). Each route changes the risk — none gives you pure spot exposure for free."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,10 +71,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">市场</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/education">市场</a> › 大宗商品</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/markets/">市场</a> › 大宗商品</div>
   <h1>大宗商品</h1>
   <p class="lead">Commodities are physical goods: crude oil, natural gas, gold, copper, wheat, coffee. They trade almost entirely through FUTURES, which expire and must be rolled. Each contract represents a specific physical quantity, and that quantity is what determines how much you make or lose per unit of price movement.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
@@ -77,10 +82,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 
   <div class="card"><h2>常见问题</h2><h3>How big is one oil contract?</h3><p>A standard WTI contract (symbol CL) is 1,000 barrels. With oil at $75, notional is $75,000. The minimum tick is $0.01 per barrel, i.e. $10 per contract. A mini (QM, 500 barrels) and a micro (MCL, 100 barrels) exist for smaller accounts.</p><h3>How much is one gold contract worth?</h3><p>The standard contract (GC) is 100 troy ounces. With gold at $2,400/oz, notional is $240,000. Every $1 move in the ounce is $100 per contract. The micro (MGC) is 10 ounces.</p><h3>What drives the natural gas price?</h3><p>Mainly weather — heating demand in winter, cooling demand in summer — plus storage levels (the weekly EIA report), production, and in Europe the geopolitics of supply. It is the most volatile future in the energy complex: 5-10% daily moves are routine.</p><h3>What is contango and why does it hurt me?</h3><p>Contango is when far-dated contracts trade above near-dated ones. Holding a long position means rolling every month: selling the cheap one and buying the expensive one, losing money on each roll even if spot never moves. It is why many commodity ETFs underperform the commodity they track.</p><h3>Can you trade commodities without futures?</h3><p>Yes: through ETFs and ETCs (which suffer the roll effect), miner and oil-producer shares (which add company risk), or CFDs (with a daily financing cost). Each route changes the risk — none gives you pure spot exposure for free.</p></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
-  <div class="card"><h2>其他市场</h2><ul><li><a href="https://tradingcalculator.pro/zh/markets/forex/">外汇</a></li><li><a href="https://tradingcalculator.pro/zh/markets/stocks/">股票</a></li><li><a href="https://tradingcalculator.pro/zh/markets/crypto/">加密货币</a></li><li><a href="https://tradingcalculator.pro/zh/markets/indices/">指数</a></li><li><a href="https://tradingcalculator.pro/zh/markets/etfs/">ETF</a></li><li><a href="https://tradingcalculator.pro/zh/markets/futures/">期货</a></li></ul></div>
+  <div class="card"><h2>其他市场</h2><ul><li><a href="https://tradingcalculator.pro/zh/markets/forex/">外汇</a></li><li><a href="https://tradingcalculator.pro/zh/markets/stocks/">股票</a></li><li><a href="https://tradingcalculator.pro/zh/markets/crypto/">加密货币</a></li><li><a href="https://tradingcalculator.pro/zh/markets/indices/">指数</a></li><li><a href="https://tradingcalculator.pro/zh/markets/etf/">ETF</a></li><li><a href="https://tradingcalculator.pro/zh/markets/futures/">期货</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/education">学习</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
 </div></footer>
 </body>

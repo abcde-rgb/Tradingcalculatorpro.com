@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>上級テクニカル | TradingCalculator.Pro</title>
+<meta name="description" content="出来高ベースのツールと専門概念で基礎テクニカルを補完する：出来高が実際にどこで交わされ、各ローソク足が何を隠しているか。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/advanced-ta/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-tecnico-avanzado/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/advanced-ta/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/fortgeschrittene-ta/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/at-avancee/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/prodvinutyy-tehanaliz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/advanced-ta/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/advanced-ta/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/advanced-ta/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/tecnica-avancada/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/tecnica-avanzata/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-tecnico-avanzado/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="上級テクニカル | TradingCalculator.Pro">
+<meta property="og:description" content="出来高ベースのツールと専門概念で基礎テクニカルを補完する：出来高が実際にどこで交わされ、各ローソク足が何を隠しているか。">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/advanced-ta/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"上級テクニカル","url":"https://tradingcalculator.pro/ja/learn/advanced-ta/","inLanguage":"ja","description":"出来高ベースのツールと専門概念で基礎テクニカルを補完する：出来高が実際にどこで交わされ、各ローソク足が何を隠しているか。","teaches":["需給ゾーン","ボリュームプロファイル／マーケットプロファイル","VWAP","ダイバージェンス（RSI／MACD）","ピボットポイント","VSA（ボリューム・スプレッド分析）","スクイーズ（ボリンジャー／ケルトナー）"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"上級テクニカル","item":"https://tradingcalculator.pro/ja/learn/advanced-ta/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › 上級テクニカル</div>
+  <span class="free">7日間無料</span>
+  <h1>上級テクニカル</h1>
+  <p class="lead">出来高ベースのツールと専門概念で基礎テクニカルを補完する：出来高が実際にどこで交わされ、各ローソク足が何を隠しているか。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=advanced-ta">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>需給ゾーン</h3><p>価格が急伸・急落で離れたゾーン（線ではない）：未約定の機関注文が残っている。『新鮮な』ゾーンへの戻りを、反対側にストップを置いて狙う。タッチされるたびに弱くなる。</p><h3>ボリュームプロファイル／マーケットプロファイル</h3><p>時間ではなく『価格』ごとの出来高ヒストグラム。POC（最も取引された価格）は価格を引き寄せ、高出来高ノードは減速させ、低出来高ノードは素早く通過される。描画ではなく事実に基づく支持・抵抗。</p><h3>VWAP</h3><p>セッションの出来高加重平均価格——機関投資家が執行の良し悪しを測る基準。VWAPより上＝買い方優勢。VWAPへの押し戻しは日中の定番エントリー。</p><h3>ダイバージェンス（RSI／MACD）</h3><p>価格は新たな極値を付けるがオシレーターが追随しない：モメンタムの枯渇。通常のダイバージェンスは反転を、ヒドゥンは継続を示唆する。単独のシグナルにはならない——必ず価格の確認を求めること。</p><h3>ピボットポイント</h3><p>昨日の高値・安値・終値から計算される水準（P、R1〜R3、S1〜S3）。市場の半分が見ているため、日中は磁石やブレーキとして機能する。特にFXと株価指数で。</p><h3>VSA（ボリューム・スプレッド分析）</h3><p>各ローソク足を出来高と併せて読む：巨大な出来高なのに価格が進まない＝プロの吸収（転換の可能性）。薄い出来高でのブレイク＝確信なし、罠を疑え。</p><h3>スクイーズ（ボリンジャー／ケルトナー）</h3><p>ボリンジャーバンドがケルトナーチャネルの内側に入ると、ボラティリティは極限まで圧縮されている——多くは爆発的な動きの前兆。方向は予測しない：ブレイクを待って乗ること。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

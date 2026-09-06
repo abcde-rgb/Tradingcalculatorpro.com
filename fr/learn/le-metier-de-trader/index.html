@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Le métier de trader | TradingCalculator.Pro</title>
+<meta name="description" content="Savoir analyser ne vous rend pas rentable ; c'est le PROCESSUS qui le fait : comment vous gérez le trade, votre plan, comment vous mesurez le risque et…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/le-metier-de-trader/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/el-oficio-del-trader/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/das-handwerk-des-traders/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/le-metier-de-trader/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/remeslo-treydera/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/o-oficio-do-trader/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/il-mestiere-del-trader/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/el-oficio-del-trader/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Le métier de trader | TradingCalculator.Pro">
+<meta property="og:description" content="Savoir analyser ne vous rend pas rentable ; c'est le PROCESSUS qui le fait : comment vous gérez le trade, votre plan, comment vous mesurez le risque et…">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/le-metier-de-trader/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Le métier de trader","url":"https://tradingcalculator.pro/fr/learn/le-metier-de-trader/","inLanguage":"fr","description":"Savoir analyser ne vous rend pas rentable ; c'est le PROCESSUS qui le fait : comment vous gérez le trade, votre plan, comment vous mesurez le risque et…","teaches":["Passer le stop à break-even","Sorties partielles","Stop suiveur (trailing)","Renforcer les gagnants (pyramidage)","Où prendre les bénéfices","Couper vite en cas d'échec","Ce qu'est 1R","Pourquoi penser en R","Espérance","Tout enregistrer en R","Le processus avant le résultat","Attentes réalistes","Traitez-le comme une entreprise","La survie d'abord","Revue hebdomadaire et mensuelle","Étiqueter les erreurs","Les métriques qui comptent","Backtest (historique)","Démo / forward test","Taille d'échantillon","Pré-marché","Pendant la session","Post-marché","Tendance","Range / latéral","Haute volatilité / news"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"Le métier de trader","item":"https://tradingcalculator.pro/fr/learn/le-metier-de-trader/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › Le métier de trader</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>Le métier de trader</h1>
+  <p class="lead">Savoir analyser ne vous rend pas rentable ; c'est le PROCESSUS qui le fait : comment vous gérez le trade, votre plan, comment vous mesurez le risque et votre mental. Voilà ce qui distingue ceux qui survivent.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=craft">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>Passer le stop à break-even</h3><p>Quand le prix avance assez en votre faveur (p. ex. +1R), remontez le stop au point d'entrée. Dès lors, le trade ne peut plus vous faire perdre.</p><h3>Sorties partielles</h3><p>Clôturez une partie au premier objectif et laissez courir le reste. Vous sécurisez du profit et réduisez le stress qui vous fait sortir trop tôt.</p><h3>Stop suiveur (trailing)</h3><p>Suivez le prix avec votre stop (sous chaque nouveau creux, une moyenne mobile ou l'ATR) pour capter les longues tendances sans deviner le sommet.</p><h3>Renforcer les gagnants (pyramidage)</h3><p>Renforcer une position déjà gagnante (jamais une perdante), en ramenant le stop global à break-even. Vous maximisez vos gagnants.</p><h3>Où prendre les bénéfices</h3><p>Fixez l'objectif par structure (prochain support/résistance), extension de Fibonacci ou multiple de R, AVANT d'entrer. N'improvisez pas avec de l'argent en jeu.</p><h3>Couper vite en cas d'échec</h3><p>Si la raison de votre entrée disparaît (la structure casse), sortez même si le stop n'est pas touché. La meilleure perte est la petite.</p><h3>Ce qu'est 1R</h3><p>1R est votre risque par trade (distance entrée−stop × taille). Si vous risquez 50 €, 1R = 50 €. Gagner 150 € = +3R ; une perte = −1R.</p><h3>Pourquoi penser en R</h3><p>Cela transforme une perte de '200 €' en '−1R', quelque chose de neutre et attendu. Cela retire l'émotion de l'argent pour la mettre sur le processus.</p><h3>Espérance</h3><p>Votre gain moyen par trade en R : (%gagnant × R moyen gagné) − (%perdant × R moyen perdu). S'il est positif, sur assez de trades, vous gagnez.</p><h3>Tout enregistrer en R</h3><p>Consignez chaque trade en R, pas en euros. +30R sur 100 trades, c'est un système ; +3 000 € peut n'être que de la chance avec une grosse taille.</p><h3>Le processus avant le résultat</h3><p>Vous pouvez suivre le plan à la perfection et perdre, ou l'enfreindre et gagner. Récompensez le fait d'avoir suivi le plan ; l'argent suit avec le temps.</p><h3>Attentes réalistes</h3><p>Vous ne deviendrez pas riche en un mois. Un pro régulier vise un rendement durable, pas à doubler le compte ; vouloir cela, c'est le faire exploser.</p><h3>Traitez-le comme une entreprise</h3><p>Vous avez des dépenses (frais, pertes), un inventaire (votre capital) et besoin de registres. Les séries perdantes sont un coût d'exploitation, pas un drame.</p><h3>La survie d'abord</h3><p>Vous ne pouvez pas gagner si vous êtes hors jeu. Protégez le capital avant tout ; les opportunités reviennent toujours, un compte à zéro non.</p><h3>Revue hebdomadaire et mensuelle</h3><p>Chaque semaine, revoyez tous les trades : avez-vous suivi le plan ? Chaque mois, cherchez des motifs : quels setups gagnent, à quelles heures vous perdez, quelles erreurs se répètent.</p><h3>Étiqueter les erreurs</h3><p>Étiquetez chaque trade (FOMO, sans confirmation, stop déplacé, vengeance...). Sur 50 trades, vous verrez en chiffres celle qui vous coûte le plus.</p><h3>Les métriques qui comptent</h3><p>Suivez l'espérance en R, le taux de réussite par setup, le R moyen gagné/perdu, le drawdown max et le % de jours où le plan a été suivi. Votre onglet Analytics en calcule déjà la plupart.</p><h3>Backtest (historique)</h3><p>Appliquez vos règles aux données passées, bougie par bougie, sans regarder l'avenir. Notez chaque signal comme s'il était réel : première estimation de l'espérance.</p><h3>Démo / forward test</h3><p>Tradez la stratégie en démo, en temps réel, pendant 1 à 3 mois. Cela valide l'exécution, les spreads et vos émotions — ce qu'un backtest ne peut pas simuler.</p><h3>Taille d'échantillon</h3><p>10 trades ne prouvent rien ; 100+ commencent à parler. Et ne sur-optimisez pas : une stratégie à 12 filtres parfaite sur le passé meurt souvent dans le futur (curve fitting).</p><h3>Pré-marché</h3><p>Consultez le calendrier économique, marquez les niveaux clés, préparez une watchlist avec 2-3 scénarios ('si X arrive, je fais Y') et décidez du risque total du jour.</p><h3>Pendant la session</h3><p>N'exécutez que ce qui était prévu — pas de nouveaux trades inventés à chaud. Consignez les entrées sur le moment et respectez la limite de perte quotidienne.</p><h3>Post-marché</h3><p>Terminez la journée par 10 minutes de revue : complétez le journal, notez votre discipline (pas votre P&amp;L) et écrivez une leçon. Puis déconnectez vraiment.</p><h3>Tendance</h3><p>Des sommets/creux clairement croissants (ou décroissants). Cassures, pullbacks et laisser courir fonctionnent ; le retour à la moyenne échoue.</p><h3>Range / latéral</h3><p>Le prix rebondit entre support et résistance. Acheter bas et vendre haut fonctionne ; les cassures échouent (la plupart sont fausses).</p><h3>Haute volatilité / news</h3><p>Bougies énormes, gaps et balayages dans les deux sens (événements, résultats, panique). Les stops normaux ne protègent pas : réduisez la taille ou ne tradez pas.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

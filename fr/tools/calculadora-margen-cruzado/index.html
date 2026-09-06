@@ -1,85 +1,11 @@
 <!doctype html>
-<html lang="fr">
+<html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
-     script externo ni iframe—, así que aquí sí se puede prohibir el script por
-     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
-     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
-     necesitando cabeceras (ver G-10). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
-
-<title>Calculateur de Marge Croisée — Niveau de Marge et Stop-out</title>
-<meta name="description" content="Vérifiez si votre courtier vous laissera ouvrir l'échelon suivant, de combien le prix peut aller contre vous avant le stop-out, et pourquoi la marge croisée…">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<link rel="canonical" href="https://tradingcalculator.pro/fr/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/tools/calculadora-margen-cruzado/">
-<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/tools/calculadora-margen-cruzado/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="TradingCalculator.Pro">
-<meta property="og:title" content="Calculateur de Marge Croisée — Niveau de Marge et Stop-out">
-<meta property="og:description" content="Vérifiez si votre courtier vous laissera ouvrir l'échelon suivant, de combien le prix peut aller contre vous avant le stop-out, et pourquoi la marge croisée…">
-<meta property="og:url" content="https://tradingcalculator.pro/fr/tools/calculadora-margen-cruzado/">
-<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
-<meta property="og:locale" content="fr_FR">
-<meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Calculateur de Marge Croisée — Niveau de Marge et Stop-out","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/fr/tools/calculadora-margen-cruzado/","inLanguage":"fr","description":"Vérifiez si votre courtier vous laissera ouvrir l'échelon suivant, de combien le prix peut aller contre vous avant le stop-out, et pourquoi la marge croisée…"},{"@type":"HowTo","name":"Comment l'utiliser: Calculateur de marge croisée","inLanguage":"fr","step":[{"@type":"HowToStep","position":1,"name":"Saisis tes données ","text":"Saisis tes données : les termes de la formule (capital, risque, prix et stop)."},{"@type":"HowToStep","position":2,"name":"La calculatrice applique la formule et renvoie le résultat dans les unités de ton instrument.","text":"La calculatrice applique la formule et renvoie le résultat dans les unités de ton instrument."},{"@type":"HowToStep","position":3,"name":"Vérifie le détail avant de trader ","text":"Vérifie le détail avant de trader : ce qui ne peut pas être calculé reste vide, jamais zéro."}]}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Calculatrices","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"Calculateur de marge croisée","item":"https://tradingcalculator.pro/fr/tools/calculadora-margen-cruzado/"}]}</script>
-<style>
-:root{color-scheme:dark}*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
-a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
-.wrap{max-width:760px;margin:0 auto;padding:0 20px}
-header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
-header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
-.brand .mark{flex:none;vertical-align:middle}
-nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
-.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
-h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
-.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
-.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
-.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
-.card h2{font-size:18px;color:#fff;margin:0 0 10px}
-.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
-ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
-.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
-.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
-footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
-footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
-</style>
+<meta http-equiv="refresh" content="0; url=/fr/tools/calculateur-de-marge-croisee/">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/tools/calculateur-de-marge-croisee/">
+<meta name="robots" content="follow">
+<title>Calculateur de marge croisée</title>
 </head>
-<body>
-<header class="top"><div class="wrap">
-  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/education">Apprendre</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
-</div></header>
-<main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/dashboard">Calculatrices</a> › Calculateur de marge croisée</div>
-  <span class="free">7 jours gratuits</span>
-  <h1>Calculateur de marge croisée</h1>
-  <p class="lead">Vérifiez si votre courtier vous laissera ouvrir l'échelon suivant, de combien le prix peut aller contre vous avant le stop-out, et pourquoi la marge croisée peut liquider plus tôt que la marge isolée.</p>
-  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
-  <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=cross-margin">Utiliser la calculatrice →</a></p>
-  <div class="card"><h2>Formule</h2><code class="formula">Margin level = Equity ÷ Used margin × 100</code></div>
-  <div class="card"><h2>Ce que vous obtenez</h2><ul><li>Niveau de marge, marge libre et prix de stop-out</li><li>L'échelon que le courtier refuse, avant de l'envoyer</li><li>Isolée contre croisée sur la même position</li></ul></div>
-  <div class="card"><h2>Comment l'utiliser</h2><ol><li>Saisis tes données : les termes de la formule (capital, risque, prix et stop).</li><li>La calculatrice applique la formule et renvoie le résultat dans les unités de ton instrument.</li><li>Vérifie le détail avant de trader : ce qui ne peut pas être calculé reste vide, jamais zéro.</li></ol></div>
-  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
-  <div class="related card"><h2>Autres calculatrices</h2><ul><li><a href="https://tradingcalculator.pro/fr/tools/calculadora-tamano-posicion/">Calculateur de taille de position</a></li><li><a href="https://tradingcalculator.pro/fr/tools/calculadora-de-lotes-forex/">Calculateur de lots forex</a></li><li><a href="https://tradingcalculator.pro/fr/tools/calculadora-de-apalancamiento/">Calculateur d'effet de levier</a></li><li><a href="https://tradingcalculator.pro/fr/tools/calculadora-de-futuros/">Calculateur de futures</a></li><li><a href="https://tradingcalculator.pro/fr/tools/calculadora-precio-objetivo/">Calculateur de prix cible</a></li><li><a href="https://tradingcalculator.pro/fr/tools/calculadora-porcentaje-trading/">Calculateur de pourcentage trading</a></li></ul></div>
-</main>
-<footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/education">Apprendre</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
-  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
-</div></footer>
-</body>
+<body><p>→ <a href="/fr/tools/calculateur-de-marge-croisee/">Calculateur de marge croisée</a></p></body>
 </html>

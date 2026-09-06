@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>マクロ流動性：市場を動かす「配管」 | TradingCalculator.Pro</title>
+<meta name="description" content="株式市場の、ほとんど誰も説明しない隠れたエンジン――システムに「使える」お金が本当はどれだけあるか。多くの大口が見ているのは、金利や業績だけでなく、純流動性――FRBが注入するか吸い上げるか――だ。三つの部品（FRSバランスシート − TGA −…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/liquidez-macro-fed-tga-repo-inverso/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/makro-liquiditat-die-klempnerei-die-den-markt-bewegt/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/liquidite-macro-la-plomberie-qui-meut-le-marche/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/makrolikvidnost-santehnika-kotoraya-dvizhet-rynkom/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/liquidez-macro-a-canalizacao-que-move-o-mercado/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/liquidita-macro-l-impianto-idraulico-che-muove-il-mercato/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/liquidez-macro-fed-tga-repo-inverso/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="マクロ流動性：市場を動かす「配管」 | TradingCalculator.Pro">
+<meta property="og:description" content="株式市場の、ほとんど誰も説明しない隠れたエンジン――システムに「使える」お金が本当はどれだけあるか。多くの大口が見ているのは、金利や業績だけでなく、純流動性――FRBが注入するか吸い上げるか――だ。三つの部品（FRSバランスシート − TGA −…">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/macro-liquidity-the-plumbing-that-moves-the-market/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"マクロ流動性：市場を動かす「配管」","url":"https://tradingcalculator.pro/ja/learn/macro-liquidity-the-plumbing-that-moves-the-market/","inLanguage":"ja","description":"株式市場の、ほとんど誰も説明しない隠れたエンジン――システムに「使える」お金が本当はどれだけあるか。多くの大口が見ているのは、金利や業績だけでなく、純流動性――FRBが注入するか吸い上げるか――だ。三つの部品（FRSバランスシート − TGA −…","teaches":["純流動性とは","FRBのバランスシート：QEとQT","TGA：財務省の口座","逆レポ（RRP）","S&Pとの相関","注意：相関は因果ではない"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"マクロ流動性：市場を動かす「配管」","item":"https://tradingcalculator.pro/ja/learn/macro-liquidity-the-plumbing-that-moves-the-market/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › マクロ流動性：市場を動かす「配管」</div>
+  <span class="free">7日間無料</span>
+  <h1>マクロ流動性：市場を動かす「配管」</h1>
+  <p class="lead">株式市場の、ほとんど誰も説明しない隠れたエンジン――システムに「使える」お金が本当はどれだけあるか。多くの大口が見ているのは、金利や業績だけでなく、純流動性――FRBが注入するか吸い上げるか――だ。三つの部品（FRSバランスシート − TGA − 逆レポ）から計算し、S&amp;P500と約0.95の相関を示したこともある。ここではその配管を一つずつ、そして限界も扱う。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=net-liquidity">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>純流動性とは</h3><p>お金の「潮」を見る人たちが使う式――純流動性 ＝ FRBバランスシート（WALCL） − 財務省口座（TGA） − 逆レポ（RRP）。市場にとって本当に使えるドルがどれだけあるかの近似だ。この潮が満ちればリスク資産を押し上げやすく、引けば沈める。魔法ではない。ニュースではなくお金を追うことだ。</p><h3>FRBのバランスシート：QEとQT</h3><p>バランスシート（WALCL）とは、FRBが保有する資産だ。量的緩和（QE）を行うと増える――債券を買い準備預金を作る→流動性を注入する。量的引き締め（QT）を行うと減る――債券を再投資せず償還させる→流動性を吸い上げる。式の中の大きく遅い部品で、お金の潮の大きな方向を決める。他のすべてがその上に浮かぶ海流だ。</p><h3>TGA：財務省の口座</h3><p>財務省一般口座（TGA）は、米政府がFRBに持つ当座預金だ。財務省がそこに資金を積み上げると（たとえば多額の国債発行のあと）、その資金はシステムから出て停留する→流動性を吸い上げる。支出してTGAを空にすると、その資金は経済に入る→流動性を注入する。だから「債務上限」の局面は相場を大きく動かす――TGAが急変し、潮も動くのだ。</p><h3>逆レポ（RRP）</h3><p>逆レポとは、主にMMFの資金が、債券と引き換えに一晩FRBに預けられるお金だ――市場で働いていない「凍った」流動性。RRPが下がると、その資金は利回りの高い資産を求めて出ていきやすい→流動性がシステムに入り、リスク選好が高まる。三つの部品で最も速く変動が激しい。その傾向を見ると、市場のムードの早めの手がかりになる。</p><h3>S&amp;Pとの相関</h3><p>2008年後とコロナ時のFRBの大量購入以来、純流動性とS&amp;P500はほぼ手を取り合って動いてきた――約0.95の相関を挙げる分析もあり、流動性の変化と価格の変化の間には約2週間の遅れがある。実務的に言えば、配管が注入するとき、風はおおむね株に順風、吸い上げるとき逆風。だから多くの運用者がこの数字をメイン画面に置いている。</p><h3>注意：相関は因果ではない</h3><p>欠かせない注意――高い相関が続く保証はなく、その「0.95」は過去を見ているのであって未来ではない。流動性は背景の風であって、エントリーのストップウォッチではない。何週間も押すこともあれば、別の力（金利・地政学・業績）が主導権を取ると効かなくなることもある。文脈を理解するために使おう――潮は満ちているか引いているか――次の転換を分単位で計るためではない。羅針盤であって、時計ではない。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

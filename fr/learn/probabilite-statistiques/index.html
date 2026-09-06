@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Probabilité &amp; Statistiques | TradingCalculator.Pro</title>
+<meta name="description" content="La probabilité et les statistiques sont le fondement mathématique du trading réussi.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/probabilite-statistiques/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/probabilidad-y-estadistica/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/probability-statistics/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/wahrscheinlichkeit-statistik/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/probabilite-statistiques/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/veroyatnost-i-statistika/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/probability-statistics/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/probability-statistics/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/probability-statistics/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/probabilidade-e-estatistica/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/probabilita-e-statistica/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/probabilidad-y-estadistica/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Probabilité &amp; Statistiques | TradingCalculator.Pro">
+<meta property="og:description" content="La probabilité et les statistiques sont le fondement mathématique du trading réussi.">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/probabilite-statistiques/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Probabilité & Statistiques","url":"https://tradingcalculator.pro/fr/learn/probabilite-statistiques/","inLanguage":"fr","description":"La probabilité et les statistiques sont le fondement mathématique du trading réussi.","teaches":["Formule d'Espérance","Pourquoi C'est la Métrique Clé","Concept","Variance à Court Terme","Réalité vs Théorie","Impact des Valeurs Aberrantes","Probabilité de Série Perdante","Impact Psychologique","Volatilité de Vos Résultats","Ratio de Sharpe","Coefficient de Corrélation","Diversification Intelligente","Taux de Réussite","Facteur de Profit","R-Multiple Moyen","Drawdown Maximum","Taille d'Échantillon Requise","Danger du Surajustement","Signification Statistique"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"Probabilité & Statistiques","item":"https://tradingcalculator.pro/fr/learn/probabilite-statistiques/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › Probabilité &amp; Statistiques</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>Probabilité &amp; Statistiques</h1>
+  <p class="lead">La probabilité et les statistiques sont le fondement mathématique du trading réussi.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=probability">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>Formule d'Espérance</h3><p>E = (Win% × Gain Moyen) - (Perte% × Perte Moyenne). C'est LA métrique la plus importante.</p><h3>Pourquoi C'est la Métrique Clé</h3><p>Vous pouvez avoir 30% de précision et être rentable si vos gains sont 3x vos pertes.</p><h3>Concept</h3><p>Votre avantage ne se manifeste qu'avec suffisamment de trades. 100+ trades sont nécessaires.</p><h3>Variance à Court Terme</h3><p>Même avec 60% de taux de réussite, vous pouvez avoir 5-7 pertes consécutives.</p><h3>Réalité vs Théorie</h3><p>La réalité du trading a des &quot;queues épaisses&quot;: les événements extrêmes arrivent plus souvent.</p><h3>Impact des Valeurs Aberrantes</h3><p>Parfois 80% de vos profits annuels proviennent de 20% de vos trades (Principe de Pareto).</p><h3>Probabilité de Série Perdante</h3><p>Formule: P(N pertes) = (Taux de perte)^N.</p><h3>Impact Psychologique</h3><p>Savoir que des séries de 5-7 pertes sont statistiquement normales vous aide.</p><h3>Volatilité de Vos Résultats</h3><p>L'écart-type mesure la variation de vos résultats.</p><h3>Ratio de Sharpe</h3><p>Mesure le rendement ajusté au risque. Sharpe &gt; 1 = bon. Sharpe &gt; 2 = excellent.</p><h3>Coefficient de Corrélation</h3><p>+1 = bougent ensemble. 0 = indépendants. -1 = bougent à l'opposé.</p><h3>Diversification Intelligente</h3><p>Cherchez des actifs avec &lt;0.3 de corrélation pour une vraie diversification.</p><h3>Taux de Réussite</h3><p>Trades gagnants / Total trades. 60% est excellent.</p><h3>Facteur de Profit</h3><p>Profits bruts / Pertes brutes. PF &gt; 1.5 = bon. PF &gt; 2 = excellent.</p><h3>R-Multiple Moyen</h3><p>1R = votre risque initial (distance au stop loss).</p><h3>Drawdown Maximum</h3><p>Baisse maximale du pic à la vallée.</p><h3>Taille d'Échantillon Requise</h3><p>Minimum 100 trades pour commencer à avoir confiance. 300+ pour confiance statistique.</p><h3>Danger du Surajustement</h3><p>L'optimisation jusqu'à la perfection sur données historiques est un piège.</p><h3>Signification Statistique</h3><p>Utilisez des intervalles de confiance. p-valeur &lt; 0.05 = confiance statistique.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

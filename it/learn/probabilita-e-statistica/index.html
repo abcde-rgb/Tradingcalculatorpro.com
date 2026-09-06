@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Probabilità e Statistica | TradingCalculator.Pro</title>
+<meta name="description" content="Probabilità e statistica sono la base matematica del trading di successo. Capire questi concetti ti permette di prendere decisioni razionali basate sui…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/it/learn/probabilita-e-statistica/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/probabilidad-y-estadistica/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/probability-statistics/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/wahrscheinlichkeit-statistik/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/probabilite-statistiques/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/veroyatnost-i-statistika/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/probability-statistics/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/probability-statistics/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/probability-statistics/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/probabilidade-e-estatistica/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/probabilita-e-statistica/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/probabilidad-y-estadistica/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Probabilità e Statistica | TradingCalculator.Pro">
+<meta property="og:description" content="Probabilità e statistica sono la base matematica del trading di successo. Capire questi concetti ti permette di prendere decisioni razionali basate sui…">
+<meta property="og:url" content="https://tradingcalculator.pro/it/learn/probabilita-e-statistica/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="it_IT">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Probabilità e Statistica","url":"https://tradingcalculator.pro/it/learn/probabilita-e-statistica/","inLanguage":"it","description":"Probabilità e statistica sono la base matematica del trading di successo. Capire questi concetti ti permette di prendere decisioni razionali basate sui…","teaches":["Formula dell'Aspettativa","Perché È LA Metrica Chiave","Concetto","Varianza nel Breve Termine","Realtà vs Teoria","Impatto degli Outlier","Probabilità di Serie Perdenti","Impatto Psicologico","Volatilità dei tuoi Risultati","Sharpe Ratio","Coefficiente di Correlazione","Diversificazione Intelligente","Win Rate (Percentuale di Successo)","Profit Factor","R-Multiplo Medio","Maximum Drawdown","Dimensione del Campione Necessaria","Pericolo dell'Overfitting","Significatività Statistica"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Impara","item":"https://tradingcalculator.pro/it/learn/"},{"@type":"ListItem","position":3,"name":"Probabilità e Statistica","item":"https://tradingcalculator.pro/it/learn/probabilita-e-statistica/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/it/learn/">Impara</a><a href="https://tradingcalculator.pro/it/tools/">Calcolatrici</a><a href="https://tradingcalculator.pro/it/markets/">Mercati</a><a href="https://tradingcalculator.pro/it/strategies/">Strategie in opzioni</a><a href="https://tradingcalculator.pro/it/patterns/">Pattern Grafici</a><a href="https://tradingcalculator.pro/it/candles/">Pattern di Candele</a><a href="https://tradingcalculator.pro/pricing">Prezzi</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/it/learn/">Impara</a> › Probabilità e Statistica</div>
+  <span class="free">7 giorni gratis</span>
+  <h1>Probabilità e Statistica</h1>
+  <p class="lead">Probabilità e statistica sono la base matematica del trading di successo. Capire questi concetti ti permette di prendere decisioni razionali basate sui dati, non sulle emozioni.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=probability">Apri il modulo completo →</a></p>
+  
+  
+  <div class="card"><h2>Cosa imparerai</h2><h3>Formula dell'Aspettativa</h3><p>E = (Win% × Avg Win) - (Loss% × Avg Loss). Questa è LA metrica più importante. Se E &gt; 0, la tua strategia è profittevole nel lungo periodo. Esempio: 50% di win rate, avg win $200, avg loss $100 → E = (0,5 × 200) - (0,5 × 100) = $50 per trade.</p><h3>Perché È LA Metrica Chiave</h3><p>Puoi avere il 30% di successo ed essere profittevole se i tuoi guadagni sono 3x le tue perdite. Oppure avere il 70% di successo e perdere denaro se le tue perdite superano i tuoi guadagni. L'aspettativa riassume tutto.</p><h3>Concetto</h3><p>Il tuo edge (vantaggio) si manifesta solo con abbastanza trade. 10 trade non bastano. 100 trade iniziano a essere rappresentativi. 300+ trade danno fiducia statistica. Nel breve termine domina la fortuna. Nel lungo termine la probabilità converge.</p><h3>Varianza nel Breve Termine</h3><p>Anche con il 60% di win rate puoi avere 5-7 perdite consecutive. Questo NON significa che la tua strategia non funziona. È varianza normale. Per questo serve la gestione del capitale: per sopravvivere alle fasi negative.</p><h3>Realtà vs Teoria</h3><p>I libri assumono una distribuzione normale (curva a campana). La realtà del trading ha &quot;code grasse&quot; (fat tail): gli eventi estremi accadono più spesso del previsto. Preparati ai cigni neri (crash inattesi).</p><h3>Impatto degli Outlier</h3><p>A volte l'80% dei tuoi guadagni annuali viene dal 20% dei tuoi trade (Principio di Pareto). Non puoi prevedere quali saranno. Per questo non saltare MAI un trade della tua strategia: potresti perderti l'outlier vincente.</p><h3>Probabilità di Serie Perdenti</h3><p>Formula: P(N perdite) = (Loss Rate)^N. Esempio con il 40% di loss rate: 1 perdita = 40%, 2 di fila = 16%, 3 di fila = 6,4%, 5 di fila = 1%. Con 100 trade, statisticamente avrai almeno una serie di 5 perdite.</p><h3>Impatto Psicologico</h3><p>Sapere che serie di 5-7 perdite sono statisticamente normali ti aiuta a NON abbandonare la tua strategia prematuramente. Il trader medio abbandona il proprio sistema proprio prima che arrivi la serie vincente.</p><h3>Volatilità dei tuoi Risultati</h3><p>La deviazione standard misura quanto variano i tuoi risultati. Deviazione bassa = risultati costanti. Deviazione alta = risultati erratici. Due trader con la stessa aspettativa possono vivere esperienze MOLTO diverse a seconda della loro deviazione standard.</p><h3>Sharpe Ratio</h3><p>Formula: (Rendimento - Tasso privo di rischio) / Deviazione Standard. Misura il rendimento corretto per il rischio. Sharpe &gt; 1 = buono. Sharpe &gt; 2 = eccellente. Sharpe &gt; 3 = eccezionale. Preferisci strategie con Sharpe alto: meno stress, più costanza.</p><h3>Coefficiente di Correlazione</h3><p>Misura la relazione tra due asset. +1 = si muovono uguale. 0 = indipendenti. -1 = si muovono in senso opposto. BTC ed ETH hanno una correlazione ~0,8-0,9 (alta). BTC e USD hanno correlazione negativa (~-0,3).</p><h3>Diversificazione Intelligente</h3><p>Non basta operare su 5 asset. Se hanno tutti correlazione +0,9, è come operare su un solo asset. Cerca asset con correlazione &lt;0,3 per una vera diversificazione. Esempio: cripto + obbligazioni + oro hanno bassa correlazione.</p><h3>Win Rate (Percentuale di Successo)</h3><p>Trade vincenti / Totale trade. Un win rate del 60% è eccellente. Il 50% è buono. &lt;40% richiede un R:R molto alto. ATTENZIONE: il win rate da solo NON dice nulla. Un sistema con il 90% di win rate può fallire se la perdita del 10% è enorme.</p><h3>Profit Factor</h3><p>Guadagni lordi / Perdite lorde. PF &gt; 1,5 = buono. PF &gt; 2 = eccellente. PF &gt; 3 = eccezionale. Esempio: $10.000 guadagnati, $5.000 persi → PF = 2. Significa che guadagni $2 per ogni $1 che perdi.</p><h3>R-Multiplo Medio</h3><p>1R = il tuo rischio iniziale (distanza dallo stop loss). Se rischi $100 e guadagni $300, è 3R. Se perdi, è -1R. Un R-multiplo medio &gt; 0,5 è buono. &gt; 1 è eccellente. Permette di confrontare strategie su mercati diversi.</p><h3>Maximum Drawdown</h3><p>Discesa massima dal picco al minimo. Se il tuo conto è passato da $10.000 a $7.000, MDD = 30%. Drawdown del 20-30% sono normali anche per i bravi trader. &gt;50% è pericoloso. Pianifica per lo scenario peggiore.</p><h3>Dimensione del Campione Necessaria</h3><p>Minimo 100 trade per iniziare ad avere fiducia. 300+ trade per una fiducia statistica. &lt;30 trade è aneddotico, non statistico. Non lanciare una strategia in reale con soli 20 backtest: la varianza può ingannarti.</p><h3>Pericolo dell'Overfitting</h3><p>Ottimizzare la strategia finché non funziona perfettamente sui dati storici è una trappola. Ti stai adattando al rumore, non al segnale. Risultato: 95% di win rate nel backtest, 35% in reale. Soluzione: out-of-sample testing (dati che NON hai usato per ottimizzare).</p><h3>Significatività Statistica</h3><p>Un backtest con il 60% di win rate può essere fortuna. Usa gli intervalli di confidenza. Chiediti: &quot;Che probabilità c'è che questo risultato sia casuale?&quot; Se il p-value &lt; 0,05 (5%), hai fiducia statistica. Altrimenti ti servono più dati.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Inizia 7 giorni gratis →</a>
+  <div class="related card"><h2>Altri temi</h2><ul><li><a href="https://tradingcalculator.pro/it/learn/margine-incrociato/">Margine incrociato</a></li><li><a href="https://tradingcalculator.pro/it/learn/inizia-da-qui/">Inizia da qui</a></li><li><a href="https://tradingcalculator.pro/it/learn/fondamenti-del-trading/">Fondamenti del Trading</a></li><li><a href="https://tradingcalculator.pro/it/learn/meccanica-del-mercato/">Meccanica del Mercato</a></li><li><a href="https://tradingcalculator.pro/it/learn/stili-di-trading/">Stili di Trading</a></li><li><a href="https://tradingcalculator.pro/it/learn/analisi-fondamentale/">Analisi Fondamentale</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/it/learn/">Impara</a><a href="https://tradingcalculator.pro/it/tools/">Calcolatrici</a><a href="https://tradingcalculator.pro/it/markets/">Mercati</a><a href="https://tradingcalculator.pro/it/strategies/">Strategie in opzioni</a><a href="https://tradingcalculator.pro/it/patterns/">Pattern Grafici</a><a href="https://tradingcalculator.pro/it/candles/">Pattern di Candele</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.</div>
+</div></footer>
+</body>
+</html>

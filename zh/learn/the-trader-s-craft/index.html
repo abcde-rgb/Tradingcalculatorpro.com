@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>交易者的功夫 | TradingCalculator.Pro</title>
+<meta name="description" content="会分析不会让你盈利；让你盈利的是“过程”：你如何管理仓位、你的计划、如何衡量风险以及你的心态。这才是幸存者与他人的区别。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/the-trader-s-craft/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/el-oficio-del-trader/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/das-handwerk-des-traders/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/le-metier-de-trader/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/remeslo-treydera/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-trader-s-craft/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/o-oficio-do-trader/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/il-mestiere-del-trader/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/el-oficio-del-trader/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="交易者的功夫 | TradingCalculator.Pro">
+<meta property="og:description" content="会分析不会让你盈利；让你盈利的是“过程”：你如何管理仓位、你的计划、如何衡量风险以及你的心态。这才是幸存者与他人的区别。">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/the-trader-s-craft/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"交易者的功夫","url":"https://tradingcalculator.pro/zh/learn/the-trader-s-craft/","inLanguage":"zh","description":"会分析不会让你盈利；让你盈利的是“过程”：你如何管理仓位、你的计划、如何衡量风险以及你的心态。这才是幸存者与他人的区别。","teaches":["把止损移到保本位","分批离场","移动止损","对盈利单加码","在哪里止盈","失败时快速止损","什么是1R","为何用R思考","期望值","用R记录一切","过程重于结果","现实的预期","把它当公司经营","生存第一","每周与每月复盘","给错误贴标签","重要的指标","回测（历史）","模拟盘 / 前向测试","样本量","盘前","盘中","盘后","趋势","区间 / 横盘","高波动 / 消息驱动"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"交易者的功夫","item":"https://tradingcalculator.pro/zh/learn/the-trader-s-craft/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 交易者的功夫</div>
+  <span class="free">7 天免费试用</span>
+  <h1>交易者的功夫</h1>
+  <p class="lead">会分析不会让你盈利；让你盈利的是“过程”：你如何管理仓位、你的计划、如何衡量风险以及你的心态。这才是幸存者与他人的区别。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=craft">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>把止损移到保本位</h3><p>当价格朝你有利方向走出足够幅度（如+1R），把止损移到入场价。此后这笔交易再也不会让你亏钱。</p><h3>分批离场</h3><p>在第一目标平掉一部分，让剩余仓位奔跑。既锁定利润，又减轻让你过早离场的压力。</p><h3>移动止损</h3><p>让止损跟随价格（放在每个新低下方、某条均线或ATR处），以捕捉长趋势而不必猜顶。</p><h3>对盈利单加码</h3><p>对已经盈利的仓位加码（绝不对亏损单），并把整体止损移到保本位。这样能放大你的盈利单。</p><h3>在哪里止盈</h3><p>在入场前就用结构（下一个支撑/阻力）、斐波那契扩展或R倍数定好目标。别在真金白银上临场发挥。</p><h3>失败时快速止损</h3><p>如果你入场的理由消失了（结构破了），即使还没触及止损也要离场。最好的亏损是小亏损。</p><h3>什么是1R</h3><p>1R是你每笔交易的风险（入场−止损距离×仓位）。若冒险50欧元，1R=50欧元。赚150欧元是+3R；亏损是−1R。</p><h3>为何用R思考</h3><p>它把“亏损200欧元”变成“−1R”，一个中性且可预期的结果。把情绪从金钱转移到过程上。</p><h3>期望值</h3><p>你每笔交易的平均R收益：（胜率×平均盈利R）−（败率×平均亏损R）。若为正，交易次数足够多你就赢。</p><h3>用R记录一切</h3><p>用R而非欧元记录每笔交易。100笔交易+30R是一个系统；+3000欧元可能只是大仓位的运气。</p><h3>过程重于结果</h3><p>你可能完美执行计划却亏损，或违背计划却盈利。奖励“遵守计划”这件事；钱会随时间而来。</p><h3>现实的预期</h3><p>你不会一个月暴富。稳定的专业者追求可持续的回报，而非翻倍账户；想翻倍正是爆仓的原因。</p><h3>把它当公司经营</h3><p>你有开支（佣金、亏损）、库存（你的资金），并需要记录。连亏是经营成本，不是悲剧。</p><h3>生存第一</h3><p>出局了就无法获胜。首要保护本金；机会总会再来，归零的账户不会。</p><h3>每周与每月复盘</h3><p>每周回顾所有交易：是否遵守了计划？每月寻找规律：哪些形态盈利、什么时段亏损、哪些错误在重复。</p><h3>给错误贴标签</h3><p>为每笔交易贴标签（FOMO、无确认、挪动止损、报复……）。50笔交易后，你会用数字看清哪一个最费钱。</p><h3>重要的指标</h3><p>跟踪R期望值、各形态胜率、平均盈亏R、最大回撤以及遵守计划的天数百分比。你的Analytics页已能计算其中大部分。</p><h3>回测（历史）</h3><p>将你的规则逐根K线应用于历史数据，不偷看未来。像实盘一样记录每个信号：这是期望值的初步估计。</p><h3>模拟盘 / 前向测试</h3><p>在模拟盘上实时运行策略1-3个月。它能验证执行、点差和你的情绪——这些是回测无法模拟的。</p><h3>样本量</h3><p>10笔交易证明不了什么；100笔以上才开始说话。也别过度优化：一个在过去完美的12层过滤策略，未来通常会失效（曲线拟合）。</p><h3>盘前</h3><p>查看经济日历，标记关键水平，准备包含2-3个情景的观察清单（'若发生X，我做Y'），并确定今天的总风险。</p><h3>盘中</h3><p>只执行计划内的操作——不要临时起意开新仓。实时记录入场，并遵守每日亏损上限。</p><h3>盘后</h3><p>以10分钟复盘结束一天：完成日志，为你的纪律（而非盈亏）打分，写下一条教训。然后真正断开。</p><h3>趋势</h3><p>清晰的高点/低点抬升（或下移）。突破、回调入场和让利润奔跑有效；均值回归失效。</p><h3>区间 / 横盘</h3><p>价格在支撑与阻力间来回震荡。低买高卖有效；突破失效（多数是假突破）。</p><h3>高波动 / 消息驱动</h3><p>巨大K线、跳空、双向扫损（事件、财报、恐慌）。常规止损保护不了你：减仓或不交易。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

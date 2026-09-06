@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Market structure | TradingCalculator.Pro</title>
+<meta name="description" content="Before any chart pattern, price is a sequence of highs and lows. Reading the STRUCTURE — whether those highs and lows rise, fall or go sideways — tells you…">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/en/learn/market-structure/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/estructura-de-mercado-bos-choch/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/market-structure/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/marktstruktur/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/structure-de-marche/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/struktura-rynka/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/market-structure/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/market-structure/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/market-structure/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/estrutura-de-mercado/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/struttura-di-mercato/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/estructura-de-mercado-bos-choch/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Market structure | TradingCalculator.Pro">
+<meta property="og:description" content="Before any chart pattern, price is a sequence of highs and lows. Reading the STRUCTURE — whether those highs and lows rise, fall or go sideways — tells you…">
+<meta property="og:url" content="https://tradingcalculator.pro/en/learn/market-structure/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Market structure","url":"https://tradingcalculator.pro/en/learn/market-structure/","inLanguage":"en","description":"Before any chart pattern, price is a sequence of highs and lows. Reading the STRUCTURE — whether those highs and lows rise, fall or go sideways — tells you…","teaches":["Uptrend (HH · HL)","Downtrend (LH · LL)","Range / sideways","BOS — break of structure","CHOCH — change of character","Accumulation","Distribution","Pullback in a trend","Break & retest","Confirmed trend change"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Learn","item":"https://tradingcalculator.pro/en/learn/"},{"@type":"ListItem","position":3,"name":"Market structure","item":"https://tradingcalculator.pro/en/learn/market-structure/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/en/learn/">Learn</a> › Market structure</div>
+  <span class="free">7-day free trial</span>
+  <h1>Market structure</h1>
+  <p class="lead">Before any chart pattern, price is a sequence of highs and lows. Reading the STRUCTURE — whether those highs and lows rise, fall or go sideways — tells you the trend and who's in control. It's the base that chart patterns, SMC and almost everything else rest on. Here you learn to read it and spot when it changes.</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=market-structure">Open the full module →</a></p>
+  
+  
+  <div class="card"><h2>What you will learn</h2><h3>Uptrend (HH · HL)</h3><p>Higher highs (HH) and higher lows (HL). As long as each pullback stops above the prior low and price keeps printing new highs, the structure is bullish: you trade with it (longs on the dips). It breaks when a low stops being higher than the one before.</p><h3>Downtrend (LH · LL)</h3><p>Lower highs (LH) and lower lows (LL). Each bounce stalls below the prior high. While it holds, the structure is bearish: the bias is short and rallies are to sell, not to buy. Buying in a bearish structure is fighting the current.</p><h3>Range / sideways</h3><p>Price oscillates between support and resistance without making rising or falling highs/lows: there's no trend. You trade the edges (buy support, sell resistance) or wait for the breakout. Most of the time the market is ranging, not trending.</p><h3>BOS — break of structure</h3><p>A break of a relevant high (or low) IN THE DIRECTION of the trend: it confirms continuation. In an uptrend, taking out the last high = bullish BOS, the trend goes on. It's the sign the structure HOLDS, not that it reverses. You chain BOS after BOS while the trend is healthy.</p><h3>CHOCH — change of character</h3><p>The FIRST crack in the trend: price breaks the last higher-low (in an uptrend) or the last lower-high (in a downtrend). It doesn't confirm the reversal on its own, but it warns the market's character is changing. Rule: CHOCH first, then a BOS in the new direction = confirmed reversal.</p><h3>Accumulation</h3><p>A sideways phase, usually after a fall, where strong hands buy without price rising (they absorb supply). It looks like a range with sweep wicks at the floor (springs) that hunt sellers' stops. It ends with an upside breakout: it's the run-up to a rally.</p><h3>Distribution</h3><p>The opposite: a range after a rise where strong hands hand off stock (selling to those buying the euphoria) without price dropping yet. Sweep wicks at the ceiling hunt late buyers. It ends with a downside breakout: the run-up to a fall.</p><h3>Pullback in a trend</h3><p>A temporary move AGAINST the trend within it (a breather), not a reversal. In an uptrend, price pulls back but stalls above the prior low and resumes higher. It's the best spot to enter with the trend at good risk: buy the dip, don't chase the high.</p><h3>Break &amp; retest</h3><p>Price breaks a level (support, resistance or a structure) and then RETURNS to touch it from the other side before continuing. The retest confirms the break — old resistance becomes support — and offers a lower-risk entry than chasing the initial breakout. If the retest fails, the break was fake.</p><h3>Confirmed trend change</h3><p>The sequence fully flips: a bullish structure (HH/HL) starts making lower highs and lows (LH/LL), or vice versa. It's usually CHOCH → retest → BOS in the new direction. Only then do you flip your bias; front-running an unconfirmed reversal is one of the most expensive mistakes there is.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
+  <div class="related card"><h2>More topics</h2><ul><li><a href="https://tradingcalculator.pro/en/learn/cross-margin/">Cross margin</a></li><li><a href="https://tradingcalculator.pro/en/learn/start-here/">Start here</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">Trading Fundamentals</a></li><li><a href="https://tradingcalculator.pro/en/learn/market-mechanics/">Market Mechanics</a></li><li><a href="https://tradingcalculator.pro/en/learn/trading-styles/">Trading Styles</a></li><li><a href="https://tradingcalculator.pro/en/learn/fundamental-analysis/">Fundamental Analysis</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.</div>
+</div></footer>
+</body>
+</html>

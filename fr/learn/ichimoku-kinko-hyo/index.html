@@ -14,11 +14,16 @@
 <meta name="description" content="Un 'graphique d'équilibre en un coup d'œil' japonais, créé par Goichi Hosoda. Cinq lignes et un 'nuage' projeté montrent d'un coup la tendance, le…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/fr/learn/ichimoku-kinko-hyo/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/ichimoku-kinko-hyo/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/ichimoku-kinko-hyo/">
 <link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/ichimoku-kinko-hyo/">
 <link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/ichimoku-kinko-hyo/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/ichimoku-kinko-hyo/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/ichimoku-kinko-he/">
 <link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/ichimoku-kinko-hyo/">
 <link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/ichimoku-kinko-hyo/">
 <link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/ichimoku-kinko-hyo/">
@@ -33,8 +38,8 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="fr_FR">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Ichimoku Kinko Hyo","url":"https://tradingcalculator.pro/fr/learn/ichimoku-kinko-hyo/","inLanguage":"fr","description":"Un 'graphique d'équilibre en un coup d'œil' japonais, créé par Goichi Hosoda. Cinq lignes et un 'nuage' projeté montrent d'un coup la tendance, le…","provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":3,"name":"Ichimoku Kinko Hyo","item":"https://tradingcalculator.pro/fr/learn/ichimoku-kinko-hyo/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Ichimoku Kinko Hyo","url":"https://tradingcalculator.pro/fr/learn/ichimoku-kinko-hyo/","inLanguage":"fr","description":"Un 'graphique d'équilibre en un coup d'œil' japonais, créé par Goichi Hosoda. Cinq lignes et un 'nuage' projeté montrent d'un coup la tendance, le…","teaches":["Tenkan-sen (ligne de conversion)","Kijun-sen (ligne de base)","Senkou Span A (ligne avancée A)","Senkou Span B (ligne avancée B)","Chikou Span (ligne retardée)","Prix au-dessus du nuage","Prix sous le nuage","Prix dans le nuage","Épaisseur et couleur du nuage","Croisement Tenkan / Kijun (croix TK)","Cassure du nuage","Confirmation du Chikou"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"Ichimoku Kinko Hyo","item":"https://tradingcalculator.pro/fr/learn/ichimoku-kinko-hyo/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
@@ -51,6 +56,8 @@ h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
 .card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
 .card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
 .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 .sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
@@ -62,10 +69,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/education">Apprendre</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/education">Apprendre</a> › Ichimoku Kinko Hyo</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › Ichimoku Kinko Hyo</div>
   <span class="free">7 jours gratuits</span>
   <h1>Ichimoku Kinko Hyo</h1>
   <p class="lead">Un 'graphique d'équilibre en un coup d'œil' japonais, créé par Goichi Hosoda. Cinq lignes et un 'nuage' projeté montrent d'un coup la tendance, le support/résistance, le momentum et les signaux d'entrée — conçu pour lire le marché d'un seul regard. Très populaire en forex et crypto.</p>
@@ -73,12 +80,13 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/education?topic=ichimoku">Ouvrir le module complet →</a></p>
   
   
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>Tenkan-sen (ligne de conversion)</h3><p>Moyenne du plus haut et du plus bas des 9 dernières périodes. Ligne rapide qui suit le momentum court terme ; agit comme support/résistance mineur.</p><h3>Kijun-sen (ligne de base)</h3><p>Moyenne du plus haut/plus bas des 26 dernières périodes. Marque la tendance moyen terme et un support/résistance fort ; le prix y revient souvent.</p><h3>Senkou Span A (ligne avancée A)</h3><p>Le point médian de Tenkan et Kijun, projeté 26 périodes dans le futur. Forme un des bords du nuage.</p><h3>Senkou Span B (ligne avancée B)</h3><p>Le point médian du plus haut/plus bas sur 52 périodes, projeté 26 périodes en avant. L'autre bord, plus lent, du nuage.</p><h3>Chikou Span (ligne retardée)</h3><p>La clôture actuelle tracée 26 périodes dans le passé. Si elle est au-dessus du prix d'alors, la tendance est forte ; elle confirme (ou invalide) les signaux.</p><h3>Prix au-dessus du nuage</h3><p>Tendance haussière. Le nuage en dessous agit comme support. Privilégiez les positions longues.</p><h3>Prix sous le nuage</h3><p>Tendance baissière. Le nuage au-dessus agit comme résistance. Privilégiez les positions courtes.</p><h3>Prix dans le nuage</h3><p>Pas de tendance claire / consolidation. Les signaux ne sont pas fiables — beaucoup de traders restent à l'écart.</p><h3>Épaisseur et couleur du nuage</h3><p>Un nuage épais = support/résistance fort et plus dur à casser ; un nuage fin = faible. La couleur s'inverse quand le Span A croise le Span B, laissant présager un possible changement de tendance.</p><h3>Croisement Tenkan / Kijun (croix TK)</h3><p>Tenkan croisant au-dessus de Kijun est haussier ; en dessous, baissier. Le plus fort quand cela se produit au-dessus du nuage (haussier) ou en dessous (baissier), dans le sens de la tendance.</p><h3>Cassure du nuage</h3><p>Une clôture au-dessus du nuage bascule le biais en haussier ; en dessous, en baissier. Un signal central de suivi de tendance.</p><h3>Confirmation du Chikou</h3><p>Un signal est plus fort quand le Chikou est aussi dégagé du prix passé dans le même sens (au-dessus du prix pour les longs, en dessous pour les shorts).</p></div>
   
   <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
-  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/margen-cruzado-margin-call-y-stop-out/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/como-hacer-tu-primera-operacion/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fundamentos-del-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanica-del-mercado/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/estilos-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analisis-fundamental/">Analyse Fondamentale</a></li></ul></div>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">Fondamentaux du Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/education">Apprendre</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
 </div></footer>
 </body>

@@ -14,16 +14,21 @@
 <meta name="description" content="Projete como evolui a sua conta com o seu win rate, R:R, comissões e juro composto ao longo de centenas de operações.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/pt/tools/simulador-de-trading/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/tools/simulador-de-trading/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/tools/trading-simulator/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/tools/trading-simulator/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/tools/simulateur-de-trading/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/tools/torgovyy-simulyator/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/tools/trading-simulator/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/tools/trading-simulator/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/tools/trading-simulator/">
 <link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/tools/simulador-de-trading/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/tools/simulador-de-trading/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/tools/simulatore-di-trading/">
 <link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/tools/simulador-de-trading/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -34,7 +39,7 @@
 <meta property="og:locale" content="pt_PT">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Simulador de Trading — Projeção de Conta por Fases","applicationCategory":"FinanceApplication","operatingSystem":"Web","url":"https://tradingcalculator.pro/pt/tools/simulador-de-trading/","inLanguage":"pt","description":"Projete como evolui a sua conta com o seu win rate, R:R, comissões e juro composto ao longo de centenas de operações."},{"@type":"HowTo","name":"Como se usa: Simulador de trading","inLanguage":"pt","step":[{"@type":"HowToStep","position":1,"name":"Introduz os teus dados","text":"Introduz os teus dados: os termos da fórmula (capital, risco, preços e stop)."},{"@type":"HowToStep","position":2,"name":"A calculadora aplica a fórmula e devolve o resultado nas unidades do teu instrumento.","text":"A calculadora aplica a fórmula e devolve o resultado nas unidades do teu instrumento."},{"@type":"HowToStep","position":3,"name":"Confere o detalhe antes de operar","text":"Confere o detalhe antes de operar: o que não se pode calcular aparece vazio, nunca como zero."}]}]}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Início","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Calculadoras","item":"https://tradingcalculator.pro/dashboard"},{"@type":"ListItem","position":3,"name":"Simulador de trading","item":"https://tradingcalculator.pro/pt/tools/simulador-de-trading/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Início","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Calculadoras","item":"https://tradingcalculator.pro/pt/tools/"},{"@type":"ListItem","position":3,"name":"Simulador de trading","item":"https://tradingcalculator.pro/pt/tools/simulador-de-trading/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
@@ -51,6 +56,8 @@ h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
 .card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
 .card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
 .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 .sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
@@ -62,10 +69,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/education">Aprender</a><a href="https://tradingcalculator.pro/pricing">Preços</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/pricing">Preços</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Início</a> › <a href="https://tradingcalculator.pro/dashboard">Calculadoras</a> › Simulador de trading</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Início</a> › <a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a> › Simulador de trading</div>
   <span class="free">7 dias grátis</span>
   <h1>Simulador de trading</h1>
   <p class="lead">Projete como evolui a sua conta com o seu win rate, R:R, comissões e juro composto ao longo de centenas de operações.</p>
@@ -73,12 +80,13 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="https://tradingcalculator.pro/dashboard?tab=simulator">Usar a calculadora →</a></p>
   <div class="card"><h2>Fórmula</h2><code class="formula">Compound growth trade by trade</code></div>
   <div class="card"><h2>O que obtém</h2><ul><li>Projeção por fases com juro composto</li><li>Inclui comissões e slippage</li><li>Curva de equity esperada</li></ul></div>
+  
   <div class="card"><h2>Como se usa</h2><ol><li>Introduz os teus dados: os termos da fórmula (capital, risco, preços e stop).</li><li>A calculadora aplica a fórmula e devolve o resultado nas unidades do teu instrumento.</li><li>Confere o detalhe antes de operar: o que não se pode calcular aparece vazio, nunca como zero.</li></ol></div>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Comece 7 dias grátis →</a>
-  <div class="related card"><h2>Outras calculadoras</h2><ul><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-tamano-posicion/">Calculadora de tamanho de posição</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-lotes-forex/">Calculadora de lotes forex</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-apalancamiento/">Calculadora de alavancagem</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-futuros/">Calculadora de futuros</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-precio-objetivo/">Calculadora de preço objetivo</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-porcentaje-trading/">Calculadora de percentagem de trading</a></li></ul></div>
+  <div class="related card"><h2>Outras calculadoras</h2><ul><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-tamanho-de-posicao/">Calculadora de tamanho de posição</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-lotes-forex/">Calculadora de lotes forex</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-alavancagem/">Calculadora de alavancagem</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-futuros/">Calculadora de futuros</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-preco-objetivo/">Calculadora de preço objetivo</a></li><li><a href="https://tradingcalculator.pro/pt/tools/calculadora-de-percentagem-de-trading/">Calculadora de percentagem de trading</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/education">Aprender</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">Início</a><a href="https://tradingcalculator.pro/pt/learn/">Aprender</a><a href="https://tradingcalculator.pro/pt/tools/">Calculadoras</a><a href="https://tradingcalculator.pro/pt/markets/">Mercados</a><a href="https://tradingcalculator.pro/pt/strategies/">Estratégias de opções</a><a href="https://tradingcalculator.pro/pt/patterns/">Padrões de Gráficos</a><a href="https://tradingcalculator.pro/pt/candles/">Padrões de Velas</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.</div>
 </div></footer>
 </body>

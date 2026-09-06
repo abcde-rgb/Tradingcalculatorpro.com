@@ -14,6 +14,11 @@
 <meta name="description" content="أسهم مع بيع خيارَي شراء: أحدهما مغطى والآخر مكشوف.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/ar/options/strategies/ratio-call-write/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/options/strategies/ratio-call-write/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/options/strategies/ratio-call-write/">
 <link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/options/strategies/ratio-call-write/">
@@ -34,7 +39,7 @@
 <meta property="og:locale" content="ar_SA">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Ratio Call Write","url":"https://tradingcalculator.pro/ar/options/strategies/ratio-call-write/","inLanguage":"ar","description":"أسهم مع بيع خيارَي شراء: أحدهما مغطى والآخر مكشوف."}</script>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"استراتيجيات الخيارات","item":"https://tradingcalculator.pro/options"},{"@type":"ListItem","position":3,"name":"Ratio Call Write","item":"https://tradingcalculator.pro/ar/options/strategies/ratio-call-write/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"استراتيجيات الخيارات","item":"https://tradingcalculator.pro/ar/strategies/"},{"@type":"ListItem","position":3,"name":"Ratio Call Write","item":"https://tradingcalculator.pro/ar/options/strategies/ratio-call-write/"}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
@@ -51,6 +56,8 @@ h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
 .card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
 .card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
 .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 .sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
@@ -62,10 +69,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/education">تعلّم</a><a href="https://tradingcalculator.pro/pricing">الأسعار</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/pricing">الأسعار</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">الرئيسية</a> › <a href="https://tradingcalculator.pro/options">استراتيجيات الخيارات</a> › Ratio Call Write</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">الرئيسية</a> › <a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a> › Ratio Call Write</div>
   <span class="free">7 أيام مجانًا</span>
   <h1>Ratio Call Write</h1>
   <p class="lead">أسهم مع بيع خيارَي شراء: أحدهما مغطى والآخر مكشوف.</p>
@@ -74,11 +81,12 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   
   
   
+  
   <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
   <div class="related card"><h2>مواضيع أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/options/strategies/covered-call/">Covered Call</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/iron-condor/">Iron Condor</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/iron-butterfly/">Iron Butterfly</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/butterfly-call/">Butterfly Call</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/butterfly-put/">Butterfly Put</a></li><li><a href="https://tradingcalculator.pro/ar/options/strategies/jade-lizard/">Jade Lizard</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/education">تعلّم</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.</div>
 </div></footer>
 </body>

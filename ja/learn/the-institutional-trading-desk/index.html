@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>機関投資家のトレーディングデスク | TradingCalculator.Pro</title>
+<meta name="description" content="銀行やファンドはリテールのように「トレード」しません。仕事を専門家に分け、プロセス・リミット・技術で回します。ここではプロのデスクが内側でどう動くか、そして各役割から何を盗んで、自宅で一人でもプロのように取引できるかを見ます。">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ja/learn/the-institutional-trading-desk/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/mesa-institucional/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/the-institutional-trading-desk/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/der-institutionelle-handelstisch/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/la-table-de-trading-institutionnelle/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/institutsionalnyy-torgovyy-desk/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/the-institutional-trading-desk/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/the-institutional-trading-desk/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/the-institutional-trading-desk/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/a-mesa-institucional/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/il-trading-desk-istituzionale/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/mesa-institucional/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="機関投資家のトレーディングデスク | TradingCalculator.Pro">
+<meta property="og:description" content="銀行やファンドはリテールのように「トレード」しません。仕事を専門家に分け、プロセス・リミット・技術で回します。ここではプロのデスクが内側でどう動くか、そして各役割から何を盗んで、自宅で一人でもプロのように取引できるかを見ます。">
+<meta property="og:url" content="https://tradingcalculator.pro/ja/learn/the-institutional-trading-desk/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"機関投資家のトレーディングデスク","url":"https://tradingcalculator.pro/ja/learn/the-institutional-trading-desk/","inLanguage":"ja","description":"銀行やファンドはリテールのように「トレード」しません。仕事を専門家に分け、プロセス・リミット・技術で回します。ここではプロのデスクが内側でどう動くか、そして各役割から何を盗んで、自宅で一人でもプロのように取引できるかを見ます。","teaches":["デスクの役割","アルゴ執行（VWAP、TWAP、POV、IS）","マーケットインパクト、スリッページ、流動性","VaR とリスクリミット","P&L アトリビューションと成果測定","デスクのルーティン"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"ホーム","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学ぶ","item":"https://tradingcalculator.pro/ja/learn/"},{"@type":"ListItem","position":3,"name":"機関投資家のトレーディングデスク","item":"https://tradingcalculator.pro/ja/learn/the-institutional-trading-desk/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/pricing">料金</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">ホーム</a> › <a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a> › 機関投資家のトレーディングデスク</div>
+  <span class="free">7日間無料</span>
+  <h1>機関投資家のトレーディングデスク</h1>
+  <p class="lead">銀行やファンドはリテールのように「トレード」しません。仕事を専門家に分け、プロセス・リミット・技術で回します。ここではプロのデスクが内側でどう動くか、そして各役割から何を盗んで、自宅で一人でもプロのように取引できるかを見ます。</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=inst-desk">モジュール全体を開く →</a></p>
+  
+  
+  <div class="card"><h2>学べること</h2><h3>デスクの役割</h3><p>デスクはリテールが一人に詰め込む機能を分けます。アナリスト/クオンツがアイデアとシグナルを生み、ポートフォリオマネージャー（PM）が何をどれだけかを決め、執行トレーダーは値を動かさず最良価格で市場に入り、リスクマネージャーはリミットを監視し、あなたの意志に反してもポジションを閉じられ、デスクヘッドは資本を配分しP&amp;Lを点検し経営に責任を負います。リテールの教訓：分析する人とボタンを押す人を頭の中で分け、トレードの途中で計画を変えないこと。</p><h3>アルゴ執行（VWAP、TWAP、POV、IS）</h3><p>プロは巨大注文を一度に投げることは稀で、アルゴで細切れにします。VWAP は当日の出来高加重平均価格に沿って執行、TWAP は時間に均等配分、POV（出来高比率）は市場出来高の一定%で参加、Implementation Shortfall は決定価格と執行価格の差を最小化します。リテールの教訓：ポジションがその銘柄に対して大きいなら、板を一度に払うのではなく分割してスケールインしましょう。</p><h3>マーケットインパクト、スリッページ、流動性</h3><p>どの注文も価格を自分に不利へ動かし（マーケットインパクト）、見えていた価格より悪く約定します（スリッページ）。プロは板（深さ・スプレッド）で流動性を測り、ダークプールやRFQで市場に気づかせず大口を動かします。リテールの教訓：流動性の乏しい銘柄や閑散時間帯では、ストップもエントリーも激しいスリッページを被ります。流動性の高い時間に取引し、スプレッドの広い市場を疑いましょう。</p><h3>VaR とリスクリミット</h3><p>デスクはトレーダーに好き放題リスクを取らせません。ハードなリミットを課します。VaR（バリュー・アット・リスク）は、通常日に一定の確率でデスクが最大いくら失いうるかを推定します（例：95%の日で20万を超えない）。ポジション別、グリークス別（デルタ/ベガ）、日次損失別（ストップアウト）、ドローダウン別のリミットがあります。触れれば縮小か停止。リテールの教訓：自分のリミット（日次最大損失、1トレードのリスク）を前もって決め、リスクマネージャーに見られているつもりで守りましょう。</p><h3>P&amp;L アトリビューションと成果測定</h3><p>プロは儲けた額だけを見ません。P&amp;Lを分解して、それがどこから来たかを知ります。方向、タイミング、銘柄選択、キャリー、運か？シャープ、ソルティノ、Calmar、インフォメーションレシオでリスク調整後の成果を測り、ベンチマークと比べます。リテールの教訓：日誌を銘柄別・セットアップ別・時間帯別に分析し（あなたのサイトは既に対応）、本当に稼げるものとアドレナリンだけのものを見極めましょう。</p><h3>デスクのルーティン</h3><p>デスクの一日は儀式化されています。寄り前ブリーフ（今日の指標とリスク）、朝会（アナリストが説明し、バイアスと水準を定める）、場中は全トレードをブロッターに記録して執行、引け後レビュー（良かった点・悪かった点、ミス、調整）。何も出たとこ勝負や記憶任せにしません。リテールの教訓：この儀式を真似て、開く前のチェックリスト、全トレードの記録、毎週の正直なミス復習を。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">7日間の無料体験を始める →</a>
+  <div class="related card"><h2>他のテーマ</h2><ul><li><a href="https://tradingcalculator.pro/ja/learn/cross-margin/">クロスマージン</a></li><li><a href="https://tradingcalculator.pro/ja/learn/start-here/">ここから始める</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">トレードの基礎</a></li><li><a href="https://tradingcalculator.pro/ja/learn/market-mechanics/">市場の仕組み</a></li><li><a href="https://tradingcalculator.pro/ja/learn/trading-styles/">トレードスタイル</a></li><li><a href="https://tradingcalculator.pro/ja/learn/fundamental-analysis/">ファンダメンタル分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">ホーム</a><a href="https://tradingcalculator.pro/ja/learn/">学ぶ</a><a href="https://tradingcalculator.pro/ja/tools/">計算ツール</a><a href="https://tradingcalculator.pro/ja/markets/">マーケット</a><a href="https://tradingcalculator.pro/ja/strategies/">オプション戦略</a><a href="https://tradingcalculator.pro/ja/patterns/">チャートパターン</a><a href="https://tradingcalculator.pro/ja/candles/">ローソク足パターン</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。</div>
+</div></footer>
+</body>
+</html>

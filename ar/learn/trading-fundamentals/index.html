@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>أساسيات التداول | TradingCalculator.Pro</title>
+<meta name="description" content="فهم المفاهيم الأساسية للتداول عبر الأسواق المختلفة">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/osnovy-treydinga/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/fundamentos-do-trading/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/fondamenti-del-trading/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="أساسيات التداول | TradingCalculator.Pro">
+<meta property="og:description" content="فهم المفاهيم الأساسية للتداول عبر الأسواق المختلفة">
+<meta property="og:url" content="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="ar_SA">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"أساسيات التداول","url":"https://tradingcalculator.pro/ar/learn/trading-fundamentals/","inLanguage":"ar","description":"فهم المفاهيم الأساسية للتداول عبر الأسواق المختلفة","teaches":["الفوركس","الأسهم","العملات الرقمية","السلع","المؤشرات","صناديق ETF","العقود الآجلة","السندات / الدخل الثابت","الخيارات","عقود الفروقات (CFD)","المتداولون الأفراد","المؤسسيون","بنوك الاستثمار والبنوك التجارية","صناديق التحوّط","صناديق التقاعد والصناديق المشتركة","صانعو السوق","التداول عالي التردد والخوارزميات","الوسطاء والمتعاملون","الشركات والمتحوّطون","البنوك المركزية","سيدني (المحيط الهادئ)","الجلسة الآسيوية","تداخل سيدني–طوكيو","جلسة لندن","تداخل لندن/نيويورك","جلسة نيويورك"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"الرئيسية","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"تعلّم","item":"https://tradingcalculator.pro/ar/learn/"},{"@type":"ListItem","position":3,"name":"أساسيات التداول","item":"https://tradingcalculator.pro/ar/learn/trading-fundamentals/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/pricing">الأسعار</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">الرئيسية</a> › <a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a> › أساسيات التداول</div>
+  <span class="free">7 أيام مجانًا</span>
+  <h1>أساسيات التداول</h1>
+  <p class="lead">فهم المفاهيم الأساسية للتداول عبر الأسواق المختلفة</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fundamentals">افتح الوحدة كاملة →</a></p>
+  
+  
+  <div class="card"><h2>ما ستتعلمه</h2><h3>الفوركس</h3><p>سوق العملات: تبدّل عملة بأخرى (EUR/USD وغيرها). هو الأكبر والأكثر سيولة في العالم (نحو 6.6 تريليون دولار يوميًا)، يفتح 24 ساعة من الإثنين إلى الجمعة ويُتداول بالرافعة. يتحرك مع أسعار الفائدة والاقتصاد الكلي. فروق أسعار منخفضة، لكن الرافعة العالية أكبر خطر على المبتدئ.</p><h3>الأسهم</h3><p>شراء سهم يعني شراء جزء صغير من شركة (آبل، أرامكو…). تربح إذا ارتفع السعر وأحيانًا من التوزيعات. يُتداول في ساعات البورصة (لا 24 ساعة) وهو الأكثر تنظيمًا وبديهيةً للبدء. تعتمد حركته على الأرباح والأخبار والمزاج العام للسوق.</p><h3>العملات الرقمية</h3><p>أصول رقمية (بيتكوين، إيثيريوم…) تُتداول 24/7 بلا مواعيد ولا إغلاق. تقلّب شديد: قد تتحرك 10% في يوم، ما يمنح الفرصة والمخاطرة بالقدر نفسه. احذر الرافعة والمنصات غير المنظّمة. للبدء: أحجام صغيرة وأموال تتحمّل خسارتها فقط.</p><h3>السلع</h3><p>سلع مادية: الذهب والفضة (ملاذات آمنة)، النفط والغاز (طاقة)، القمح أو البن (زراعية). تعتمد أسعارها على العرض/الطلب الحقيقي والجغرافيا السياسية والدولار. الذهب يميل للصعود عند الخوف؛ والنفط مع الاقتصاد والنزاعات. تُتداول غالبًا عبر العقود الآجلة أو ETF أو عقود الفروقات.</p><h3>المؤشرات</h3><p>سلّة تقيس سوقًا بأكمله: S&amp;P 500 (500 شركة أمريكية كبرى)، وفوتسي 100، وناسداك… بدل إصابة سهم واحد، تتداول الاتجاه العام. ضجيجها أقل من سهم منفرد وتحظى بمتابعة كبيرة؛ وتُتداول عبر العقود الآجلة أو صناديق ETF أو عقود الفروقات.</p><h3>صناديق ETF</h3><p>صناديق تُتداول كالسهم لكنها تحوي أصولًا كثيرة معًا (مؤشر، قطاع، ذهب…). بشراء واحد تنوّع وتتجنّب الاعتماد على شركة واحدة. رخيصة وبسيطة: بوابة الدخول المفضّلة للمستثمر طويل الأمد. مثال: صندوق SPY يحاكي مؤشر S&amp;P 500.</p><h3>العقود الآجلة</h3><p>عقود لشراء أو بيع أصل (مؤشر، نفط، ذهب) بسعر يُحدَّد اليوم مع تسليم مستقبلي. تتضمّن رافعة مدمجة وتاريخ انتهاء، لذا يجب تدويرها (rollover). يستخدمها المحترفون للتحوّط والمضاربة؛ قوية لكنها متطلّبة — وليست منتجًا لليوم الأول.</p><h3>السندات / الدخل الثابت</h3><p>ديون تصدرها الحكومات والشركات. أكبر سوق في العالم من حيث الحجم؛ تحدد عوائد السندات السيادية (مثل سند الخزانة الأمريكي لأجل 10 سنوات) المعدل «الخالي من المخاطر» الذي يسعّر كل الأصول الأخرى. تتحرك عكس أسعار الفائدة.</p><h3>الخيارات</h3><p>عقود تمنح الحق — لا الالتزام — بشراء (كول) أو بيع (بوت) أصل بسعر محدد قبل انتهاء الصلاحية. تُستخدم للتحوّط أو توليد الدخل أو المضاربة برافعة ومخاطرة محددة. يعتمد سعرها على التقلب والزمن.</p><h3>عقود الفروقات (CFD)</h3><p>عقود الفروقات: تتداول تغيّر سعر الأصل دون امتلاكه، برافعة مالية وبيعًا وشراءً. شائعة في أوروبا للمؤشرات والفوركس والسلع — لكن الرافعة تضخّم الخسائر والتكاليف (الفارق السعري/تمويل التبييت) تتراكم.</p><h3>المتداولون الأفراد</h3><p>متداولون أفراد مثلك، يتداولون من المنزل بأموالهم الخاصة عبر وسيط. هم الفئة الأكبر عددًا لكنهم يحرّكون أصغر حصة من الحجم. بلا معلومات داخلية أو حجم، ميزتهم هي المرونة: يمكنهم انتظار الصفقة المثالية دون تقديم حساب لأحد.</p><h3>المؤسسيون</h3><p>'المال الكبير': صناديق التحوّط والتقاعد وشركات التأمين والبنوك التي تحرّك مئات الملايين. حجمها قوة وقيد معًا: لا تستطيع الدخول أو الخروج دفعة واحدة دون تحريك السعر، لذا تجزّئ أوامرها على ساعات أو أيام. وتتبّع أثرها (التدفق) هو ما يسعى إليه المتداول الفرد الذكي.</p><h3>بنوك الاستثمار والبنوك التجارية</h3><p>البنية التحتية للسوق: تصنع السوق وتنفّذ أوامر عملاء ضخمة وتدير مكاتب تداول خاصة وتهيمن على الفوركس. تشكّل أبحاثها وتدفق أوامرها الاتجاه قصير المدى.</p><h3>صناديق التحوّط</h3><p>صناديق خفيفة التنظيم تسعى لعوائد مطلقة عبر استراتيجيات عدوانية ومرنة (شراء/بيع، ماكرو، مراجحة، كمّية). يمكنها تحريك الأسواق بسرعة وغالبًا ما تكون «المال الذكي» في الطرف المقابل لصفقات الأفراد.</p><h3>صناديق التقاعد والصناديق المشتركة</h3><p>أكبر تجمّعات رأس المال طويل الأجل. تستثمر ببطء وبأحجام كبيرة للتقاعد والادخار؛ وتحرّك عمليات إعادة توازن محافظها وقرارات إدراجها في المؤشرات قطاعات كاملة على مدى أسابيع وأشهر.</p><h3>صانعو السوق</h3><p>شركات 'تصنع السوق': تعرض سعر شراء وسعر بيع في آنٍ واحد وتربح من الفارق بينهما. توفّر السيولة التي تتيح لك الدخول والخروج دائمًا، لكن مصلحتها معاكسة لمصلحتك. وحيث تتكدّس أوامر الوقف، قد تدفع السعر 'لاصطياد' تلك السيولة قبل أن ينعكس.</p><h3>التداول عالي التردد والخوارزميات</h3><p>شركات التداول عالي التردد تستخدم خوارزميات فائقة السرعة للتداول خلال ميكروثوانٍ، وتوفّر جزءًا كبيرًا من السيولة الحالية وتقتنص فروقًا سعرية دقيقة عبر ملايين الأوامر. تهيمن على حجم التداول اليومي.</p><h3>الوسطاء والمتعاملون</h3><p>الوسطاء الذين يمنحونك الوصول إلى السوق. بعضهم يمرّر أمرك إلى البورصة (ECN/STP)؛ وآخرون يأخذون الطرف المقابل (صنّاع السوق/المتعاملون). طريقة توجيههم للأوامر تؤثر في تنفيذك وتكاليفك.</p><h3>الشركات والمتحوّطون</h3><p>شركات حقيقية (طيران، مصدّرون، تعدين) تستخدم العقود الآجلة والفوركس لا للمضاربة بل للتحوّط من انكشاف فعلي — الوقود والعملات والمواد الخام. تدفّقها الثابت غير الاتجاهي هو العمود الفقري لأسواق السلع والفوركس.</p><h3>البنوك المركزية</h3><p>أقوى لاعب: الاحتياطي الفيدرالي، والبنك المركزي الأوروبي، وغيرهما. يحدّدون أسعار الفائدة ويتحكمون في عرض النقود، وبذلك يحرّكون العملات والسندات وأسواق الأسهم بأكملها. لا يسعون للربح بل للاستقرار. وحين يتحدث رئيسهم يتوقف السوق ليصغي: جملة واحدة قد تقلب الاتجاه الأساسي.</p><h3>سيدني (المحيط الهادئ)</h3><p>الجلسة التي تفتتح أسبوع التداول. سيولة رقيقة وتقلب منخفض؛ غالبًا أزواج الدولار الأسترالي والنيوزيلندي والين. جيدة لاستراتيجيات النطاق وخطرة للاختراقات لأن الحركة قد تكون متقلبة.</p><h3>الجلسة الآسيوية</h3><p>طوكيو وهونغ كونغ وسنغافورة. تقلّب معتدل ونطاقات أضيق: أفضل وقت للين الياباني والدولار الأسترالي والأصول الآسيوية. غالبًا ترسم نطاقًا يكسره لندن لاحقًا. جلسة جيدة لاستراتيجيات النطاق، وأصعب للاختراقات بسبب سيولتها الأقل.</p><h3>تداخل سيدني–طوكيو</h3><p>آسيا-المحيط الهادئ في أوجها: النافذة الأكثر نشاطًا للدولار الأسترالي والنيوزيلندي والين والمؤشرات الآسيوية. تقلب معتدل مدفوع بالبيانات الإقليمية والصين.</p><h3>جلسة لندن</h3><p>أهم جلسة: لندن تحرّك نحو 35% من الفوركس العالمي. تقلّب عالٍ واتجاهات نظيفة، خصوصًا في أزواج اليورو والجنيه. عادةً تحدّد اتجاه اليوم في ساعتها الأولى. مفضّلة لدى كثير من المتداولين لحركاتها الواسعة وسيولتها العميقة.</p><h3>تداخل لندن/نيويورك</h3><p>الساعات الأربع التي يتداول فيها لندن ونيويورك معًا (13:00–17:00 بتوقيت UTC): أكثر نوافذ اليوم سيولةً وتقلّبًا. هنا تحدث أكبر الحركات وأنظفها، وفيها يركّز كثير من متداولي اليوم كامل نشاطهم. وهي الأخطر أيضًا إن دخلت دون خطة.</p><h3>جلسة نيويورك</h3><p>تفتح نيويورك مع معظم بيانات أمريكا الكلية (التوظيف، التضخم، الفائدة)، لذا تتركّز فيها قمم التقلّب. تداخلها مع لندن هو أكثر نوافذ اليوم حركةً. وبعد إغلاق أوروبا تنخفض السيولة وتميل الاتجاهات إلى الخمود.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">ابدأ 7 أيام مجانًا →</a>
+  <div class="related card"><h2>مواضيع أخرى</h2><ul><li><a href="https://tradingcalculator.pro/ar/learn/cross-margin/">الهامش المتقاطع</a></li><li><a href="https://tradingcalculator.pro/ar/learn/start-here/">ابدأ من هنا</a></li><li><a href="https://tradingcalculator.pro/ar/learn/market-mechanics/">ميكانيكا السوق</a></li><li><a href="https://tradingcalculator.pro/ar/learn/trading-styles/">أساليب التداول</a></li><li><a href="https://tradingcalculator.pro/ar/learn/fundamental-analysis/">التحليل الأساسي</a></li><li><a href="https://tradingcalculator.pro/ar/learn/valuing-a-company-in-depth/">تقييم شركة بعمق</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">الرئيسية</a><a href="https://tradingcalculator.pro/ar/learn/">تعلّم</a><a href="https://tradingcalculator.pro/ar/tools/">الحاسبات</a><a href="https://tradingcalculator.pro/ar/markets/">الأسواق</a><a href="https://tradingcalculator.pro/ar/strategies/">استراتيجيات الخيارات</a><a href="https://tradingcalculator.pro/ar/patterns/">أنماط الرسم البياني</a><a href="https://tradingcalculator.pro/ar/candles/">أنماط الشموع</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.</div>
+</div></footer>
+</body>
+</html>

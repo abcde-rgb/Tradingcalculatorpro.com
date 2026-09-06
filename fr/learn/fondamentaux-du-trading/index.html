@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>Fondamentaux du Trading | TradingCalculator.Pro</title>
+<meta name="description" content="Comprendre les concepts fondamentaux du trading sur différents marchés">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/trading-grundlagen/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/osnovy-treydinga/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/trading-fundamentals/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/fundamentos-do-trading/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/fondamenti-del-trading/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/fundamentos-del-trading/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="Fondamentaux du Trading | TradingCalculator.Pro">
+<meta property="og:description" content="Comprendre les concepts fondamentaux du trading sur différents marchés">
+<meta property="og:url" content="https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Fondamentaux du Trading","url":"https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/","inLanguage":"fr","description":"Comprendre les concepts fondamentaux du trading sur différents marchés","teaches":["Forex","Actions","Crypto","Matières premières","Indices","ETFs","Contrats à terme","Obligations / Taux","Options","CFD","Particuliers","Institutionnels","Banques d'investissement et commerciales","Fonds spéculatifs (hedge funds)","Fonds de pension et fonds communs","Teneurs de marché","HFT et algorithmes","Courtiers et dealers","Entreprises et hedgers","Banques Centrales","Sydney (Pacifique)","Session Asiatique","Chevauchement Sydney–Tokyo","Session de Londres","Chevauchement Londres/NY","Session de New York"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Accueil","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Apprendre","item":"https://tradingcalculator.pro/fr/learn/"},{"@type":"ListItem","position":3,"name":"Fondamentaux du Trading","item":"https://tradingcalculator.pro/fr/learn/fondamentaux-du-trading/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/pricing">Tarifs</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Accueil</a> › <a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a> › Fondamentaux du Trading</div>
+  <span class="free">7 jours gratuits</span>
+  <h1>Fondamentaux du Trading</h1>
+  <p class="lead">Comprendre les concepts fondamentaux du trading sur différents marchés</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=fundamentals">Ouvrir le module complet →</a></p>
+  
+  
+  <div class="card"><h2>Ce que vous apprendrez</h2><h3>Forex</h3><p>Le marché des changes : tu échanges une devise contre une autre (EUR/USD, etc.). C'est le plus grand et le plus liquide au monde (~6 600 milliards $/jour), ouvert 24h du lundi au vendredi et tradé avec effet de levier. Il bouge avec les taux et la macro. Spreads faibles, mais le fort levier est son plus grand danger pour le débutant.</p><h3>Actions</h3><p>Acheter une action, c'est acheter une petite part d'une entreprise (Apple, LVMH…). Tu gagnes si le prix monte et parfois via les dividendes. Elle se négocie aux heures de bourse (pas 24h) et c'est le point de départ le plus régulé et intuitif. Les mouvements dépendent des résultats, des news et de l'humeur générale du marché.</p><h3>Crypto</h3><p>Des actifs numériques (Bitcoin, Ethereum…) qui se tradent 24/7, sans horaires ni clôture. Volatilité extrême : ils peuvent bouger de 10 % en un jour, ce qui apporte opportunité et risque à parts égales. Méfie-toi de l'effet de levier et des exchanges non régulés. Pour débuter : petites tailles et seulement de l'argent que tu peux perdre.</p><h3>Matières premières</h3><p>Des biens physiques : or et argent (valeurs refuges), pétrole et gaz (énergie), blé ou café (agricoles). Leurs prix dépendent de l'offre/demande réelle, de la géopolitique et du dollar. L'or monte souvent en cas de peur ; le pétrole, avec l'économie et les conflits. Se tradent surtout via futures, ETF ou CFD.</p><h3>Indices</h3><p>Un panier qui mesure tout un marché : le S&amp;P 500 (500 grandes entreprises US), le CAC 40, le Nasdaq… Au lieu de viser juste une action, tu trades la direction générale. Moins de bruit qu'une action isolée et très suivis ; se tradent via futures, ETF ou CFD.</p><h3>ETFs</h3><p>Des fonds qui se tradent comme une action mais détiennent plusieurs actifs à la fois (un indice, un secteur, l'or…). En un seul achat, tu diversifies et évites de dépendre d'une entreprise. Bon marché et simples : le point d'entrée préféré de l'investisseur long terme. Exemple : l'ETF SPY réplique le S&amp;P 500.</p><h3>Contrats à terme</h3><p>Des contrats pour acheter ou vendre un actif (indice, pétrole, or) à un prix fixé aujourd'hui avec livraison future. Ils intègrent un effet de levier et une échéance, il faut donc les renouveler (rollover). Les pros s'en servent pour se couvrir et spéculer ; puissants mais exigeants — pas un produit pour le premier jour.</p><h3>Obligations / Taux</h3><p>Dette émise par les États et les entreprises. Le plus grand marché du monde en taille ; les rendements souverains (comme le 10 ans américain) fixent le taux 'sans risque' qui valorise tout le reste. Évolue à l'inverse des taux d'intérêt.</p><h3>Options</h3><p>Contrats donnant le droit — non l'obligation — d'acheter (call) ou de vendre (put) un actif à un prix fixé avant l'échéance. Servent à couvrir un risque, générer un revenu ou spéculer avec effet de levier et risque défini. Leur prix dépend de la volatilité et du temps.</p><h3>CFD</h3><p>Contracts for Difference : vous tradez la variation de prix d'un actif sans le posséder, avec effet de levier, à la hausse comme à la baisse. Populaires en Europe pour les indices, le forex et les matières premières — mais le levier amplifie les pertes et les coûts (spread/financement overnight) s'accumulent.</p><h3>Particuliers</h3><p>Des traders individuels comme toi, qui tradent depuis chez eux avec leur propre argent via un broker. C'est le groupe le plus nombreux mais qui pèse la plus petite part du volume. Sans info privilégiée ni taille, leur avantage est la flexibilité : ils peuvent attendre le trade parfait sans rendre de comptes.</p><h3>Institutionnels</h3><p>Le 'gros argent' : hedge funds, fonds de pension, assureurs et banques qui déplacent des centaines de millions. Leur taille est à la fois une force et une limite : ils ne peuvent entrer ou sortir d'un coup sans bouger le prix, alors ils découpent leurs ordres sur des heures ou des jours. Suivre leur empreinte (flux) est ce que vise le trader retail avisé.</p><h3>Banques d'investissement et commerciales</h3><p>La tuyauterie du marché : elles animent le marché, exécutent d'énormes ordres clients, gèrent des desks propriétaires et dominent le forex. Leur recherche et leur flux orientent la direction à court terme.</p><h3>Fonds spéculatifs (hedge funds)</h3><p>Fonds peu régulés visant la performance absolue via des stratégies agressives et flexibles (long/short, macro, arbitrage, quant). Ils peuvent faire bouger les marchés rapidement et sont souvent le 'smart money' en face des particuliers.</p><h3>Fonds de pension et fonds communs</h3><p>Les plus grands réservoirs de capital à long terme. Ils investissent lentement et en volume pour la retraite et l'épargne ; leurs rééquilibrages et inclusions dans les indices font bouger des secteurs entiers sur des semaines et des mois.</p><h3>Teneurs de marché</h3><p>Des firmes qui 'font le marché' : elles cotent à la fois un prix d'achat et de vente et gagnent le spread entre les deux. Elles fournissent la liquidité qui te permet toujours d'entrer ou sortir, mais leur intérêt est l'inverse du tien. Là où les stops s'accumulent, elles peuvent pousser le prix pour 'chasser' cette liquidité avant le retournement.</p><h3>HFT et algorithmes</h3><p>Les sociétés de trading haute fréquence utilisent des algorithmes ultra-rapides pour trader en microsecondes, fournissant une grande part de la liquidité actuelle et captant de minuscules spreads sur des millions d'ordres. Elles dominent le volume intraday.</p><h3>Courtiers et dealers</h3><p>Les intermédiaires qui vous donnent accès au marché. Certains transmettent votre ordre au marché (ECN/STP) ; d'autres prennent la contrepartie (teneurs de marché/dealers). Leur mode de routage affecte vos exécutions et vos coûts.</p><h3>Entreprises et hedgers</h3><p>Des entreprises réelles (compagnies aériennes, exportateurs, mines) qui utilisent les futures et le forex non pour spéculer mais pour couvrir une exposition réelle — carburant, devises, matières premières. Leur flux régulier et non directionnel est l'épine dorsale des marchés des matières premières et du forex.</p><h3>Banques Centrales</h3><p>L'acteur le plus puissant : la Fed, la BCE, etc. Ils fixent les taux et contrôlent la masse monétaire, et déplacent ainsi devises, obligations et bourses entières. Ils ne cherchent pas le profit mais la stabilité. Quand leur président parle, le marché s'arrête pour écouter : une seule phrase peut renverser la tendance de fond.</p><h3>Sydney (Pacifique)</h3><p>La session qui ouvre la semaine de trading. Liquidité faible et faible volatilité ; surtout des paires AUD, NZD et JPY. Bonne pour les stratégies de range, risquée pour les cassures car les mouvements peuvent être erratiques.</p><h3>Session Asiatique</h3><p>Tokyo, Hong Kong et Singapour. Volatilité modérée et ranges plus serrés : le meilleur moment pour le JPY, l'AUD et les actifs asiatiques. Elle dessine souvent un range que Londres casse ensuite. Bonne session pour les stratégies de range, plus difficile pour les cassures vu sa liquidité moindre.</p><h3>Chevauchement Sydney–Tokyo</h3><p>L'Asie-Pacifique à plein régime : la fenêtre la plus active pour l'AUD, le NZD, le JPY et les indices asiatiques. Volatilité modérée, portée par les données régionales et la Chine.</p><h3>Session de Londres</h3><p>La session la plus importante : Londres traite environ 35 % du forex mondial. Forte volatilité et tendances nettes, surtout sur les paires EUR et GBP. Elle fixe souvent la direction du jour dès sa première heure. La préférée de beaucoup de traders pour ses mouvements amples et sa liquidité profonde.</p><h3>Chevauchement Londres/NY</h3><p>Les 4 heures où Londres et New York tradent en même temps (13h–17h UTC) : la fenêtre la plus liquide et volatile de toute la journée. C'est là que se produisent les mouvements les plus grands et les plus nets, et où beaucoup de day traders concentrent tout. Aussi la plus risquée si tu entres sans plan.</p><h3>Session de New York</h3><p>New York ouvre avec l'essentiel des données macro américaines (emploi, inflation, taux), elle concentre donc des pics de volatilité. Son chevauchement avec Londres est la fenêtre la plus active de la journée. Après la clôture européenne, la liquidité chute et les tendances s'essoufflent souvent.</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">Commencer 7 jours gratuits →</a>
+  <div class="related card"><h2>Plus de thèmes</h2><ul><li><a href="https://tradingcalculator.pro/fr/learn/marge-croisee/">Marge croisée</a></li><li><a href="https://tradingcalculator.pro/fr/learn/commence-ici/">Commence ici</a></li><li><a href="https://tradingcalculator.pro/fr/learn/mecanique-du-marche/">Mécanique du Marché</a></li><li><a href="https://tradingcalculator.pro/fr/learn/styles-de-trading/">Styles de Trading</a></li><li><a href="https://tradingcalculator.pro/fr/learn/analyse-fondamentale/">Analyse Fondamentale</a></li><li><a href="https://tradingcalculator.pro/fr/learn/valoriser-une-entreprise-en-profondeur/">Valoriser une entreprise en profondeur</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">Accueil</a><a href="https://tradingcalculator.pro/fr/learn/">Apprendre</a><a href="https://tradingcalculator.pro/fr/tools/">Calculatrices</a><a href="https://tradingcalculator.pro/fr/markets/">Marchés</a><a href="https://tradingcalculator.pro/fr/strategies/">Stratégies d’options</a><a href="https://tradingcalculator.pro/fr/patterns/">Patterns Graphiques</a><a href="https://tradingcalculator.pro/fr/candles/">Patterns Chandeliers</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.</div>
+</div></footer>
+</body>
+</html>

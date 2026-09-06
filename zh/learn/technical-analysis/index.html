@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CSP de las páginas estáticas. Son autocontenidas —estilo en línea, sin
+     script externo ni iframe—, así que aquí sí se puede prohibir el script por
+     completo: si alguna vez alguien inyecta uno, el navegador lo bloquea.
+     frame-ancestors no funciona en meta, así que el anti-clickjacking sigue
+     necesitando cabeceras (ver G-10). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>技术分析 | TradingCalculator.Pro</title>
+<meta name="description" content="使用价格图表和指标预测未来市场走势">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tradingcalculator.pro/zh/learn/technical-analysis/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
+<link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/learn/technical-analysis/">
+<link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/learn/technische-analyse/">
+<link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/learn/analyse-technique/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/learn/tehnicheskiy-analiz/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/learn/technical-analysis/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/learn/technical-analysis/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/learn/technical-analysis/">
+<link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/learn/analise-tecnica/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/learn/analisi-tecnica/">
+<link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/learn/analisis-tecnico/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="技术分析 | TradingCalculator.Pro">
+<meta property="og:description" content="使用价格图表和指标预测未来市场走势">
+<meta property="og:url" content="https://tradingcalculator.pro/zh/learn/technical-analysis/">
+<meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"技术分析","url":"https://tradingcalculator.pro/zh/learn/technical-analysis/","inLanguage":"zh","description":"使用价格图表和指标预测未来市场走势","teaches":["线性（算术）刻度——「自动」的那种","对数（半对数）刻度——专业人士用的","何时用哪一种","为什么它会改变你的分析（最关键）","支撑位","阻力位","支撑/阻力区域","突破","上升趋势","下降趋势","横盘","趋势结构","SMA","EMA","RSI","MACD","布林带","斐波那契","概念","自上而下方法"],"provider":{"@type":"Organization","name":"TradingCalculator.Pro","url":"https://tradingcalculator.pro/"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"学习","item":"https://tradingcalculator.pro/zh/learn/"},{"@type":"ListItem","position":3,"name":"技术分析","item":"https://tradingcalculator.pro/zh/learn/technical-analysis/"}]}</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:18px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+.card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
+.card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
+.formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
+ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
+.sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
+.free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top"><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/pricing">价格</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="https://tradingcalculator.pro/">首页</a> › <a href="https://tradingcalculator.pro/zh/learn/">学习</a> › 技术分析</div>
+  <span class="free">7 天免费试用</span>
+  <h1>技术分析</h1>
+  <p class="lead">使用价格图表和指标预测未来市场走势</p>
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <p class="sub"><a href="https://tradingcalculator.pro/education?topic=tech-analysis">打开完整模块 →</a></p>
+  
+  
+  <div class="card"><h2>你将学到</h2><h3>线性（算术）刻度——「自动」的那种</h3><p>每一格纵向刻度代表相同的美元数。$10 的波动占据相同高度，无论价格在 $20 还是 $500。几乎所有平台的默认设置。
+用数字看问题：从 $10 到 $20 是 +100%（本金翻倍）；从 $100 到 $110 只是 +10%。在线性刻度上这两段都是 $10 → 占据完全相同的高度，尽管其中一段对你钱包的意义大十倍。只要价格区间一大，就会扭曲你对风险的感知。</p><h3>对数（半对数）刻度——专业人士用的</h3><p>每一格纵向刻度代表相同的百分比，而非相同美元。+50% 在任何价位都占据相同高度。
+用数字看：从 $10 到 $20（+100%）与从 $100 到 $200（+100%）或从 $1,000 到 $2,000（+100%）占据相同高度。图表反映真正重要的——百分比回报，而非绝对数值。所以对于翻了很多倍的资产（比特币从 $100 到 $60,000、英伟达……），这是看清全貌的唯一方式：线性刻度上早年是贴着底部的一条平线；对数刻度上你能清楚看到每一个周期。</p><h3>何时用哪一种</h3><p>实用规则：
+• 对数 → 长周期图（周线/月线）、加密货币、涨幅巨大的股票，以及价格在屏幕上走过超过约 30-40% 时。这是中长线严肃分析的默认选择。
+• 线性 → 日内和小区间，价格几乎不怎么按 % 波动，两种刻度看起来几乎一样。例：EUR/USD 从 1.0800 到 1.1000 约 1.9% → 对数或线性没差别。
+注意：平台上的「自动」不是第三种刻度；它只是自动适配缩放。刻度仍是你所选的线性或对数。</p><h3>为什么它会改变你的分析（最关键）</h3><p>几乎没人讲的关键：趋势线、通道、形态和斐波那契在对数和线性上画出来是不同的。一条在线性上撑住的趋势线，在对数上可能已经跌破——反之亦然——在同一张图上给你相反的信号。
+用数字看：一条连接 $100 → $200 → $400 的上升趋势。在对数上每一段都是 +100%，所以三点连成一条完美的直线，趋势线可靠。在线性上同样的上涨是一条加速上翘的曲线；你画一条直线，它会偏离价格，给出假突破。所以专业人士会选定一种刻度（长线几乎总是对数），固定住并保持一致：分析中途换刻度，就是在骗自己。</p><h3>支撑位</h3><p>价格下方买盘往往能止住下跌的区域。价格在此反弹的次数越多越可靠——把它画成一条区带,而不是精确的一条线。不要仅仅'因为有支撑'就买入:等待确认(拒绝K线或成交量放大)。若被明确跌破,该支撑就变成阻力。</p><h3>阻力位</h3><p>价格上方卖压往往能压住上涨的区域:很多人获利了结的'天花板'。操作方法与支撑相同但方向相反(寻找拒绝信号来卖出或锁定利润)。若价格带量强势突破,该阻力通常会转为支撑。</p><h3>支撑/阻力区域</h3><p>实际上价格并不会在某个精确数字上反转,而是在一个区域内。把支撑/阻力画成区带(如 99.5–100.2)而不是一条线,能避免一次插针或影线过早把你扫出局,也更符合真实市场的运行方式。</p><h3>突破</h3><p>价格穿越支撑或阻力的时刻。放量突破通常是真实的,会开启新一段行情;缩量突破往往是陷阱(假突破),会重新回到区间内。新手技巧:等K线收盘站稳在该水平之外,而不是刚一触碰就进场。</p><h3>上升趋势</h3><p>价格形成一浪高于一浪的高点和低点:每次回调的低点都高于上一次。这是最容易赚钱的环境——在回调中买入。只要最近的关键低点没被跌破,上升趋势就依然有效('趋势是你的朋友')。</p><h3>下降趋势</h3><p>价格形成一浪低于一浪的高点和低点:每次反弹都止步于上一次之下。这里自然的做法是在反弹中卖出或做空,而不是'抄底'。过早去接底部,是最容易让账户爆仓的错误之一。</p><h3>横盘</h3><p>价格在支撑与阻力之间横向震荡,没有明确方向。策略:在底部附近买、在顶部附近卖,或者空仓等待突破。市场有 60-70% 的时间处于震荡区间,所以懂得在这里'不交易'本身也是一种能力。</p><h3>趋势结构</h3><p>结构是趋势的'脊梁':高点和低点依次抬高(上升)或依次降低(下降)。当这一序列被打破——比如上升趋势中价格创出更低的低点——就是趋势可能反转的第一个信号(性质转变)。</p><h3>SMA</h3><p>简单移动平均线:最近 N 个周期收盘价的平均(如 50 或 200)。它平滑噪音并显示方向:价格在其上方 = 偏多。50 与 200 最受关注,二者的交叉(金叉/死叉)有半个市场在盯。反应偏慢,但可靠。</p><h3>EMA</h3><p>指数移动平均线:与 SMA 类似,但给近期价格更高权重,因此转向更快、更贴合价格。常用:9、20、50。更适合快速交易;代价是比 SMA 有更多假信号。很多人用 EMA 择时进场,用 200 SMA 把握大局。</p><h3>RSI</h3><p>相对强弱指数(0-100):衡量价格是否涨得或跌得太快。&gt;70 = 超买,&lt;30 = 超卖。但在强趋势中它可能长期'超买'——不要仅凭它逆势操作。它最强的信号是背离(价格创新高而 RSI 没有)。</p><h3>MACD</h3><p>通过比较两条均线(12 和 26)与一条信号线来衡量动能。MACD 线上穿信号线 = 多头动能;下穿 = 空头。柱状图显示动能在加速还是衰竭。适合确认趋势,在震荡市中不可靠。</p><h3>布林带</h3><p>布林带:一条 20 周期均线加上下 ±2 个标准差的两条带。约 90% 的价格都在带内,所以单纯触碰带并不是反转信号。它最强的用途是波动率:当带收窄(挤压)时,往往随后会有一波大行情。</p><h3>斐波那契</h3><p>斐波那契回撤:一段行情之后,价格常回撤到 38.2%、50% 或 61.8% 再继续。从这段行情的起点画到终点,用来寻找顺势的进场区。61.8% 最受关注;跌破它,行情就失去了力度。</p><h3>概念</h3><p>同时在多个时间周期上分析同一品种。大周期(日线/4 小时)决定方向,小周期(15 分/5 分)精修进场。它能避免新手的经典错误:在 5 分钟图上买入,而此时日线正在下跌。</p><h3>自上而下方法</h3><p>自上而下的方法:先看大周期决定方向偏好(偏多还是偏空?),再下到中周期定位区域,最后到小周期找进场触发。始终顺着大周期方向交易,能显著提高胜率。</p></div>
+  
+  <a class="cta" href="https://tradingcalculator.pro/pricing">开始 7 天免费试用 →</a>
+  <div class="related card"><h2>更多主题</h2><ul><li><a href="https://tradingcalculator.pro/zh/learn/cross-margin/">全仓保证金</a></li><li><a href="https://tradingcalculator.pro/zh/learn/start-here/">从这里开始</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-fundamentals/">交易基础</a></li><li><a href="https://tradingcalculator.pro/zh/learn/market-mechanics/">市场机制</a></li><li><a href="https://tradingcalculator.pro/zh/learn/trading-styles/">交易风格</a></li><li><a href="https://tradingcalculator.pro/zh/learn/fundamental-analysis/">基本面分析</a></li></ul></div>
+</main>
+<footer><div class="wrap">
+  <div><a href="https://tradingcalculator.pro/">首页</a><a href="https://tradingcalculator.pro/zh/learn/">学习</a><a href="https://tradingcalculator.pro/zh/tools/">计算器</a><a href="https://tradingcalculator.pro/zh/markets/">市场</a><a href="https://tradingcalculator.pro/zh/strategies/">期权策略</a><a href="https://tradingcalculator.pro/zh/patterns/">图表形态</a><a href="https://tradingcalculator.pro/zh/candles/">K线形态</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div class="disc">TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。</div>
+</div></footer>
+</body>
+</html>

@@ -14,16 +14,21 @@
 <meta name="description" content="An ETF is a fund that trades on an exchange like a share. You buy one unit and instantly own an entire basket: the whole S&amp;P 500, all of gold, all of…">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://tradingcalculator.pro/en/markets/etfs/">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">
 <link rel="alternate" hreflang="es" href="https://tradingcalculator.pro/markets/etfs/">
 <link rel="alternate" hreflang="en" href="https://tradingcalculator.pro/en/markets/etfs/">
 <link rel="alternate" hreflang="de" href="https://tradingcalculator.pro/de/markets/etfs/">
 <link rel="alternate" hreflang="fr" href="https://tradingcalculator.pro/fr/markets/etfs/">
-<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/etfs/">
-<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/etfs/">
-<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/etfs/">
-<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/etfs/">
+<link rel="alternate" hreflang="ru" href="https://tradingcalculator.pro/ru/markets/etf/">
+<link rel="alternate" hreflang="zh-CN" href="https://tradingcalculator.pro/zh/markets/etf/">
+<link rel="alternate" hreflang="ja" href="https://tradingcalculator.pro/ja/markets/etf/">
+<link rel="alternate" hreflang="ar" href="https://tradingcalculator.pro/ar/markets/etf/">
 <link rel="alternate" hreflang="pt" href="https://tradingcalculator.pro/pt/markets/etfs/">
-<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/etfs/">
+<link rel="alternate" hreflang="it" href="https://tradingcalculator.pro/it/markets/etf/">
 <link rel="alternate" hreflang="x-default" href="https://tradingcalculator.pro/markets/etfs/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -33,7 +38,7 @@
 <meta property="og:image" content="https://tradingcalculator.pro/og-image.png">
 <meta property="og:locale" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Markets","item":"https://tradingcalculator.pro/education"},{"@type":"ListItem","position":2,"name":"ETFs","item":"https://tradingcalculator.pro/en/markets/etfs/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://tradingcalculator.pro/"},{"@type":"ListItem","position":2,"name":"Markets","item":"https://tradingcalculator.pro/en/markets/"},{"@type":"ListItem","position":3,"name":"ETFs","item":"https://tradingcalculator.pro/en/markets/etfs/"}]}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","inLanguage":"en","mainEntity":[{"@type":"Question","name":"What is an ETF and how does it differ from a mutual fund?","acceptedAnswer":{"@type":"Answer","text":"An ETF (exchange-traded fund) is bought and sold on an exchange throughout the day, like a share, at a live price. A traditional mutual fund is subscribed and redeemed once a day at the closing NAV. ETFs are usually cheaper and more transparent; funds, in some jurisdictions, allow tax-free switching."}},{"@type":"Question","name":"What are the largest ETFs in the world?","acceptedAnswer":{"@type":"Answer","text":"S&P 500 trackers dominate by size: SPY (the first ever, 1993), IVV and VOO, each with hundreds of billions of dollars. Behind them come total US market funds (VTI), global equity funds (VT, IWDA in Europe) and physical gold funds (GLD, IAU)."}},{"@type":"Question","name":"What is an ETF's TER?","acceptedAnswer":{"@type":"Answer","text":"The total annual cost, expressed as a percentage of assets and deducted daily from the NAV (no invoice ever reaches you). A large index ETF costs 0.03% to 0.20%; a thematic or actively managed one, 0.40% to 0.90%. Compounded over decades the difference is enormous."}},{"@type":"Question","name":"Accumulating or distributing: which is better?","acceptedAnswer":{"@type":"Answer","text":"It depends on your tax situation and your goal. If you are building capital, the accumulating class defers dividend tax and compounds better. If you need regular income, the distributing class pays it directly without selling units."}},{"@type":"Question","name":"Can an ETF go bust and lose my money?","acceptedAnswer":{"@type":"Answer","text":"The ETF's assets are segregated from the manager's balance sheet, so if the manager fails your assets are not lost: they are liquidated or transferred. The real risks are different: the index falling (market risk) and, in synthetic ETFs, the swap counterparty failing. Leveraged and inverse ETFs add daily rebalancing decay, which makes them unsuitable to hold long term."}}]}</script>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
@@ -66,10 +71,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="https://tradingcalculator.pro/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="https://tradingcalculator.pro/education">Markets</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
+  <nav class="top"><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/pricing">Pricing</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/education">Markets</a> › ETFs</div>
+  <div class="crumb"><a href="https://tradingcalculator.pro/">Home</a> › <a href="https://tradingcalculator.pro/en/markets/">Markets</a> › ETFs</div>
   <h1>ETFs</h1>
   <p class="lead">An ETF is a fund that trades on an exchange like a share. You buy one unit and instantly own an entire basket: the whole S&amp;P 500, all of gold, all of European debt. It is the cheapest and simplest way to diversify, which is why it dominates modern investing.</p>
   <a class="cta" href="https://tradingcalculator.pro/pricing">Start your 7-day free trial →</a>
@@ -80,7 +85,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <div class="card"><h2>Other markets</h2><ul><li><a href="https://tradingcalculator.pro/en/markets/forex/">Forex</a></li><li><a href="https://tradingcalculator.pro/en/markets/stocks/">Stocks</a></li><li><a href="https://tradingcalculator.pro/en/markets/crypto/">Crypto</a></li><li><a href="https://tradingcalculator.pro/en/markets/commodities/">Commodities</a></li><li><a href="https://tradingcalculator.pro/en/markets/indices/">Indices</a></li><li><a href="https://tradingcalculator.pro/en/markets/futures/">Futures</a></li></ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/education">Learn</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
+  <div><a href="https://tradingcalculator.pro/">Home</a><a href="https://tradingcalculator.pro/en/learn/">Learn</a><a href="https://tradingcalculator.pro/en/tools/">Calculators</a><a href="https://tradingcalculator.pro/en/markets/">Markets</a><a href="https://tradingcalculator.pro/en/strategies/">Options strategies</a><a href="https://tradingcalculator.pro/en/patterns/">Chart Patterns</a><a href="https://tradingcalculator.pro/en/candles/">Candlestick Patterns</a><a href="https://tradingcalculator.pro/legal">Legal</a></div>
   <div class="disc">TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.</div>
 </div></footer>
 </body>
