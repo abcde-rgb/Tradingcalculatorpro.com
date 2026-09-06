@@ -21,15 +21,15 @@ comprobar si algo mejoró, ni de que una regresión rompiera nada.
 > esa es la skill. Si es «¿cuánto pesa, ha empeorado, y con qué lo comparo?»,
 > es ésta.
 
-## Lo medido, no lo estimado (2026-08-23)
+## Lo medido, no lo estimado (2026-09-06)
 
 | | |
 |---|---|
-| Build completo | **40 MB**, de los cuales **14 MB de JS** |
-| Páginas estáticas | **1581** `index.html` (las SEO) |
-| Fragmento JS mayor | 1,3 MB · el siguiente 1,1 MB · `main` 1 012 KB |
-| **JS que descarga la portada** | **1 281 KB** sin comprimir |
-| `/legal` | 1 419 KB · `/pricing` 1 039 KB · `/about` 1 020 KB · `/brokers` 1 014 KB |
+| Build completo | **67 MB**, de los cuales **16 MB de JS** |
+| Páginas estáticas | **3429** `index.html` (las SEO) |
+| Fragmento JS mayor | 1,5 MB · el siguiente 1,2 MB · `main` 719 KB |
+| **JS que descarga la portada** | **1 014 KB** sin comprimir |
+| `/legal` | 1 422 KB · `/pricing` 1 046 KB · `/about` 1 022 KB · `/brokers` 1 024 KB |
 
 Léelo así: **todas las pantallas públicas descargan aproximadamente lo mismo, ~1 MB**,
 y eso es el síntoma exacto de que **no hay code-splitting por ruta** — hay un solo
@@ -99,7 +99,7 @@ no responden a eso. Lo que sí responden es si la aplicación ha engordado desde
 Por orden de efecto, y todo ello está detallado en `reorganizar-frontend`:
 
 1. **`lazy()` por ruta en `App.js`.** Es el único cambio que puede bajar la
-   portada de 1 281 KB a una fracción, porque hoy arrastra pantallas que el
+   portada de 1 014 KB a una fracción, porque hoy arrastra pantallas que el
    visitante no abre. Empezar por `AdminPage` —la usa una persona y viaja a todo
    el mundo— y por `EducationPage`.
 2. **`AdminPage` fuera del bundle público**, por peso y porque no tiene por qué
