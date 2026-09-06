@@ -27,6 +27,11 @@ const LOCALE_META = {
   it: { og: 'it_IT', html: 'it', dir: 'ltr' },
 };
 
+// `LOCALE_META` sigue usándose para `og:locale`, `<html lang>` y la dirección
+// del texto. La lista de códigos suelta ya no: las alternativas `hreflang` por
+// idioma las emite `gen-seo-pages.js` en las páginas que de verdad tienen una
+// URL por idioma. Ver `syncHreflangAlternates`.
+
 /**
  * useSEO — per-page, fully i18n-aware SEO updater.
  *
@@ -59,8 +64,13 @@ export function useSEO({
 
     const fullTitle = localizedTitle ? `${localizedTitle} | ${BRAND}` : BRAND;
     const path = canonicalPath || (typeof window !== 'undefined' ? window.location.pathname : '/');
-    // El canonical es siempre la ruta desnuda (sin `?lang`): la SPA sirve UNA
-    // URL por ruta y traduce en cliente, así que `?lang=de` no es otra página.
+    // Canonical siempre a la ruta desnuda, SIN barra final y sin `?lang`.
+    //
+    // Las tres señales tienen que decir lo mismo, y la que manda es la que
+    // sirve GitHub Pages: `gen-seo-pages.js` escribe cada ruta de app en las
+    // DOS formas (`pricing.html` y `pricing/index.html`), así que `/pricing`
+    // responde 200 sin redirección. El HTML crudo de esa ruta declara este
+    // mismo canonical y el sitemap anuncia esta misma URL.
     const canonical = `${ORIGIN}${path}`;
 
     document.title = fullTitle;
@@ -87,28 +97,31 @@ export function useSEO({
 }
 
 /**
- * Mantiene el `x-default` apuntando a la RUTA ACTUAL, y no declara más
- * alternativas.
+ * Mantiene el juego de `hreflang` de la ruta actual.
  *
- * Aquí se emitían diez `hreflang` a `?lang=xx` sobre esta misma URL. Es
- * exactamente el patrón que `public/index.html` documenta y quitó de la
- * portada, reintroducido en cada una de las rutas de la SPA: el idioma se
- * traduce en CLIENTE, así que `/pricing?lang=de` devuelve byte por byte el
- * mismo HTML que `/pricing`. Peor todavía, este mismo hook pone el canonical de
- * esas URLs en la ruta desnuda (sin `?lang`), de modo que las dos señales se
- * contradecían: el hreflang decía «ésta es la versión alemana», el canonical
- * decía «ésta no es una página, la buena es la otra», y gana el canonical.
- * Resultado: cero idiomas indexados de más y rastreo gastado en diez URLs que
- * Google ya sabía que eran una.
+ * ⚠️ Aquí se emitían diez alternativas `?lang=xx` sobre la misma URL, y eso es
+ * EXACTAMENTE lo que `public/index.html` había quitado —con un comentario de
+ * quince líneas explicando por qué— el día que se arregló la portada. El
+ * arreglo duraba lo que tardaba React en montar: este hook borraba las
+ * alternativas estáticas del HTML y las repoblaba con las `?lang=`.
  *
- * `hreflang` sólo significa algo cuando hay una URL POR IDIOMA. Las que sí las
- * tienen —las 1.640 páginas estáticas de `gen-seo-pages.js`, con
- * `/de/learn/…`— emiten su propio juego completo y correcto. Mientras la SPA
- * sirva una sola URL por ruta, lo honesto es no declarar alternativas.
+ * El motivo por el que no valen sigue siendo el mismo: la SPA traduce en
+ * CLIENTE, así que `/pricing?lang=de` devuelve byte por byte el mismo HTML que
+ * `/pricing`. Google canonicaliza las diez a una sola, descarta las
+ * alternativas y encima se contradicen con el `canonical`, que apunta a la URL
+ * desnuda. El resultado neto no eran diez idiomas indexados: era presupuesto de
+ * rastreo gastado y dos señales peleándose.
+ *
+ * Las páginas que SÍ tienen una URL por idioma —las 1.680 que genera
+ * `gen-seo-pages.js`, bajo `/en/…`, `/ru/…`— emiten su propio juego correcto en
+ * el HTML, y este hook no llega a ellas: son HTML plano, sin React.
+ *
+ * Aquí, por tanto, sólo se declara `x-default` hacia la propia URL.
  */
 function syncHreflangAlternates(path) {
   const head = document.head;
-  head.querySelectorAll('link[rel="alternate"][hreflang]').forEach((n) => n.remove());
+  head.querySelectorAll('link[rel="alternate"][data-i18n-managed="true"]').forEach((n) => n.remove());
+  head.querySelectorAll('link[rel="alternate"][hreflang]:not([data-i18n-managed])').forEach((n) => n.remove());
 
   const xDefault = document.createElement('link');
   xDefault.setAttribute('rel', 'alternate');

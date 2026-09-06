@@ -10,6 +10,27 @@
 #
 # Si añades un bot, COPIA el bloque de Disallow. Un grupo con sólo `Crawl-delay`
 # es un grupo sin restricciones.
+#
+# ⚠️ SEGUNDA REGLA: dentro de un grupo gana la coincidencia MÁS LARGA, no la
+# primera ni la última — es lo que dicen la especificación y lo que hacen
+# Google, Bing y Yandex, y es como lee este fichero `check-seo.js`. Un
+# `Disallow: /options` se llevaría por delante las 660 fichas públicas de
+# `/options/strategies/…` que anuncia el sitemap, así que aquí se bloquea la
+# pantalla concreta y no la rama entera.
+#
+# ⚠️ TERCERA, y la que más se equivoca: una ruta PREMIUM con página propia NO
+# se bloquea aquí. `/education`, `/options` y `/options/strategies` reciben un
+# 200 con `noindex, follow` (ver `APP` en `gen-seo-pages.js`), y prohibirlas
+# además en este fichero sería contraproducente: un rastreador que no puede
+# leerlas nunca ve su `noindex`, así que puede indexar la URL a secas por los
+# miles de enlaces internos que la citan. Lo mismo vale para `/login`,
+# `/register` y `/forgot-password`. Aquí sólo van las rutas que NO tienen
+# fichero: nadie las va a leer, así que su `noindex` no existe.
+#
+# `/plan`, `/news`, `/affiliate` y `/options/calculator` son `ProtectedRoute`
+# en `src/App.js` y no tienen página estática: mandan a /login a quien no ha
+# entrado. Su contenido público vive en `/learn/`, `/tools/`, `/markets/`,
+# `/strategies/`, `/patterns/` y `/candles/`, sin muro.
 
 # ── Todos los rastreadores ────────────────────────────────────────────────
 User-agent: *
@@ -26,6 +47,10 @@ Disallow: /verify-email
 Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
+Disallow: /options/calculator
+Disallow: /plan
+Disallow: /news
+Disallow: /affiliate
 
 # ── Buscadores con IA: los que CITAN ──────────────────────────────────────
 # Estos rastrean para responder una pregunta que un usuario acaba de hacer, y
@@ -56,6 +81,10 @@ Disallow: /verify-email
 Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
+Disallow: /options/calculator
+Disallow: /plan
+Disallow: /news
+Disallow: /affiliate
 
 # ── Rastreadores de ENTRENAMIENTO ─────────────────────────────────────────
 # GPTBot, CCBot y compañía no devuelven tráfico: alimentan pesos de modelo. Se
@@ -81,6 +110,10 @@ Disallow: /verify-email
 Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
+Disallow: /options/calculator
+Disallow: /plan
+Disallow: /news
+Disallow: /affiliate
 
 # ── SEO comerciales: se admiten, pero con freno y sin puertas abiertas ─────
 User-agent: AhrefsBot
@@ -97,6 +130,10 @@ Disallow: /verify-email
 Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
+Disallow: /options/calculator
+Disallow: /plan
+Disallow: /news
+Disallow: /affiliate
 
 User-agent: SemrushBot
 Crawl-delay: 5
@@ -112,6 +149,10 @@ Disallow: /verify-email
 Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
+Disallow: /options/calculator
+Disallow: /plan
+Disallow: /news
+Disallow: /affiliate
 
 User-agent: MJ12bot
 Crawl-delay: 10
@@ -127,6 +168,10 @@ Disallow: /verify-email
 Disallow: /magic
 Disallow: /payment/success
 Disallow: /payment/cancel
+Disallow: /options/calculator
+Disallow: /plan
+Disallow: /news
+Disallow: /affiliate
 
 # ── Fuera ─────────────────────────────────────────────────────────────────
 # Bytespider ignora robots con frecuencia documentada; queda escrito igualmente

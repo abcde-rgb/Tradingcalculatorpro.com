@@ -351,13 +351,16 @@ p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8'
 p.write_text(t.replace('42 patrones chartistas y 30 patrones',
                        '42 patrones chartistas y 27 patrones', 1), encoding='utf-8')\""
 
+  # ⚠️ El cebo apuntaba a `<li><a href="/education">Academia de trading</a></li>`,
+  # línea que dejó de existir cuando el <noscript> pasó a enlazar los hubs
+  # públicos (`/learn/`, `/tools/`…) en vez de las rutas con muro. El `replace`
+  # no encontraba su texto, escribía el fichero igual y salía con 0: el arnés
+  # cantaba «SOBREVIVE» sobre una comprobación perfecta. Es literalmente
+  # BUG-078 otra vez, así que ahora el `grep -q` hace fallar el sabotaje —y
+  # decirlo— si el ancla vuelve a moverse.
   probar "el <noscript> del shell enlazando una ruta que robots.txt prohíbe" \
     "(cd frontend && node scripts/engine-check.js)" \
-    "python -c \"
-import pathlib
-p = pathlib.Path('frontend/public/index.html'); t = p.read_text(encoding='utf-8')
-p.write_text(t.replace('<li><a href=\\\"/education\\\">Academia de trading</a></li>',
-                       '<li><a href=\\\"/dashboard\\\">Dashboard</a></li>', 1), encoding='utf-8')\""
+    "grep -q '<li><a href=\"/learn/\">' frontend/public/index.html && sed -i '0,\|<li><a href=\"/learn/\">[^<]*</a></li>|s||<li><a href=\"/dashboard\">Dashboard</a></li>|' frontend/public/index.html"
 
   probar "el <noscript> del shell desapareciendo del todo" \
     "(cd frontend && node scripts/engine-check.js)" \
@@ -990,10 +993,19 @@ else
 fi
 
 # ── Contraste del texto en los dos temas ────────────────────────────────────
-# Levanta su propio servidor, así que basta con el build. Se sabotea el token
-# que causó el fallo real: el verde del tema claro a `35%`, que dejaba 48
-# textos por debajo de la WCAG. Un umbral escrito y nunca roto no prueba nada.
-if [ -d frontend/build ]; then
+# Levanta su propio servidor, así que basta con el build… y con un navegador:
+# `contraste.js` hace `require('../lib/playwright-core')`. Faltaba esa segunda
+# condición —la de al lado sí la tiene— y sin el módulo el caso no se saltaba:
+# moría con MODULE_NOT_FOUND y el arnés lo contaba como «no pasa ni ANTES de
+# sabotear: hay algo roto de verdad». En cualquier sandbox sin playwright-core
+# —o sea, en el entorno normal de trabajo— el informe acusaba de un fallo del
+# producto lo que era una dependencia ausente. Un arnés que grita sin motivo se
+# acaba ignorando, que es justo lo que este fichero existe para evitar.
+#
+# Se sabotea el token que causó el fallo real: el verde del tema claro a `35%`,
+# que dejaba 48 textos por debajo de la WCAG. Un umbral escrito y nunca roto no
+# prueba nada.
+if [ -d frontend/build ] && [ -d tests/e2e/lib/playwright-core ]; then
   titulo "Contraste WCAG (contraste.js)"
   RECOMPILA_CSS="(cd frontend && REACT_APP_BACKEND_URL=http://127.0.0.1:8080 npx craco build >/dev/null 2>&1 && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
   probar "el verde del tema claro vuelve a un tono que no contrasta" \
@@ -1013,7 +1025,7 @@ p.write_text(t[:i] + trozo + t[j:])\" \
      && $RECOMPILA_CSS" \
     "git checkout -- frontend/src/index.css && $RECOMPILA_CSS"
 else
-  echo "  ⏭️  Contraste: sin build, no se prueba"
+  echo "  ⏭️  Contraste WCAG: sin build o sin playwright-core, no se prueba"
 fi
 
 # ── La Academia: lo que la navegación ofrece tiene que estar en el índice ────
@@ -1584,15 +1596,56 @@ probar_inverso "un .venv o node_modules no cambia el recuento" \
 if [ -d frontend/build ] && [ -f frontend/build/sitemap.xml ]; then
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"
 
-  SEO_PAG=$(find frontend/build -path '*/learn/*' -name index.html | head -1)
-  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp)
-  TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL")
+  # La página de muestra tiene que ser una página DE VERDAD, y en un idioma que
+  # no sea el español ni el árabe. Los tres requisitos han costado un susto:
+  #
+  #  · **Ni un puente.** Desde que los slugs se traducen, cada URL vieja queda
+  #    publicada como redirección (`canonical` + `meta refresh`) y también casa
+  #    con `*/learn/*`. `find … | head -1` cogió una, y como a los puentes no se
+  #    les aplica el examen normal —no son páginas—, SEIS sabotajes salieron
+  #    «SOBREVIVE» sobre comprobaciones que funcionaban perfectamente. Es
+  #    exactamente el modo de fallo que BUG-078 dejó documentado: el dato de
+  #    prueba desfasado, no la comprobación. `grep -L` los descarta.
+  #  · **Español no**, porque el sabotaje de `<html lang>` lo pone a "es": sobre
+  #    una página española no cambiaría nada.
+  #  · **Árabe no**, porque su etiqueta lleva `dir="rtl"` y el `sed` del mismo
+  #    sabotaje no casaría.
+  #
+  # Se fija la carpeta (`de/learn`) y no el fichero: los slugs salen del título
+  # traducido, así que una ruta escrita a mano se pudriría a la primera revisión
+  # de la traducción alemana.
+  SEO_PAG=$(find frontend/build/de/learn -name index.html -print0 2>/dev/null \
+    | xargs -0 grep -L 'http-equiv="refresh"' 2>/dev/null | sort | head -1)
+  if [ -z "$SEO_PAG" ]; then
+    echo "  ⚠️  no hay ninguna página real bajo build/de/learn/: recompila con 'cd frontend && npm run build'"
+    FALLOS=$((FALLOS + 1))
+  fi
+
+  # Un puente cualquiera (los que dejó la traducción de slugs) y el hub ruso.
+  # Por la misma razón que arriba: se buscan, no se escriben.
+  SEO_PUENTE=$(find frontend/build/ru/learn -name index.html -print0 2>/dev/null \
+    | xargs -0 grep -l 'http-equiv="refresh"' 2>/dev/null | sort | head -1)
+  SEO_HUB=frontend/build/ru/learn/index.html
+  # ⚠️ Se usa como `$SEO_REGEN`, SIN `eval` delante. La cadena de restauración
+  # se construye con comillas dobles en la llamada, así que la variable ya está
+  # expandida cuando `probar()` la evalúa: un `eval` extra dejaría
+  # `eval (cd frontend && …)`, que es un error de sintaxis de bash. La
+  # regeneración no corría, el sabotaje del 404 dejaba residuo y los seis casos
+  # siguientes fallaban con «no pasa ni ANTES de sabotear». Lo cazó la
+  # comprobación post-restauración de `probar()`.
+  SEO_REGEN="(cd frontend && node scripts/gen-seo-pages.js >/dev/null 2>&1)"
+  SEO_BAK=$(mktemp); SEO_MAP=$(mktemp); SEO_SHELL=$(mktemp); SEO_LMMETA=$(mktemp)
+  TEMPORALES+=("$SEO_BAK" "$SEO_MAP" "$SEO_SHELL" "$SEO_LMMETA")
   cp "$SEO_PAG" "$SEO_BAK"; cp frontend/build/sitemap.xml "$SEO_MAP"
   # El shell también, que ahora hay sabotajes que lo tocan y `build/` está en
   # .gitignore: sin esta copia el sabotaje se quedaría puesto y los casos
   # siguientes medirían una portada ya rota.
   cp frontend/build/index.html "$SEO_SHELL"
-  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml; cp $SEO_SHELL frontend/build/index.html"
+  # El informe de fechas de `gen-seo-pages.js` (BUG-089): el sabotaje del
+  # lastmod uniforme lo corrompe directamente, así que también hace falta
+  # copia y restauración propias.
+  cp frontend/build/.lastmod-meta.json "$SEO_LMMETA"
+  SEO_REST="cp $SEO_BAK $SEO_PAG; cp $SEO_MAP frontend/build/sitemap.xml; cp $SEO_SHELL frontend/build/index.html; cp $SEO_LMMETA frontend/build/.lastmod-meta.json"
 
   # El canonical cruzado es el fallo más caro y el menos visible: la página se
   # ve perfecta y le está diciendo a Google que indexe otra.
@@ -1725,19 +1778,201 @@ p = pathlib.Path('frontend/build/index.html'); t = p.read_text(encoding='utf-8')
 p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), encoding='utf-8')\"" \
     "$SEO_REST"
 
-  # El otro lado: las rutas de aplicación (`/options/strategies`, `/pricing`…)
-  # están en el sitemap a propósito y las sirve la SPA sin página estática. Si
-  # el verificador las denunciara, el arreglo evidente —relajar la regla de
-  # «URL anunciada que no existe»— dejaría de detectar las que sí faltan.
+  # ── Lo que hacía que el sitio no se indexara, y ningún verificador miraba ──
+
+  # EL fallo. GitHub Pages sólo sirve `index.html` en la raíz: cualquier ruta
+  # sin fichero propio recibe `404.html` **con estado 404**, y el workflow copia
+  # ahí el shell del SPA. La persona ve la web perfecta; el rastreador ve un
+  # 404. `/pricing`, `/about`, `/contact` y `/legal` llevaban así desde siempre,
+  # anunciadas en el sitemap. Borrar el fichero reproduce exactamente ese
+  # estado.
+  # Una ruta con `noindex` en su componente, metida en `APP` como indexable.
+  # Pasó: entraron
+  # `/brokers` y `/backtesting`, que declaran `noindex: true` con el motivo
+  # escrito al lado, y quedó una contradicción de tres bandas —el sitemap
+  # pidiendo que se indexaran, el HTML estático diciendo `index, follow` y
+  # `useSEO` poniendo `noindex` al montar React—. Lo comprueba el propio
+  # generador leyendo App.js, así que se sabotea ahí.
+  # ⚠️ Esto estaba escrito como un `python3 -c "..."` con backticks dentro de
+  # una cadena de bash entrecomillada, y el par `\\\`` no significa lo que
+  # parece: dentro de comillas dobles bash sólo reconoce el escape de
+  # backslash delante de $, `, ", \ o salto de línea — `\\` se colapsa a una
+  # barra suelta y la comilla invertida que le sigue queda SIN escapar, así que
+  # abre una sustitución de comandos a medias. El sabotaje nunca tocaba el
+  # fichero y moría con `SyntaxError`. Es la misma familia de fallo que
+  # BUG-078: no se ve mirando el resultado —«SOBREVIVE» y «no se aplicó» se
+  # leen distinto, y aquí sí se distinguió—, pero el sabotaje seguía sin
+  # probar nada. `sed -i … /i\` con un ancla sin backticks no tiene ese punto
+  # de fallo.
+  # La lista se llama `APP` desde que se fusionaron las dos versiones del
+  # arreglo del 404 (la de esta rama y la que entró antes en main): cinco
+  # columnas, y la última dice si la ruta es indexable. El sabotaje mete
+  # `/brokers` como indexable, que es exactamente lo que pasó.
   #
-  # ⚠️ El dominio de este cebo tiene que ser el de producción. Se escribió con
-  # `abcde-rgb.github.io` y tras el cutover del 2026-08-28 dejó de ser una ruta
-  # de app para ser un dominio ajeno: el verificador la marcaba —con razón— y
-  # el arnés lo cantó como falso positivo. El dato de prueba se había quedado
-  # desfasado, no la comprobación.
-  probar_inverso "una ruta de app en el sitemap sin página propia no es un fallo" \
+  # El ancla es `seoPricingTitle` —única en el fichero— y no la ruta: un
+  # patrón con `/` obliga a escapar la barra dentro de una cadena de bash ya
+  # entrecomillada, y ese exceso de capas es de donde salió el sabotaje que no
+  # se aplicaba nunca.
+  #
+  # La restauración borra además los ficheros que el generador llegó a escribir
+  # para `/brokers` antes de fallar: `process.exitCode = 1` no detiene el
+  # script, así que la regeneración sola no los quita y el siguiente caso
+  # encontraría una página que el sitemap no anuncia.
+  probar "una ruta con noindex metida en APP (como pasó con /brokers)" \
+    "(cd frontend && node scripts/gen-seo-pages.js >/dev/null)" \
+    "sed -i \"/seoPricingTitle/i\\\\  ['/brokers', '0.6', 'seoAboutTitle', 'seoAboutDesc', true ],\" frontend/scripts/gen-seo-pages.js" \
+    "git checkout -- frontend/scripts/gen-seo-pages.js; rm -rf frontend/build/brokers frontend/build/brokers.html; $SEO_REST; $SEO_REGEN"
+
+  # Se borran LAS DOS formas. Pages resuelve `/pricing` con `pricing.html` y
+  # `/pricing/` con `pricing/index.html`, y el generador escribe ambas: quitar
+  # sólo el directorio deja la ruta servida igual, así que el sabotaje no
+  # reproducía el 404 y el caso pasaba por bueno sin probar nada.
+  probar "una ruta pública del SPA sin fichero propio (vuelve a ser un 404)" \
     "(cd frontend && node scripts/check-seo.js --breve)" \
-    "sed -i 's|</urlset>|<url><loc>https://tradingcalculator.pro/options/strategies</loc></url></urlset>|' frontend/build/sitemap.xml" \
+    "rm -rf frontend/build/pricing frontend/build/pricing.html" \
+    "$SEO_REST; $SEO_REGEN"
+
+  # El icono de los resultados de búsqueda. Ninguna de las 1.640 páginas lo
+  # declaraba, y por eso el sitio salía en Yandex con el globo genérico.
+  # El icono declarado con URL ABSOLUTA. Parece inofensivo y no lo es: estas
+  # páginas llevan `default-src 'none'` con `img-src 'self'`, así que en cuanto
+  # no se sirven desde ese dominio exacto el navegador bloquea los cuatro
+  # iconos. Pasó — `csp.js` cantó 31 violaciones sirviendo el build desde
+  # 127.0.0.1— y en producción habría funcionado por casualidad, sólo mientras
+  # el dominio coincidiera. Se comprueba SIN navegador porque `csp.js` necesita
+  # CI y un Chromium: lo que sólo caza la sonda cara es lo que vuelve.
+  probar "un icono con URL absoluta en una página de política dura" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'rel=\"icon\" href=\"/favicon.ico\"' $SEO_PAG && sed -i 's|rel=\"icon\" href=\"/favicon.ico\"|rel=\"icon\" href=\"https://tradingcalculator.pro/favicon.ico\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # El otro lado: los shells de las rutas del SPA llevan OTRA CSP, que sí
+  # permite Google Fonts y GTM a propósito. Si la regla de arriba se aplicara a
+  # todas las páginas serían 18 falsos positivos por build, y un verificador que
+  # grita sin motivo se acaba apagando.
+  probar_inverso "los recursos externos del shell del SPA no son un fallo" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'fonts.googleapis.com' frontend/build/about/index.html" \
+    "$SEO_REST"
+
+  probar "una página sin favicon declarado" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i '/rel=\"icon\"/d' $SEO_PAG" \
+    "$SEO_REST"
+
+  # La descripción cortada a media palabra. El buscador la descarta y se
+  # inventa el resumen con el texto de la página — en la rusa de
+  # `operar-noticias` eligió el descargo legal del pie, y eso es lo que Yandex
+  # publicaba como descripción del tema.
+  # El cebo es un LITERAL de 158 caracteres que acaba a media palabra
+  # («…Handelsalltagskennz»), que es exactamente lo que producía el
+  # `.slice(0, 158)` del generador. Literal y no calculado a propósito: un cebo
+  # que se construye con python multilínea dentro de una cadena de bash es la
+  # fragilidad que costó BUG-078, y un cebo que no se aplica es indistinguible
+  # de un verificador que no verifica.
+  probar "una description cortada a media palabra" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'name=\"description\"' $SEO_PAG && sed -i 's|<meta name=\"description\" content=\"[^\"]*\"|<meta name=\"description\" content=\"Algorithmischer Handel bedeutet, Regeln in Code zu fassen: Ein Programm prueft den Markt und fuehrt aus, ohne Muedigkeit und ohne Zweifel, Handelsalltagskennz\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "un og:locale sin territorio (Open Graph lo descarta)" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|property=\"og:locale\" content=\"\\([a-z][a-z]\\)_[A-Z][A-Z]\"|property=\"og:locale\" content=\"\\1\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # Las páginas puente de los slugs traducidos. Un puente cuyo canonical y
+  # cuyo refresh no coinciden manda dos señales distintas y no transfiere nada.
+  # El refresh de un puente va RELATIVO. Absoluto, saca al visitante del origen
+  # en el que está: la sonda de CSP siguió uno hasta el sitio de PRODUCCIÓN y
+  # midió allí la política equivocada, y desde la URL de proyecto de GitHub
+  # Pages —la red de seguridad si cae el DNS— habría hecho lo mismo.
+  probar "un puente con el refresh absoluto" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'refresh\" content=\"0; url=/' $SEO_PUENTE && sed -i 's|refresh\" content=\"0; url=/|refresh\" content=\"0; url=https://tradingcalculator.pro/|' $SEO_PUENTE" \
+    "$SEO_REST; $SEO_REGEN"
+
+  probar "una página puente con canonical y refresh discordantes" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<link rel=\"canonical\" href=\"|<link rel=\"canonical\" href=\"https://tradingcalculator.pro/otra-cosa/#|' $SEO_PUENTE" \
+    "$SEO_REST; $SEO_REGEN"
+
+  # La huerfandad, que es lo que tenía a las 1.640 compitiendo desde cero:
+  # alcanzables sólo por el sitemap, sin un enlace desde ninguna página con
+  # autoridad. Los hubs son el esqueleto; si uno deja de citar a una página,
+  # esa página vuelve a estar suelta.
+  # Un enlace a una ruta PÚBLICA que no existe. Es el fallo que ya se pagó una
+  # vez —`/learn/gestion-del-riesgo/` en el <noscript>, cuando el módulo se
+  # llama `gestion-del-capital`—: un enlace plausible y muerto no lo caza
+  # ninguna lectura por encima.
+  probar "un enlace a una ruta pública que no existe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'href=\"https://tradingcalculator.pro/pricing\"' $SEO_PAG && sed -i '0,\|href=\"https://tradingcalculator.pro/pricing\"|s||href=\"https://tradingcalculator.pro/precios-que-no-existen\"|' $SEO_PAG" \
+    "$SEO_REST"
+
+  # Y el otro lado, que es lo que hace útil la regla: las 1.640 páginas rematan
+  # con un CTA hacia la aplicación de pago (`/education`, `/dashboard`,
+  # `/options/calculator`), que NO tienen fichero propio a propósito y están en
+  # `Disallow`. Si eso saltara serían 1.640 falsos positivos por build y la
+  # comprobación duraría lo que tarda alguien en apagarla.
+  probar_inverso "un CTA a una ruta con muro y prohibida en robots no es un fallo" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'tradingcalculator.pro/education?topic=' $SEO_PAG" \
+    "$SEO_REST"
+
+  probar "una página que ningún hub enlaza (huérfana otra vez)" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/ru/learn/ninguna/\"|g' $SEO_HUB" \
+    "$SEO_REST; $SEO_REGEN"
+
+  # `patterns`/`candles` son hubs tan de verdad como `learn`: el regex que
+  # decide qué carpeta cuenta como hub (`check-seo.js`) llevaba una lista de
+  # cuatro nombres a mano y no incluía los dos nuevos — con eso puesto, las
+  # 770 fichas de patrones eran huérfanas SIEMPRE, aunque su propio hub las
+  # enlazara de verdad. Sabotea el hub de patrones, no el de aprendizaje, para
+  # que este caso no se solape con el de arriba.
+  probar "una página de patrones que su propio hub no enlaza" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "sed -i 's|<li><a href=\"[^\"]*\"|<li><a href=\"https://tradingcalculator.pro/patterns/ninguna/\"|g' frontend/build/patterns/index.html" \
+    "$SEO_REST; $SEO_REGEN"
+
+  # El fallo que `lastmod` real sustituye: la fecha del build repetida en
+  # todas las URLs. La guarda ya NO cuenta fechas distintas en el sitemap —un
+  # día con cambios anchos de verdad (los diez `<lang>.js` tocados a la vez)
+  # produce esa misma foto con fechas reales, y sería un falso positivo (visto
+  # en el propio build de este cambio, BUG-089) — sino que lee cuántas
+  # CONSULTAS a git cayeron al build-date en `.lastmod-meta.json`, que sólo
+  # escribe el generador. El sabotaje tiene que corromper ESE fichero.
+  probar "las consultas de fecha caen todas al build-date" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "printf '%s' '{\"consultas\":42,\"fallos\":42}' > frontend/build/.lastmod-meta.json" \
+    "$SEO_REST"
+
+  # El sitemap no puede anunciar una URL que robots prohíbe. `robots.txt` ya no
+  # lleva `Disallow: /options` —las rutas premium con página propia se resuelven
+  # con `noindex`, no bloqueándolas—, así que el sabotaje lo AÑADE: con él, las
+  # 660 fichas de `/options/strategies/…` que el sitemap anuncia quedan
+  # prohibidas y el verificador tiene que cantarlo.
+  probar "el sitemap anunciando 660 fichas que un Disallow nuevo prohíbe" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "printf '\\nUser-agent: *\\nDisallow: /options\\n' >> frontend/build/robots.txt" \
+    "cp frontend/public/robots.txt frontend/build/robots.txt; $SEO_REST"
+
+  # Y la otra mitad, que es la que de verdad prueba el parser: con el `Allow`
+  # más largo delante, esas mismas 660 SÍ están permitidas. Un lector que
+  # ignorara los `Allow` —como hacía éste— denunciaría 660 páginas perfectas, y
+  # el arreglo evidente sería apagar la comprobación entera.
+  probar_inverso "un Allow más largo que el Disallow que lo cubre" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "printf '\\nUser-agent: *\\nDisallow: /options\\nAllow: /options/strategies/\\n' >> frontend/build/robots.txt" \
+    "cp frontend/public/robots.txt frontend/build/robots.txt; $SEO_REST"
+
+  # El otro lado: una página puente NO va en el sitemap, y eso no es un fallo.
+  # Anunciar una redirección le pide a Google que indexe una redirección. Si el
+  # verificador lo denunciara, el arreglo evidente —meter los puentes en el
+  # sitemap— sería peor que el problema.
+  probar_inverso "una página generada fuera del sitemap no es un fallo si es un puente" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "test -f frontend/build/ru/learn/operar-noticias/index.html && grep -q 'http-equiv=\"refresh\"' frontend/build/ru/learn/operar-noticias/index.html" \
     "$SEO_REST"
 else
   titulo "SEO de las páginas prerenderizadas (check-seo.js)"

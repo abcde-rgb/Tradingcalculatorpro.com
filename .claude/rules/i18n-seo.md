@@ -28,15 +28,68 @@ hay nada que escribir a mano.
 Los nombres nuevos van **en literal** (los términos del sector no se traducen) y `tr()`
 resuelve literal o clave i18n indistintamente.
 
-## ⚠️ El JSON-LD anuncia `price: "0"` con muro de pago duro (G-28)
+## ⚠️ GitHub Pages devuelve 404 en toda ruta sin fichero físico
 
-`gen-seo-pages.js` emite `offers: { price:'0', priceCurrency:'EUR' }` en las páginas de
-calculadora, y sus títulos dicen «Gratis» / «Free». Pero desde el 2026-08-02 **todo el
-contenido está tras el muro de pago**, y `public/index.html` declara ofertas de
-17/45/200 €.
+**La regla más cara de este repositorio, y la más invisible.** Pages sólo sirve
+`index.html` en la RAÍZ. Cualquier otra ruta que no tenga su propio fichero recibe
+`404.html` — **con estado HTTP 404**. El workflow copia ahí el shell del SPA, así que la
+persona ve la web perfecta y el rastreador ve un 404 y no indexa. Siete rutas llevaban
+así desde siempre, anunciadas en el sitemap (BUG-081).
 
-Son dos declaraciones contradictorias del mismo producto para Google, y un destino que no
-cumple lo que promete el título. Si tocas el generador, arréglalo.
+Por eso `gen-seo-pages.js` escribe el shell en cada ruta de aplicación (la tabla `APP`),
+y en **las dos formas** que Pages sabe resolver: `pricing.html` sirve `/pricing` y
+`pricing/index.html` sirve `/pricing/`, así que ninguna de las dos depende de una
+redirección. **Si añades una ruta a `src/App.js` y quieres que responda 200, añádela
+también ahí.** Si no, será un 404 — para Google y para cualquiera que comparta el enlace.
+
+La quinta columna de `APP` dice si la ruta es **indexable**. Las que no lo son reciben
+`noindex, follow` en el HTML crudo y se quedan fuera del sitemap; las que sí, entran con
+su prioridad. Los títulos y descripciones salen de las **mismas claves i18n** que usa
+`useSEO`, para que el HTML crudo y el renderizado no puedan divergir.
+
+Y al revés: **nunca escribas un fichero estático sobre una ruta que sirve el SPA**. Le
+robarías la pantalla a quien recargue esa URL. Es la razón de que el hub de estrategias
+viva en `/strategies/` y no en `/options/strategies/`, que es `OptionsStrategiesIndexPage`.
+
+## Lo que tiene muro NO va al sitemap — pero tampoco a `robots.txt`
+
+`/education`, `/options`, `/options/strategies`, `/dashboard`, `/performance` y `/plan`
+son `ProtectedRoute` en `src/App.js`: mandan a `/login` a quien no ha entrado. Anunciarlas
+en el sitemap sólo consigue que Google indexe una pantalla de acceso, así que fuera; su
+contenido público vive en las páginas estáticas, que no tienen muro.
+
+⚠️ **Y la reacción natural —bloquearlas en `robots.txt`— es la equivocada cuando la ruta
+SÍ tiene fichero.** Un rastreador que no puede leer la página nunca ve su `noindex`, así
+que puede indexar la URL a secas por los enlaces que la citan — y a `/education` la citan
+miles de páginas de academia. Por eso las tres primeras responden 200 con
+`noindex, follow` (están en `APP` como no indexables) y NO aparecen en `robots.txt`. Ahí
+sólo va lo que no tiene fichero y nadie va a leer: `/options/calculator`, `/plan`,
+`/news`, `/affiliate`, `/dashboard`, `/performance`…
+
+⚠️ `robots.txt` resuelve por **coincidencia más larga**, no por orden, y `check-seo.js` lo
+lee así. Es lo que permitiría un `Allow: /options/strategies/` bajo un `Disallow:
+/options` — hoy no hace falta ninguno de los dos, pero si añades un `Disallow` sobre una
+rama que contiene páginas del sitemap, el `Allow` más largo es lo que las salva.
+
+## Hubs, slugs y páginas puente
+
+- **Los cuatro hubs** (`/learn/`, `/tools/`, `/markets/`, `/strategies/`, y sus
+  `/<idioma>/…`) son el esqueleto: sin ellos las 1.680 páginas son huérfanas, alcanzables
+  sólo por el sitemap —que descubre, pero no reparte autoridad—. `check-seo.js` falla si
+  una página se queda sin hub que la enlace.
+- **El slug sale del título traducido**, no del español. Cirílico transliterado; zh/ja/ar
+  caen al inglés. **`es` no se deriva nunca**: es el único idioma con indexación
+  consolidada y moverlo sería tirarla.
+- **Al cambiar un slug se publica una página puente** en la URL vieja (`canonical` +
+  `meta refresh`). Pages no sirve cabeceras, así que un 301 de verdad es imposible. Los
+  puentes **no van al sitemap** y no pueden pisar una página real: el generador aborta si
+  chocan.
+
+## La description se recorta con `recortar()`, no con `slice()`
+
+Un `.slice(0, 158)` parte la última palabra, y entonces el buscador **descarta la
+descripción** y se inventa el resumen con el texto de la página. Pasó: Yandex publicaba el
+descargo legal del pie como si fuera la descripción del tema (BUG-084).
 
 ## Nada de dominios a mano
 

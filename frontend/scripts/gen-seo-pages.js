@@ -17,12 +17,67 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
 const DOMAIN = (process.env.SITE_ORIGIN || DEFAULT_ORIGIN).replace(/\/+$/, '');
 const BUILD = path.join(__dirname, '..', 'build');
 const I18N_DIR = path.join(__dirname, '..', 'src', 'lib', 'i18n');
 const OG_IMAGE = `${DOMAIN}/og-image.png`;
+// Último recurso, cuando no hay git o el fichero es nuevo y sin historial
+// todavía: la fecha de HOY. Es exactamente lo que había antes en TODAS las
+// páginas — la diferencia es que ahora sólo se usa cuando de verdad no hay
+// nada mejor que mirar, no siempre.
+const LASTMOD = new Date().toISOString().slice(0, 10);
+
+// ─── lastmod real, no la fecha del build ───────────────────────────────────
+//
+// Las 1.685 URLs llevaban la MISMA fecha porque `LASTMOD` se calculaba una vez
+// y se estampaba en todo: cada despliegue afirmaba que las 1.685 páginas
+// habían cambiado, aunque la mayoría no lo hicieran. Un buscador que compara
+// esa afirmación con el contenido real deja de fiarse del campo — y entonces
+// tampoco avisa cuando una página SÍ cambia.
+//
+// La fecha real es la del último commit que tocó el fichero fuente del
+// contenido de esa página — no la del código que la genera, la del texto que
+// pinta. `git log -1` sobre varios ficheros a la vez da la fecha del MÁS
+// reciente de todos, que es justo la semántica que hace falta cuando el
+// contenido de una página sale de más de un sitio (el cuerpo en un fichero,
+// el nombre traducido en otro).
+//
+// Memoizado por la combinación exacta de rutas: con 10 idiomas × 4 tipos de
+// página esto son ~25 invocaciones de `git log` en todo el build, no 1.685.
+const _fechasGit = new Map();
+let _fallosFecha = 0;
+function fechaReal(...rutas) {
+  const clave = rutas.join('|');
+  if (_fechasGit.has(clave)) return _fechasGit.get(clave);
+  let fecha = null;
+  try {
+    // `process.cwd()` es `frontend/` — así se invoca siempre este script (npm
+    // postbuild), y las rutas de abajo son relativas a esa raíz.
+    // UN SOLO `--`: un segundo `--` no es "otro separador", es un pathspec
+    // literal que no casa nada, y git lo tolera en silencio — deja de filtrar
+    // por ruta y devuelve el último commit del repo entero. Con más de una
+    // ruta (tema = `<lang>.js` + `<lang>.edu.js`, estrategia = `mockData.js` +
+    // `<lang>.js`…) eso convertía CADA fecha "real" en la fecha de commit más
+    // reciente de todo el repositorio: el mismo lastmod-uniforme que este
+    // fichero existe para evitar, sólo que agazapado detrás de fechas que sí
+    // cambiaban de un build a otro y por eso no saltaba a la vista.
+    const args = rutas.map((r) => JSON.stringify(r)).join(' ');
+    const salida = execSync(`git log -1 --format=%cd --date=short -- ${args}`, {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (salida) fecha = salida;
+  } catch {
+    // Sin git, sin repositorio, o un clon superficial sin el commit que tocó
+    // este fichero. Cae al build-date — igual que antes de este cambio — en
+    // vez de romper el build por una fecha que no es crítica.
+  }
+  if (!fecha) { fecha = LASTMOD; _fallosFecha += 1; }
+  _fechasGit.set(clave, fecha);
+  return fecha;
+}
 
 // idioma → prefijo de ruta ('' para es) y código hreflang
 const LANGS = [
@@ -31,34 +86,23 @@ const LANGS = [
   ['pt', '/pt', 'pt'], ['it', '/it', 'it'],
 ];
 const RTL = new Set(['ar']);
+const PREF = new Map(LANGS.map(([l, p]) => [l, p ? `${p.slice(1)}/` : '']));
 
-// `og:locale` NO admite el código corto de idioma: la especificación pide
-// `language_TERRITORY` (ISO 639-1 + «_» + ISO 3166-1). Las 1.640 páginas salían
-// con `es`, `zh`, `ja`… —valor inválido que Facebook, LinkedIn y WhatsApp
-// descartan, así que la tarjeta compartida caía al idioma por defecto—.
-// `public/index.html` y `useSEO.js` ya lo hacían bien; sólo el generador no.
-const OG_LOCALE = {
-  es:'es_ES', en:'en_US', de:'de_DE', fr:'fr_FR', ru:'ru_RU',
-  zh:'zh_CN', ja:'ja_JP', ar:'ar_SA', pt:'pt_PT', it:'it_IT',
-};
-const ogLocale = (lang) => OG_LOCALE[lang] || OG_LOCALE.es;
-
-// Recorta a `max` sin partir la última palabra.
+// ─── Hubs de sección ──────────────────────────────────────────────
+// Las 1.640 páginas eran HUÉRFANAS: ni una sola salía enlazada desde la
+// aplicación, y entre ellas sólo se citaban seis «relacionadas». Un buscador
+// las conocía únicamente por el sitemap, que descubre pero no reparte
+// autoridad. Estos índices por idioma y sección son el esqueleto que faltaba:
+// cada página enlaza a los cuatro, y cada hub enlaza a todas las suyas.
 //
-// Era `String(x).slice(158)` a pelo, y cortaba a mitad de palabra en 643 de las
-// 1.640 páginas: la `meta description` acababa en «…the buyer pays a p». Google
-// no penaliza por ello, pero reescribe el fragmento cuando lo ve truncado, así
-// que el texto que se escribió con cuidado no se usa. Se corta en el último
-// espacio y se cierra con puntos suspensivos.
-const recorta = (texto, max = 158) => {
-  const t = String(texto == null ? '' : texto).trim();
-  if (t.length <= max) return t;
-  const duro = t.slice(0, max - 1);
-  const corte = duro.lastIndexOf(' ');
-  // Sin espacios (zh/ja no los usan) se corta donde toque: partir un ideograma
-  // no existe, cada carácter es una palabra.
-  return `${(corte > max * 0.6 ? duro.slice(0, corte) : duro).replace(/[\s,;:·—-]+$/, '')}…`;
-};
+// ⚠️ Ninguna de estas rutas puede pisar una del SPA (`src/App.js`). `/learn`,
+// `/tools`, `/markets` y `/strategies` están libres. `/options/strategies` NO
+// lo está —es `OptionsStrategiesIndexPage`, premium—, y por eso el hub de
+// estrategias vive en `/strategies/` aunque sus fichas cuelguen de
+// `/options/strategies/<slug>/`: publicar un fichero ahí le robaría la pantalla
+// al cliente que paga cuando recargue la página.
+const SECCIONES = ['learn', 'tools', 'markets', 'strategies', 'patterns', 'candles'];
+const hub = (lang, seccion) => `${DOMAIN}/${PREF.get(lang) || ''}${seccion}/`;
 
 // Cargar traducciones de cada idioma (mismo truco que la auditoría i18n)
 // Academy strings live in `<lang>.edu.js` (lazy chunk at runtime); the static
@@ -79,21 +123,153 @@ for (const [lang] of LANGS) {
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const cap = (s) => String(s).replace(/^\w/, (m) => m.toUpperCase());
 
+// ─── Recorte de la meta description ───────────────────────────────
+// Estaba escrito como `.slice(0, 158)` en los cuatro generadores, y partía la
+// última palabra por la mitad en las 1.640 páginas. La rusa de `operar-noticias`
+// terminaba en «… сгоревшим счётом. И» — la «И» es el arranque de «Используйте».
+//
+// No es cosmético: un buscador que ve una descripción truncada a media palabra
+// la descarta y se inventa el resumen con el texto de la página. En esa página
+// el texto que eligió Yandex fue el descargo del pie, que es lo que sale hoy en
+// sus resultados como si fuera la descripción del tema.
+//
+// Se corta en la última frontera de palabra antes del límite, y sólo se añaden
+// puntos suspensivos si de verdad se ha cortado algo.
+const recortar = (texto, max = 158) => {
+  const s = String(texto == null ? '' : texto).replace(/\s+/g, ' ').trim();
+  if (s.length <= max) return s;
+  const corte = s.slice(0, max - 1);
+  const ultimo = corte.lastIndexOf(' ');
+  // Sin espacios (chino, japonés) no hay frontera que respetar: se corta y ya.
+  const base = (ultimo > max * 0.5 ? corte.slice(0, ultimo) : corte).replace(/[\s,;:·—–-]+$/, '');
+  // Si el corte cae justo detrás de un punto, la frase ya está cerrada y los
+  // puntos suspensivos sobran («… счётом.…» se leía como una errata).
+  return /[.!?。！？]$/.test(base) ? base : `${base}…`;
+};
+
+// ─── og:locale ────────────────────────────────────────────────────
+// Open Graph exige `idioma_TERRITORIO`; el generador emitía el código a secas
+// (`content="ru"`), que Facebook, LinkedIn y WhatsApp descartan por inválido.
+const OG_LOCALE = {
+  es: 'es_ES', en: 'en_US', de: 'de_DE', fr: 'fr_FR', ru: 'ru_RU',
+  zh: 'zh_CN', ja: 'ja_JP', ar: 'ar_SA', pt: 'pt_PT', it: 'it_IT',
+};
+// Caída a `es_ES`, NO al código corto: el código corto es exactamente el valor
+// inválido que esto viene a quitar.
+const ogLocale = (lang) => OG_LOCALE[lang] || OG_LOCALE.es;
+
+// ─── Iconos ───────────────────────────────────────────────────────
+// Ninguna de las 1.640 páginas declaraba un `rel="icon"`. Un buscador que
+// indexa una página profunda y no encuentra icono declarado pinta el globo
+// genérico en el resultado — que es exactamente lo que le pasa hoy al sitio en
+// Yandex. La CSP de estas páginas ya permite `img-src 'self'`, así que no hay
+// nada más que abrir.
+//
+// ⚠️ Rutas RELATIVAS a la raíz, no absolutas. Con `https://tradingcalculator.pro/…`
+// el navegador trata el icono como un origen distinto en cuanto la página se
+// sirve desde otro sitio, y la CSP de arriba —`img-src 'self'`— lo bloquea:
+// la sonda `tests/e2e/navegador/csp.js` lo cazó con 31 violaciones sirviendo el
+// build desde `127.0.0.1`. En producción habría funcionado por casualidad, sólo
+// mientras el dominio coincidiera; se rompía en el banco de pruebas, en la URL
+// de proyecto de GitHub Pages —que se conserva como red de seguridad si cae el
+// DNS— y en cualquier previsualización.
+//
+// Relativas funcionan en los tres casos y son lo que ya hace `public/index.html`
+// (`%PUBLIC_URL%/favicon.ico` con `PUBLIC_URL: /`). El `og:image` sí sigue
+// siendo absoluto, y debe serlo: no lo carga la página, lo pide Facebook.
+const ICONOS = () => `<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#080808">`;
+
+// ─── Slugs por idioma ─────────────────────────────────────────────
+// Hasta ahora TODOS los idiomas colgaban del slug español:
+// `/ru/learn/operar-noticias/`, `/ja/tools/calculadora-de-apalancamiento/`.
+// La URL es una señal de relevancia y ahí no decía nada en el idioma de quien
+// busca. El slug se deriva ahora del título ya traducido.
+//
+// El cirílico se translitera (ГОСТ 7.79-2000 sistema B, el mismo criterio con
+// el que Yandex construye sus propias URLs). Los idiomas sin alfabeto latino
+// —zh, ja, ar— no dan nada legible al transliterar, así que caen al slug
+// inglés: es preferible a una URL percent-encoded de cien caracteres.
+//
+// ⚠️ `es` NO se deriva: conserva el slug escrito a mano en CALCS/TOPICS. Es el
+// único idioma con indexación consolidada y moverlo sería tirarla.
+const CIRILICO = {
+  а:'a', б:'b', в:'v', г:'g', д:'d', е:'e', ё:'e', ж:'zh', з:'z', и:'i', й:'y',
+  к:'k', л:'l', м:'m', н:'n', о:'o', п:'p', р:'r', с:'s', т:'t', у:'u', ф:'f',
+  х:'h', ц:'ts', ч:'ch', ш:'sh', щ:'sch', ъ:'', ы:'y', ь:'', э:'e', ю:'yu', я:'ya',
+};
+
+const slugificar = (texto) => String(texto == null ? '' : texto)
+  .toLowerCase()
+  .replace(/[а-яё]/g, (c) => (c in CIRILICO ? CIRILICO[c] : c))
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // quita tildes y diéresis
+  .replace(/[ß]/g, 'ss').replace(/[æ]/g, 'ae').replace(/[ø]/g, 'o').replace(/[đ]/g, 'd')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '');
+
+// Recorta el slug sin partir una palabra: una URL de 120 caracteres no ayuda a
+// nadie y los buscadores sólo pesan las primeras.
+const slugCorto = (s, max = 60) => {
+  if (s.length <= max) return s;
+  const corte = s.slice(0, max);
+  const guion = corte.lastIndexOf('-');
+  return (guion > max * 0.5 ? corte.slice(0, guion) : corte).replace(/-+$/, '');
+};
+
+/**
+ * Slug definitivo de una entrada para un idioma.
+ *
+ * @param lang     idioma de destino
+ * @param base     slug español escrito a mano (el que ya está indexado)
+ * @param titulos  { lang: título traducido } para derivar el resto
+ * @param usados   Set por (idioma+sección) que garantiza unicidad
+ */
+function slugPara(lang, base, titulos, usados) {
+  // El español no se deriva, pero SÍ se registra: si no, un slug derivado de
+  // otro idioma podría chocar con él sin que nadie se entere.
+  if (lang === 'es') { usados.add(base); return base; }
+  let s = slugCorto(slugificar(titulos[lang] || ''));
+  if (!s) s = slugCorto(slugificar(titulos.en || ''));  // zh, ja, ar
+  if (!s) s = base;                                     // último recurso
+  // Dos temas distintos pueden dar el mismo slug al recortar. El sufijo es
+  // determinista: depende sólo del orden del catálogo, así que la URL de una
+  // página no cambia porque se añada otra detrás.
+  let final = s, n = 2;
+  while (usados.has(final)) { final = `${s}-${n}`; n += 1; }
+  usados.add(final);
+  return final;
+}
+
+// Páginas puente para las URLs que se mueven.
+//
+// GitHub Pages no sirve cabeceras, así que un 301 de verdad es imposible: lo
+// más fuerte que se puede publicar es `canonical` + `meta refresh` a cero, que
+// Google y Yandex tratan como redirección permanente. NO llevan `noindex`
+// —sería contradictorio con el canonical— y NO entran en el sitemap: existen
+// para que los enlaces y la indexación viejos no caigan en un 404.
+const puentes = [];
+function puente(relViejo, urlNueva, etiqueta) {
+  puentes.push([relViejo, urlNueva, etiqueta]);
+}
+
 // ─── Publicidad (Google AdSense) ──────────────────────────────────
 // Estas páginas son HTML plano: no hay React, ni sesión, ni store. Para no
 // romper la promesa de "quien paga no ve anuncios" se replica aquí, en
 // ─── UI localizada mínima (breadcrumb, CTAs, etc.) ────────────────
 const UI = {
-  es: { trial:'Empieza 7 días gratis', home:'Inicio', learn:'Aprender', prices:'Precios', calcs:'Calculadoras', useCalc:'Usar la calculadora', openModule:'Abrir el módulo completo', whatGet:'Qué obtienes', whatLearn:'Qué aprenderás', formula:'Fórmula', otherCalcs:'Otras calculadoras', moreTopics:'Más temas', free:'7 días gratis', disc:'TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.' },
-  en: { trial:'Start your 7-day free trial', home:'Home', learn:'Learn', prices:'Pricing', calcs:'Calculators', useCalc:'Use the calculator', openModule:'Open the full module', whatGet:'What you get', whatLearn:'What you will learn', formula:'Formula', otherCalcs:'Other calculators', moreTopics:'More topics', free:'7-day free trial', disc:'TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.' },
-  de: { trial:'7 Tage gratis starten', home:'Start', learn:'Lernen', prices:'Preise', calcs:'Rechner', useCalc:'Rechner öffnen', openModule:'Vollständiges Modul öffnen', whatGet:'Was du bekommst', whatLearn:'Was du lernst', formula:'Formel', otherCalcs:'Weitere Rechner', moreTopics:'Weitere Themen', free:'7 Tage gratis', disc:'TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.' },
-  fr: { trial:'Commencer 7 jours gratuits', home:'Accueil', learn:'Apprendre', prices:'Tarifs', calcs:'Calculatrices', useCalc:'Utiliser la calculatrice', openModule:'Ouvrir le module complet', whatGet:'Ce que vous obtenez', whatLearn:'Ce que vous apprendrez', formula:'Formule', otherCalcs:'Autres calculatrices', moreTopics:'Plus de thèmes', free:'7 jours gratuits', disc:'TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.' },
-  ru: { trial:'Начать 7 дней бесплатно', home:'Главная', learn:'Обучение', prices:'Цены', calcs:'Калькуляторы', useCalc:'Открыть калькулятор', openModule:'Открыть полный модуль', whatGet:'Что вы получите', whatLearn:'Чему вы научитесь', formula:'Формула', otherCalcs:'Другие калькуляторы', moreTopics:'Ещё темы', free:'7 дней бесплатно', disc:'TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.' },
-  zh: { trial:'开始 7 天免费试用', home:'首页', learn:'学习', prices:'价格', calcs:'计算器', useCalc:'使用计算器', openModule:'打开完整模块', whatGet:'你将获得', whatLearn:'你将学到', formula:'公式', otherCalcs:'其他计算器', moreTopics:'更多主题', free:'7 天免费试用', disc:'TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。' },
-  ja: { trial:'7日間の無料体験を始める', home:'ホーム', learn:'学ぶ', prices:'料金', calcs:'計算ツール', useCalc:'計算ツールを使う', openModule:'モジュール全体を開く', whatGet:'得られるもの', whatLearn:'学べること', formula:'計算式', otherCalcs:'他の計算ツール', moreTopics:'他のテーマ', free:'7日間無料', disc:'TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。' },
-  ar: { trial:'ابدأ 7 أيام مجانًا', home:'الرئيسية', learn:'تعلّم', prices:'الأسعار', calcs:'الحاسبات', useCalc:'استخدم الحاسبة', openModule:'افتح الوحدة كاملة', whatGet:'ما ستحصل عليه', whatLearn:'ما ستتعلمه', formula:'الصيغة', otherCalcs:'حاسبات أخرى', moreTopics:'مواضيع أخرى', free:'7 أيام مجانًا', disc:'TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.' },
-  pt: { trial:'Comece 7 dias grátis', home:'Início', learn:'Aprender', prices:'Preços', calcs:'Calculadoras', useCalc:'Usar a calculadora', openModule:'Abrir o módulo completo', whatGet:'O que obtém', whatLearn:'O que vai aprender', formula:'Fórmula', otherCalcs:'Outras calculadoras', moreTopics:'Mais temas', free:'7 dias grátis', disc:'TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.' },
-  it: { trial:'Inizia 7 giorni gratis', home:'Home', learn:'Impara', prices:'Prezzi', calcs:'Calcolatrici', useCalc:'Usa la calcolatrice', openModule:'Apri il modulo completo', whatGet:'Cosa ottieni', whatLearn:'Cosa imparerai', formula:'Formula', otherCalcs:'Altre calcolatrici', moreTopics:'Altri temi', free:'7 giorni gratis', disc:'TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.' },
+  es: { trial:'Empieza 7 días gratis', home:'Inicio', learn:'Aprender', prices:'Precios', calcs:'Calculadoras', useCalc:'Usar la calculadora', openModule:'Abrir el módulo completo', whatGet:'Qué obtienes', whatLearn:'Qué aprenderás', formula:'Fórmula', otherCalcs:'Otras calculadoras', moreTopics:'Más temas', free:'7 días gratis', markets:'Mercados', strategies:'Estrategias de opciones', disc:'TradingCalculator.Pro — herramientas y formación de trading. Contenido informativo, no es asesoramiento financiero. Operar conlleva riesgo de pérdida.' },
+  en: { trial:'Start your 7-day free trial', home:'Home', learn:'Learn', prices:'Pricing', calcs:'Calculators', useCalc:'Use the calculator', openModule:'Open the full module', whatGet:'What you get', whatLearn:'What you will learn', formula:'Formula', otherCalcs:'Other calculators', moreTopics:'More topics', free:'7-day free trial', markets:'Markets', strategies:'Options strategies', disc:'TradingCalculator.Pro — trading tools and education. Informational content, not financial advice. Trading involves risk of loss.' },
+  de: { trial:'7 Tage gratis starten', home:'Start', learn:'Lernen', prices:'Preise', calcs:'Rechner', useCalc:'Rechner öffnen', openModule:'Vollständiges Modul öffnen', whatGet:'Was du bekommst', whatLearn:'Was du lernst', formula:'Formel', otherCalcs:'Weitere Rechner', moreTopics:'Weitere Themen', free:'7 Tage gratis', markets:'Märkte', strategies:'Optionsstrategien', disc:'TradingCalculator.Pro — Trading-Tools und -Ausbildung. Informativ, keine Finanzberatung. Trading birgt Verlustrisiko.' },
+  fr: { trial:'Commencer 7 jours gratuits', home:'Accueil', learn:'Apprendre', prices:'Tarifs', calcs:'Calculatrices', useCalc:'Utiliser la calculatrice', openModule:'Ouvrir le module complet', whatGet:'Ce que vous obtenez', whatLearn:'Ce que vous apprendrez', formula:'Formule', otherCalcs:'Autres calculatrices', moreTopics:'Plus de thèmes', free:'7 jours gratuits', markets:'Marchés', strategies:'Stratégies d’options', disc:'TradingCalculator.Pro — outils et formation de trading. Contenu informatif, pas un conseil financier. Le trading comporte un risque de perte.' },
+  ru: { trial:'Начать 7 дней бесплатно', home:'Главная', learn:'Обучение', prices:'Цены', calcs:'Калькуляторы', useCalc:'Открыть калькулятор', openModule:'Открыть полный модуль', whatGet:'Что вы получите', whatLearn:'Чему вы научитесь', formula:'Формула', otherCalcs:'Другие калькуляторы', moreTopics:'Ещё темы', free:'7 дней бесплатно', markets:'Рынки', strategies:'Опционные стратегии', disc:'TradingCalculator.Pro — инструменты и обучение трейдингу. Информационный контент, не инвестсовет. Торговля сопряжена с риском убытков.' },
+  zh: { trial:'开始 7 天免费试用', home:'首页', learn:'学习', prices:'价格', calcs:'计算器', useCalc:'使用计算器', openModule:'打开完整模块', whatGet:'你将获得', whatLearn:'你将学到', formula:'公式', otherCalcs:'其他计算器', moreTopics:'更多主题', free:'7 天免费试用', markets:'市场', strategies:'期权策略', disc:'TradingCalculator.Pro — 交易工具与教育。仅供参考，非投资建议。交易有亏损风险。' },
+  ja: { trial:'7日間の無料体験を始める', home:'ホーム', learn:'学ぶ', prices:'料金', calcs:'計算ツール', useCalc:'計算ツールを使う', openModule:'モジュール全体を開く', whatGet:'得られるもの', whatLearn:'学べること', formula:'計算式', otherCalcs:'他の計算ツール', moreTopics:'他のテーマ', free:'7日間無料', markets:'マーケット', strategies:'オプション戦略', disc:'TradingCalculator.Pro — トレーディングのツールと教育。情報提供のみで投資助言ではありません。取引には損失リスクがあります。' },
+  ar: { trial:'ابدأ 7 أيام مجانًا', home:'الرئيسية', learn:'تعلّم', prices:'الأسعار', calcs:'الحاسبات', useCalc:'استخدم الحاسبة', openModule:'افتح الوحدة كاملة', whatGet:'ما ستحصل عليه', whatLearn:'ما ستتعلمه', formula:'الصيغة', otherCalcs:'حاسبات أخرى', moreTopics:'مواضيع أخرى', free:'7 أيام مجانًا', markets:'الأسواق', strategies:'استراتيجيات الخيارات', disc:'TradingCalculator.Pro — أدوات وتعليم التداول. محتوى إعلامي وليس نصيحة مالية. التداول ينطوي على مخاطر خسارة.' },
+  pt: { trial:'Comece 7 dias grátis', home:'Início', learn:'Aprender', prices:'Preços', calcs:'Calculadoras', useCalc:'Usar a calculadora', openModule:'Abrir o módulo completo', whatGet:'O que obtém', whatLearn:'O que vai aprender', formula:'Fórmula', otherCalcs:'Outras calculadoras', moreTopics:'Mais temas', free:'7 dias grátis', markets:'Mercados', strategies:'Estratégias de opções', disc:'TradingCalculator.Pro — ferramentas e formação de trading. Conteúdo informativo, não é aconselhamento financeiro. Operar acarreta risco de perda.' },
+  it: { trial:'Inizia 7 giorni gratis', home:'Home', learn:'Impara', prices:'Prezzi', calcs:'Calcolatrici', useCalc:'Usa la calcolatrice', openModule:'Apri il modulo completo', whatGet:'Cosa ottieni', whatLearn:'Cosa imparerai', formula:'Formula', otherCalcs:'Altre calcolatrici', moreTopics:'Altri temi', free:'7 giorni gratis', markets:'Mercati', strategies:'Strategie in opzioni', disc:'TradingCalculator.Pro — strumenti e formazione sul trading. Contenuto informativo, non è consulenza finanziaria. Fare trading comporta il rischio di perdita.' },
 };
 
 // ─── Calculadoras: es + en (páginas comerciales) ──────────────────
@@ -421,8 +597,29 @@ const TOPICS = [
 // ─── Plantilla HTML ───────────────────────────────────────────────
 const ld = (o) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`;
 
-function render({ lang, url, alts, title, description, h1, kw, ui, sectionLabel, sectionUrl, lead, formula, points, ctaUrl, ctaLabel, related, sectionKind, jsonld, howto }) {
+// La misma barra en las 1.640 páginas y en los hubs: portada + los cuatro
+// índices del idioma. Es lo que convierte un montón de páginas sueltas en un
+// sitio con estructura — y lo que permite a un rastreador llegar a cualquiera
+// de ellas en dos saltos desde la portada.
+const navHubs = (lang, ui) => `<a href="${DOMAIN}/">${esc(ui.home)}</a>`
+  + SECCIONES.map((s) => {
+    // `chartPatterns`/`candlestickPatterns` son claves de la APLICACIÓN
+    // (`T[lang]`), las mismas que usa el detector en vivo — no se reinventan
+    // aquí porque no pueden divergir del rótulo que ya ve un suscriptor.
+    const etiqueta = {
+      learn: ui.learn, tools: ui.calcs, markets: ui.markets, strategies: ui.strategies,
+      patterns: T[lang].chartPatterns, candles: T[lang].candlestickPatterns,
+    }[s];
+    return `<a href="${hub(lang, s)}">${esc(etiqueta)}</a>`;
+  }).join('');
+
+function render({ lang, url, alts, title, description, h1, kw, ui, sectionLabel, sectionUrl, lead, formula, points, ctaUrl, ctaLabel, related, sectionKind, jsonld, howto, conceptos, conceptosTitulo }) {
   const dir = RTL.has(lang) ? ' dir="rtl"' : '';
+  const conceptosHtml = (conceptos && conceptos.length)
+    ? `<div class="card"><h2>${esc(conceptosTitulo || ui.whatLearn)}</h2>`
+      + conceptos.map((c) => `<h3>${esc(c.name)}</h3><p>${esc(c.desc)}</p>`).join('')
+      + `</div>`
+    : '';
   const hreflang = alts.map(([hl, u]) => `<link rel="alternate" hreflang="${hl}" href="${esc(u)}">`).join('\n') +
     `\n<link rel="alternate" hreflang="x-default" href="${esc(alts.find(a => a[0] === 'es') ? alts.find(a => a[0] === 'es')[1] : url)}">`;
   const pointsHtml = (points || []).map(p => `<li>${esc(p)}</li>`).join('');
@@ -443,6 +640,7 @@ function render({ lang, url, alts, title, description, h1, kw, ui, sectionLabel,
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
+${ICONOS()}
 ${hreflang}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -474,6 +672,8 @@ h1{font-size:30px;line-height:1.25;color:#fff;margin:14px 0 6px}
 .cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:10px 0 6px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
 .card{background:#141414;border:1px solid #262626;border-radius:12px;padding:18px 20px;margin:20px 0}
 .card h2{font-size:18px;color:#fff;margin:0 0 10px}
+.card h3{font-size:15px;color:#fff;margin:16px 0 4px}.card h3:first-of-type{margin-top:0}
+.card p{margin:0 0 4px;color:#b8b8b8;font-size:14.5px}
 .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1a12;border:1px solid #14361f;color:#7ee2a8;padding:12px 14px;border-radius:8px;display:block;font-size:15px;overflow-x:auto;direction:ltr}
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 .sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
@@ -485,7 +685,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="${DOMAIN}/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="${DOMAIN}/">${esc(ui.home)}</a><a href="${DOMAIN}/education">${esc(ui.learn)}</a><a href="${DOMAIN}/pricing">${esc(ui.prices)}</a></nav>
+  <nav class="top">${navHubs(lang, ui)}<a href="${DOMAIN}/pricing">${esc(ui.prices)}</a></nav>
 </div></header>
 <main class="wrap">
   <div class="crumb"><a href="${DOMAIN}/">${esc(ui.home)}</a> › <a href="${esc(sectionUrl)}">${esc(sectionLabel)}</a> › ${esc(h1)}</div>
@@ -496,43 +696,93 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <p class="sub"><a href="${esc(ctaUrl)}">${esc(ctaLabel)} →</a></p>
   ${formula ? `<div class="card"><h2>${esc(ui.formula)}</h2><code class="formula">${esc(formula)}</code></div>` : ''}
   ${points && points.length ? `<div class="card"><h2>${esc(sectionKind === 'tools' ? ui.whatGet : ui.whatLearn)}</h2><ul>${pointsHtml}</ul></div>` : ''}
+  ${conceptosHtml}
   ${howto && howto.length > 1 ? `<div class="card"><h2>${esc(howto[0])}</h2><ol>${howto.slice(1).map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>` : ''}
   <a class="cta" href="${DOMAIN}/pricing">${esc(ui.trial)} →</a>
   <div class="related card"><h2>${esc(sectionKind === 'tools' ? ui.otherCalcs : ui.moreTopics)}</h2><ul>${relatedHtml}</ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="${DOMAIN}/">${esc(ui.home)}</a><a href="${DOMAIN}/education">${esc(ui.learn)}</a><a href="${DOMAIN}/legal">Legal</a></div>
+  <div>${navHubs(lang, ui)}<a href="${DOMAIN}/legal">Legal</a></div>
   <div class="disc">${esc(ui.disc)}</div>
 </div></footer>
 </body>
 </html>`;
 }
 
+// Todo lo que este script ha escrito, para que nada pueda pisar nada.
+const escritas = new Set();
+
 function write(rel, html) {
   const full = path.join(BUILD, rel);
   fs.mkdirSync(full, { recursive: true });
   fs.writeFileSync(path.join(full, 'index.html'), html, 'utf8');
+  escritas.add(rel);
 }
 
-const sitemapUrls = [];
+const sitemapUrls = [];   // las ~1.640 fichas: la cola larga
+const sitemapHubs = [];   // los 40 índices de sección
+const sitemapApp  = [];   // las rutas del SPA con fichero propio
+
+/**
+ * Tabla de slugs de una sección: id de la entrada → { idioma: slug }.
+ *
+ * Se construye ENTERA antes de generar nada porque cada página necesita los
+ * slugs de las demás: el `hreflang` cita las nueve hermanas de otro idioma y el
+ * bloque de relacionadas cita seis vecinas. Calcularlos sobre la marcha
+ * obligaría a adivinarlos dos veces y a que las dos adivinaciones coincidieran.
+ *
+ * @param entradas  lista en orden estable (el orden decide los desempates)
+ * @param idDe      entrada → identificador (y slug español de partida)
+ * @param titulosDe entrada → { idioma: título traducido }
+ */
+function tablaDeSlugs(entradas, idDe, titulosDe) {
+  const usados = new Map(LANGS.map(([l]) => [l, new Set()]));
+  const tabla = new Map();
+  for (const e of entradas) {
+    const id = idDe(e);
+    const titulos = titulosDe(e);
+    const porIdioma = {};
+    for (const [lang] of LANGS) porIdioma[lang] = slugPara(lang, id, titulos, usados.get(lang));
+    tabla.set(id, porIdioma);
+  }
+  return tabla;
+}
+
+// Registra la página puente si el slug se ha movido respecto al español.
+const puenteSi = (lang, seccion, base, nuevo, urlNueva, etiqueta) => {
+  if (lang === 'es' || nuevo === base) return;
+  puente(`${PREF.get(lang)}${seccion}/${base}`, urlNueva, etiqueta);
+};
 
 // ── Calculadoras (todos los idiomas de LANGS: es+en inline, resto desde CALC_I18N) ──
 const calcData = (c, lang) => c[lang] || (CALC_I18N[c.slug] || {})[lang];
+const FECHA_CALCS = fechaReal('scripts/gen-seo-pages.js');
+// El slug de cada calculadora en cada idioma, resuelto de una vez.
+const SLUG_CALC = tablaDeSlugs(
+  CALCS,
+  (c) => c.slug,
+  (c) => Object.fromEntries(LANGS.map(([l]) => [l, (calcData(c, l) || {}).kw || ''])),
+);
+const slugCalc = (c, lang) => SLUG_CALC.get(c.slug)[lang];
+// Índice de lo generado, para que los hubs sepan a qué enlazar.
+const indice = { learn: {}, tools: {}, markets: {}, strategies: {}, patterns: {}, candles: {} };
+for (const s of SECCIONES) for (const [l] of LANGS) indice[s][l] = [];
+
 let calcCount = 0;
 CALCS.forEach((c, i) => {
   LANGS.forEach(([lang, pref, hl]) => {
     const d = calcData(c, lang);
     if (!d || !d.title) return; // idioma sin traducción → se salta
-    const rel = `${pref ? pref.slice(1) + '/' : ''}tools/${c.slug}`;
+    const rel = `${PREF.get(lang)}tools/${slugCalc(c, lang)}`;
     const url = `${DOMAIN}/${rel}/`;
     // hreflang: solo idiomas que tienen traducción de esta calculadora
-    const alts = LANGS.filter(([l]) => { const dd = calcData(c, l); return dd && dd.title; }).map(([l, p, h]) => [h, `${DOMAIN}/${p ? p.slice(1) + '/' : ''}tools/${c.slug}/`]);
+    const alts = LANGS.filter(([l]) => { const dd = calcData(c, l); return dd && dd.title; }).map(([l, p, h]) => [h, `${DOMAIN}/${PREF.get(l)}tools/${slugCalc(c, l)}/`]);
     const ui = UI[lang];
-    const related = CALCS.filter((_, j) => j !== i).slice(0, 6).map(r => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}tools/${r.slug}/`, label: cap((calcData(r, lang) || r.en).kw) }));
-    const description = recorta(d.lead);
+    const related = CALCS.filter((_, j) => j !== i).slice(0, 6).map(r => ({ url: `${DOMAIN}/${PREF.get(lang)}tools/${slugCalc(r, lang)}/`, label: cap((calcData(r, lang) || r.en).kw) }));
+    const description = recortar(d.lead);
     const html = render({
       lang, url, alts, title: d.title, description, h1: cap(d.kw), kw: d.kw, ui,
-      sectionLabel: ui.calcs, sectionUrl: `${DOMAIN}/dashboard`, lead: d.lead, formula: c.formula, points: d.pts,
+      sectionLabel: ui.calcs, sectionUrl: hub(lang, 'tools'), lead: d.lead, formula: c.formula, points: d.pts,
       ctaUrl: `${DOMAIN}/dashboard?tab=${c.tab}`, ctaLabel: ui.useCalc, related, sectionKind: 'tools',
       // SIN bloque `offers`. Emitia `price:'0'` en las 120 paginas de
       // calculadora mientras `public/index.html` declara 17/45/200 EUR y el
@@ -551,33 +801,167 @@ CALCS.forEach((c, i) => {
       ] },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.8']);
+    // El texto de las 130 fichas está inline en ESTE fichero (CALCS/CALC_I18N
+    // más arriba), así que su fecha real es la del propio generador.
+    sitemapUrls.push([`/${rel}/`, '0.8', FECHA_CALCS]);
+    indice.tools[lang].push({ url, label: cap(d.kw), lead: d.lead, fecha: FECHA_CALCS });
+    puenteSi(lang, 'tools', c.slug, slugCalc(c, lang), url, cap(d.kw));
     calcCount++;
   });
 });
 
 // ── Educación (todos los idiomas de LANGS, contenido desde i18n) ──
+//
+// ⚠️ Estas páginas tenían 94 palabras visibles, de las cuales unas 40 eran del
+// tema: título, una entradilla y el resto cromo (menú, migas, dos botones,
+// seis enlaces y el descargo). 750 páginas casi idénticas con ese fondo son
+// contenido delgado en el sentido literal del término, y arrastran la calidad
+// percibida del dominio entero, no sólo la suya.
+//
+// La solución no es escribir texto nuevo —eso sería inventar— sino publicar el
+// que YA existe traducido a los diez idiomas. Cada módulo de la academia
+// declara sus conceptos como pares `<prefijo><Concepto>Name` /
+// `…Desc` en `lib/i18n/*.edu.js`, que es de donde los lee
+// `tradingEducationContent.js` para pintar el módulo dentro de la aplicación.
+// Aquí se leen los mismos: misma fuente, así que la página pública y el módulo
+// no pueden divergir, y `i18n-check.js` ya garantiza que los diez idiomas
+// tienen el juego completo.
+//
+// ─── De dónde salen los conceptos ─────────────────────────────────
+//
+// De `tradingEducationContent.js`, que es EXACTAMENTE la estructura que la
+// aplicación pinta dentro del módulo. Cada tema tiene ahí un `get…(t)` que
+// devuelve su contenido con claves i18n; llamándolo con la `t` del idioma que
+// toca sale el mismo texto que ve un suscriptor, traducido, sin inventar nada y
+// sin posibilidad de divergir del módulo.
+//
+// El emparejamiento tema → getter **no se escribe a mano**: se descubre
+// llamando a cada getter con `t = identidad` y comparando el `title` que
+// devuelve con el `tk` del tema. Una tabla de 75 entradas escrita a mano se
+// pudre en cuanto alguien renombra un getter, y se pudre EN SILENCIO — la
+// página no fallaría, simplemente saldría corta, que es el fallo que este
+// generador existe para no cometer.
+const EDU_SRC = fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'tradingEducationContent.js'), 'utf8');
+const EDU = (() => {
+  const nombres = [...EDU_SRC.matchAll(/export const (\w+)\s*=/g)].map((m) => m[1]);
+  const cuerpo = EDU_SRC.replace(/export\s+const/g, 'const').replace(/export\s+default[^;]*;/g, '');
+  return new Function(`${cuerpo}\nreturn {${nombres.join(',')}};`)();
+})();
+
+const GETTER_DE_TEMA = (() => {
+  const mapa = {};
+  for (const [nombre, fn] of Object.entries(EDU)) {
+    if (typeof fn !== 'function') continue;
+    let forma;
+    try { forma = fn((k) => k); } catch { continue; }
+    if (forma && !Array.isArray(forma) && typeof forma.title === 'string') mapa[forma.title] = nombre;
+  }
+  return mapa;
+})();
+
+/**
+ * Recorre la estructura del módulo y recoge sus pares concepto/explicación.
+ *
+ * Acepta las dos formas que conviven en el fichero: `{name, desc}` —los módulos
+ * compactos— y `{title, description}` —los principios de Dow, los conceptos de
+ * gestión de riesgo—. Deduplica, porque hay estructuras que citan el mismo
+ * bloque dos veces, y limita la profundidad: ahí dentro hay objetos anidados de
+ * varios niveles y un recorrido sin tope se puede ir en un ciclo.
+ */
+function recogerConceptos(nodo, salida = [], vistos = new Set(), prof = 0) {
+  if (!nodo || prof > 6) return salida;
+  if (Array.isArray(nodo)) { for (const n of nodo) recogerConceptos(n, salida, vistos, prof + 1); return salida; }
+  if (typeof nodo !== 'object') return salida;
+  const nombre = nodo.name ?? nodo.title;
+  const desc = nodo.desc ?? nodo.description;
+  if (typeof nombre === 'string' && typeof desc === 'string' && nombre.trim() && desc.trim()) {
+    const clave = `${nombre}|${desc}`;
+    if (!vistos.has(clave)) { vistos.add(clave); salida.push({ name: nombre, desc }); }
+  }
+  for (const v of Object.values(nodo)) if (v && typeof v === 'object') recogerConceptos(v, salida, vistos, prof + 1);
+  return salida;
+}
+
+// El prefijo sale del propio `tk` del tema (`ntTitle` → `nt`). Cuando dos temas
+// comparten principio, gana el prefijo MÁS LARGO: si no, `sm` (sentimiento) se
+// llevaría claves de `smc` (smart money concepts).
+//
+// Esto es el PLAN B, para los temas cuyo contenido no vive en
+// `tradingEducationContent.js` sino dentro de su propio componente JSX.
+const PREFIJOS_TEMA = TOPICS
+  .map((tp) => (tp.tk.match(/^(.*?)(Title|Tab)$/) || [])[1])
+  .filter(Boolean)
+  .sort((a, b) => b.length - a.length);
+
+function conceptosDe(tp, lang) {
+  // 1 · la fuente buena: la estructura que pinta el módulo.
+  const getter = GETTER_DE_TEMA[tp.tk];
+  if (getter) {
+    const conceptos = recogerConceptos(EDU[getter]((k) => T[lang][k] || ''))
+      // El primer par suele ser el título y la entradilla del propio módulo,
+      // que ya salen como <h1> y `lead` de la página. Repetirlos sería
+      // duplicado dentro de la misma página.
+      .filter((c) => c.name !== T[lang][tp.tk] && c.desc !== T[lang][tp.ik]);
+    if (conceptos.length) return conceptos;
+  }
+
+  // 2 · plan B por convenio de claves, para los temas que se pintan con un
+  // componente propio y no tienen estructura de datos que leer.
+  const prefijo = (tp.tk.match(/^(.*?)(Title|Tab)$/) || [])[1];
+  if (!prefijo) return [];
+  const re = new RegExp(`^${prefijo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([A-Z0-9]\\w*)Name$`);
+  // El orden lo fija SIEMPRE el español: así los diez idiomas presentan los
+  // conceptos en la misma secuencia y las traducciones son comparables.
+  return Object.keys(T.es)
+    .filter((k) => re.test(k))
+    // Una clave que también case con un prefijo más largo pertenece a ese otro tema.
+    .filter((k) => !PREFIJOS_TEMA.some((p) => p.length > prefijo.length && k.startsWith(p) && /^[A-Z0-9]/.test(k.slice(p.length))))
+    .map((k) => ({ name: T[lang][k], desc: T[lang][k.replace(/Name$/, 'Desc')] }))
+    .filter((c) => c.name && c.desc);
+}
+
+const SLUG_TEMA = tablaDeSlugs(
+  TOPICS,
+  (tp) => tp.slug,
+  (tp) => Object.fromEntries(LANGS.map(([l]) => [l, T[l][tp.tk] || ''])),
+);
+const slugTema = (tp, lang) => SLUG_TEMA.get(tp.slug)[lang];
+
 let learnCount = 0;
+let conceptosPublicados = 0;
 TOPICS.forEach((tp, i) => {
   LANGS.forEach(([lang, pref]) => {
     const title = T[lang][tp.tk];
     const intro = T[lang][tp.ik];
     if (!title || !intro) return; // salta si falta contenido en ese idioma
-    const rel = `${pref ? pref.slice(1) + '/' : ''}learn/${tp.slug}`;
+    const rel = `${PREF.get(lang)}learn/${slugTema(tp, lang)}`;
     const url = `${DOMAIN}/${rel}/`;
     const ui = UI[lang];
     // hreflang: solo idiomas que tienen el contenido
-    const alts = LANGS.filter(([l]) => T[l][tp.tk] && T[l][tp.ik]).map(([l, p, hl]) => [hl, `${DOMAIN}/${p ? p.slice(1) + '/' : ''}learn/${tp.slug}/`]);
-    const related = TOPICS.filter((_, j) => j !== i).filter(r => T[lang][r.tk]).slice(0, 6).map(r => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}learn/${r.slug}/`, label: T[lang][r.tk] }));
-    const description = recorta(intro);
+    const alts = LANGS.filter(([l]) => T[l][tp.tk] && T[l][tp.ik]).map(([l, p, hl]) => [hl, `${DOMAIN}/${PREF.get(l)}learn/${slugTema(tp, l)}/`]);
+    const related = TOPICS.filter((_, j) => j !== i).filter(r => T[lang][r.tk]).slice(0, 6).map(r => ({ url: `${DOMAIN}/${PREF.get(lang)}learn/${slugTema(r, lang)}/`, label: T[lang][r.tk] }));
+    const description = recortar(intro);
+    const conceptos = conceptosDe(tp, lang);
+    conceptosPublicados += conceptos.length;
     const html = render({
       lang, url, alts, title: `${title} | TradingCalculator.Pro`, description, h1: title, kw: title, ui,
-      sectionLabel: ui.learn, sectionUrl: `${DOMAIN}/education`, lead: intro, formula: null, points: null,
+      sectionLabel: ui.learn, sectionUrl: hub(lang, 'learn'), lead: intro, formula: null, points: null,
+      conceptos, conceptosTitulo: ui.whatLearn,
       ctaUrl: `${DOMAIN}/education?topic=${tp.v}`, ctaLabel: ui.openModule, related, sectionKind: 'learn',
-      jsonld: { '@context':'https://schema.org','@type':'LearningResource', name: title, url, inLanguage: lang, description, provider:{ '@type':'Organization', name:'TradingCalculator.Pro', url: DOMAIN + '/' } },
+      jsonld: { '@context':'https://schema.org','@type':'LearningResource', name: title, url, inLanguage: lang, description,
+        // `teaches` sólo se declara cuando los conceptos están IMPRESOS más
+        // abajo. Un schema que describe contenido que no se ve es exactamente
+        // el motivo por el que las fichas de estrategia no llevan HowTo.
+        ...(conceptos.length ? { teaches: conceptos.map((c) => c.name) } : {}),
+        provider:{ '@type':'Organization', name:'TradingCalculator.Pro', url: DOMAIN + '/' } },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.7']);
+    // El título y la entradilla salen de `<lang>.js`; los conceptos, de
+    // `<lang>.edu.js` (ver `conceptosDe`). La más reciente de las dos manda.
+    const fecha = fechaReal(`src/lib/i18n/${lang}.js`, `src/lib/i18n/${lang}.edu.js`);
+    sitemapUrls.push([`/${rel}/`, '0.7', fecha]);
+    indice.learn[lang].push({ url, label: title, lead: intro, fecha });
+    puenteSi(lang, 'learn', tp.slug, slugTema(tp, lang), url, title);
     learnCount++;
   });
 });
@@ -622,7 +1006,7 @@ function renderMarket({ lang, url, alts, id, name, body, mui, related }) {
   const hreflang = alts.map(([hl, u]) => `<link rel="alternate" hreflang="${hl}" href="${esc(u)}">`).join('\n') +
     `\n<link rel="alternate" hreflang="x-default" href="${esc((alts.find(a => a[0] === 'es') || [null, url])[1])}">`;
   const title = `${name} — ${mui.what} · TradingCalculator.Pro`;
-  const description = recorta(body.what, 155);
+  const description = recortar(body.what, 155);
   const relatedHtml = related.map(r => `<li><a href="${esc(r.url)}">${esc(r.label)}</a></li>`).join('');
 
   // La FAQ se PINTA y se MARCA, en ese orden y desde la misma fuente.
@@ -663,6 +1047,7 @@ function renderMarket({ lang, url, alts, id, name, body, mui, related }) {
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
+${ICONOS()}
 ${hreflang}
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="TradingCalculator.Pro">
@@ -673,8 +1058,9 @@ ${hreflang}
 <meta property="og:locale" content="${ogLocale(lang)}">
 <meta name="twitter:card" content="summary_large_image">
 ${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement:[
-  { '@type':'ListItem', position:1, name: MARKET_UI[lang].section, item: DOMAIN + '/education' },
-  { '@type':'ListItem', position:2, name: name, item: url },
+  { '@type':'ListItem', position:1, name: UI[lang].home, item: DOMAIN + '/' },
+  { '@type':'ListItem', position:2, name: MARKET_UI[lang].section, item: hub(lang, 'markets') },
+  { '@type':'ListItem', position:3, name: name, item: url },
 ] })}
 ${faqLd}
 <style>
@@ -708,10 +1094,10 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 <body>
 <header class="top"><div class="wrap">
   <a class="brand" href="${DOMAIN}/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
-  <nav class="top"><a href="${DOMAIN}/education">${esc(MARKET_UI[lang].section)}</a><a href="${DOMAIN}/pricing">${esc(UI[lang].prices)}</a></nav>
+  <nav class="top">${navHubs(lang, UI[lang])}<a href="${DOMAIN}/pricing">${esc(UI[lang].prices)}</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="crumb"><a href="${DOMAIN}/">${esc(UI[lang].home)}</a> › <a href="${DOMAIN}/education">${esc(mui.section)}</a> › ${esc(name)}</div>
+  <div class="crumb"><a href="${DOMAIN}/">${esc(UI[lang].home)}</a> › <a href="${hub(lang, 'markets')}">${esc(mui.section)}</a> › ${esc(name)}</div>
   <h1>${esc(name)}</h1>
   <p class="lead">${esc(body.what)}</p>
   <a class="cta" href="${DOMAIN}/pricing">${esc(UI[lang].trial)} →</a>
@@ -722,7 +1108,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
   <div class="card"><h2>${esc(mui.other)}</h2><ul>${relatedHtml}</ul></div>
 </main>
 <footer><div class="wrap">
-  <div><a href="${DOMAIN}/">${esc(UI[lang].home)}</a><a href="${DOMAIN}/education">${esc(UI[lang].learn)}</a><a href="${DOMAIN}/legal">Legal</a></div>
+  <div>${navHubs(lang, UI[lang])}<a href="${DOMAIN}/legal">Legal</a></div>
   <div class="disc">${esc(UI[lang].disc)}</div>
 </div></footer>
 </body>
@@ -731,6 +1117,13 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 
 let marketCount = 0;
 const marketIds = Object.keys(MARKETS);
+const SLUG_MERCADO = tablaDeSlugs(
+  marketIds,
+  (id) => id,
+  (id) => Object.fromEntries(LANGS.map(([l]) => [l, T[l][MARKET_KEY[id]] || T.en[MARKET_KEY[id]] || id])),
+);
+const slugMercado = (id, lang) => SLUG_MERCADO.get(id)[lang];
+
 LANGS.forEach(([lang, prefix]) => {
   const mui = MARKET_UI[lang] || MARKET_UI.en;
   const nameOf = (mid) => T[lang][MARKET_KEY[mid]] || T.en[MARKET_KEY[mid]] || mid;
@@ -739,18 +1132,23 @@ LANGS.forEach(([lang, prefix]) => {
     // Body language: es when available, English for everyone else.
     const body = MARKETS[id][lang] || MARKETS[id].en;
     if (!body) return;
-    const rel = `${prefix ? prefix.slice(1) + '/' : ''}markets/${id}`;
+    const rel = `${PREF.get(lang)}markets/${slugMercado(id, lang)}`;
     const url = `${DOMAIN}/${rel}/`;
     const alts = LANGS
       .filter(([l2]) => MARKETS[id][l2] || MARKETS[id].en)
-      .map(([l2, p2, hl]) => [hl, `${DOMAIN}/${p2 ? p2.slice(1) + '/' : ''}markets/${id}/`]);
+      .map(([l2, p2, hl]) => [hl, `${DOMAIN}/${PREF.get(l2)}markets/${slugMercado(id, l2)}/`]);
     const related = marketIds
       .filter((o) => o !== id)
       .slice(0, 6)
-      .map((o) => ({ url: `${DOMAIN}/${prefix ? prefix.slice(1) + '/' : ''}markets/${o}/`, label: nameOf(o) }));
+      .map((o) => ({ url: `${DOMAIN}/${PREF.get(lang)}markets/${slugMercado(o, lang)}/`, label: nameOf(o) }));
 
     write(rel, renderMarket({ lang, url, alts, id, name: nameOf(id), body, mui, related }));
-    sitemapUrls.push([`/${rel}/`, '0.75']);
+    // El cuerpo (qué es, cómo se mide, FAQ) sale de `marketTypesContent.js`; el
+    // nombre del mercado, de `<lang>.js`. La más reciente de las dos manda.
+    const fecha = fechaReal('src/lib/marketTypesContent.js', `src/lib/i18n/${lang}.js`);
+    sitemapUrls.push([`/${rel}/`, '0.75', fecha]);
+    indice.markets[lang].push({ url, label: nameOf(id), lead: body.what, fecha });
+    puenteSi(lang, 'markets', id, slugMercado(id, lang), url, nameOf(id));
     marketCount++;
   });
 });
@@ -795,6 +1193,13 @@ const legLine = (leg) => {
   return `${leg.action === 'buy' ? 'BUY' : 'SELL'} ${leg.qty}× ${leg.type.toUpperCase()}${where}${exp}`;
 };
 
+const SLUG_ESTRATEGIA = tablaDeSlugs(
+  STRATEGIES,
+  (s) => slugOf(s),
+  (s) => Object.fromEntries(LANGS.map(([l]) => [l, tr(l, s.name)])),
+);
+const slugEstrategia = (s, lang) => SLUG_ESTRATEGIA.get(slugOf(s))[lang];
+
 let stratCount = 0;
 STRATEGIES.forEach((s, i) => {
   const slug = slugOf(s);
@@ -805,21 +1210,21 @@ STRATEGIES.forEach((s, i) => {
     const name = tr(lang, s.name);
     const lead = tr(lang, s.description);
     if (!name || !lead) return;
-    const rel = `${pref ? pref.slice(1) + '/' : ''}options/strategies/${slug}`;
+    const rel = `${PREF.get(lang)}options/strategies/${slugEstrategia(s, lang)}`;
     const url = `${DOMAIN}/${rel}/`;
-    const alts = LANGS.map(([l2, p2, h2]) => [h2, `${DOMAIN}/${p2 ? p2.slice(1) + '/' : ''}options/strategies/${slug}/`]);
+    const alts = LANGS.map(([l2, p2, h2]) => [h2, `${DOMAIN}/${PREF.get(l2)}options/strategies/${slugEstrategia(s, l2)}/`]);
     const related = STRATEGIES
       .filter((r, j) => j !== i && r.category === s.category)
       .slice(0, 6)
-      .map((r) => ({ url: `${DOMAIN}/${pref ? pref.slice(1) + '/' : ''}options/strategies/${slugOf(r)}/`, label: tr(lang, r.name) }));
+      .map((r) => ({ url: `${DOMAIN}/${PREF.get(lang)}options/strategies/${slugEstrategia(r, lang)}/`, label: tr(lang, r.name) }));
     // Anzuelo: la ficha enseña qué es la estructura y para qué sirve, pero NO
     // la receta (patas, riesgo, máximos, cuándo usarla). Eso vive dentro de la
     // app, tras el muro de pago.
     const points = multiExpiry ? [sui.multi] : [];
-    const description = recorta(lead);
+    const description = recortar(lead);
     const html = render({
       lang, url, alts, title: `${name} | ${sui.section}`, description, h1: name, kw: name, ui,
-      sectionLabel: sui.section, sectionUrl: `${DOMAIN}/options`,
+      sectionLabel: sui.section, sectionUrl: hub(lang, 'strategies'),
       lead, formula: '', points,
       ctaUrl: `${DOMAIN}/options/calculator?strategy=${s.id}`, ctaLabel: sui.open,
       related, sectionKind: 'options',
@@ -831,39 +1236,310 @@ STRATEGIES.forEach((s, i) => {
       },
     });
     write(rel, html);
-    sitemapUrls.push([`/${rel}/`, '0.7']);
+    // Nombre y descripción salen de `mockData.js` (literal o clave i18n vía
+    // `tr()`); cuando es clave, `<lang>.js` puede ser la más reciente.
+    const fecha = fechaReal('src/data/mockData.js', `src/lib/i18n/${lang}.js`);
+    sitemapUrls.push([`/${rel}/`, '0.7', fecha]);
+    indice.strategies[lang].push({ url, label: name, lead, fecha });
+    puenteSi(lang, 'options/strategies', slug, slugEstrategia(s, lang), url, name);
     stratCount++;
   });
 });
 
-// ── Rutas de aplicación: el shell, servido con estado 200 ────────────────────
+// ── Patrones chartistas y de vela (/patterns/<id>/, /candles/<id>/) ───
+// 42 patrones chartistas (23 de vuelta + 19 de continuación) y 35 de vela
+// (15 alcistas + 16 bajistas + 4 neutrales) que ya vivían en el módulo de
+// educación, tras el muro, sin una sola URL propia. El `id` NO se traduce
+// —"head-shoulders", "hammer"— porque es la misma jerga técnica en los diez
+// idiomas (mismo criterio que las estrategias de opciones): no hay slug que
+// derivar ni página puente que generar, es contenido nuevo.
 //
-// EL FALLO QUE ESTO ARREGLA
-// ------------------------
-// GitHub Pages no tiene reescritura de rutas: para `/pricing` busca
-// `pricing.html` y `pricing/index.html`, y si no encuentra ninguno sirve
-// `404.html` **con estado HTTP 404**. El workflow copia `index.html → 404.html`,
-// así que la SPA arranca y el usuario ve la página perfectamente — pero el
-// estado sigue siendo 404. Es el fallo silencioso en estado puro: para una
-// persona la web funciona; para Googlebot `/pricing`, `/about`, `/contact`,
-// `/legal`, `/education`, `/options` y `/options/strategies` no existen.
+// `EDU.getChartPatterns(t)`/`getCandlestickPatterns(t)` devuelven el mismo
+// array estructural en cualquier idioma (mismos ids, mismo orden); sólo el
+// texto que pasa por `t()` cambia. Se llama una vez por idioma y se indexa
+// por `id`, igual que TOPICS con `conceptosDe`.
+function patronesPorIdioma(getter, categorias) {
+  const porLang = {};
+  for (const [lang] of LANGS) {
+    const t = (k) => T[lang][k] || k;
+    const grupos = getter(t);
+    const lista = [];
+    for (const cat of categorias) (grupos[cat] || []).forEach((p) => lista.push({ ...p, categoria: cat }));
+    porLang[lang] = lista;
+  }
+  return porLang;
+}
+
+const CHART_PATTERNS_LANG = patronesPorIdioma(EDU.getChartPatterns, ['reversal', 'continuation']);
+const CANDLE_PATTERNS_LANG = patronesPorIdioma(EDU.getCandlestickPatterns, ['bullish', 'bearish', 'neutral']);
+
+// El id y la categoría no cambian entre idiomas: español sirve de referencia
+// para recorrer cada patrón una sola vez.
+const CHART_IDS = CHART_PATTERNS_LANG.es.map((p) => p.id);
+const CANDLE_IDS = CANDLE_PATTERNS_LANG.es.map((p) => p.id);
+
+const CAT_LABEL = {
+  reversal: 'reversalPattern', continuation: 'continuationPattern',
+  bullish: 'bullish', bearish: 'bearish', neutral: 'neutral',
+};
+
+/**
+ * Genera las páginas de un catálogo de patrones (chartistas o de vela).
+ *
+ * @param seccion    'patterns' | 'candles' — decide el hub y la sección del sitemap
+ * @param porLang    salida de `patronesPorIdioma`
+ * @param ids        ids en orden estable (referencia española)
+ * @param sectionKey clave de T[lang] con el título de la sección (chartPatterns/candlestickPatterns)
+ * @param topic      valor de `?topic=` en la academia (chart-patterns/candlesticks)
+ * @param prio       prioridad del sitemap
+ */
+function generaPatrones(seccion, porLang, ids, sectionKey, topic, prio) {
+  let n = 0;
+  ids.forEach((id) => {
+    LANGS.forEach(([lang, pref, hl]) => {
+      const ui = UI[lang];
+      const lista = porLang[lang];
+      const p = lista.find((x) => x.id === id);
+      if (!p || !p.name || !p.description) return; // defensa: nunca debería faltar (i18n-check lo garantiza)
+      const rel = `${PREF.get(lang)}${seccion}/${id}`;
+      const url = `${DOMAIN}/${rel}/`;
+      const alts = LANGS.map(([l2, p2, h2]) => [h2, `${DOMAIN}/${PREF.get(l2)}${seccion}/${id}/`]);
+      const related = lista
+        .filter((r) => r.id !== id && r.categoria === p.categoria)
+        .slice(0, 6)
+        .map((r) => ({ url: `${DOMAIN}/${PREF.get(lang)}${seccion}/${r.id}/`, label: r.name }));
+      const catLabel = T[lang][CAT_LABEL[p.categoria]] || p.categoria;
+      const tipoLabel = T[lang][CAT_LABEL[p.type]] || p.type;
+      const points = [
+        `${T[lang].reliability}: ${p.reliability}`,
+        seccion === 'patterns'
+          ? `${T[lang].timeframes}: ${(p.timeframes || []).join(', ')}`
+          : `${T[lang].signal}: ${p.signal}`,
+        `${catLabel} · ${tipoLabel}`,
+      ];
+      const howto = (p.howToTrade && p.howToTrade.length) ? [T[lang].howToTrade, ...p.howToTrade] : null;
+      const description = recortar(p.description);
+      const sectionLabel = T[lang][sectionKey];
+      const html = render({
+        lang, url, alts, title: `${p.name} | ${sectionLabel}`, description, h1: p.name, kw: p.name, ui,
+        sectionLabel, sectionUrl: hub(lang, seccion),
+        lead: p.description, formula: null, points,
+        ctaUrl: `${DOMAIN}/education?topic=${topic}`, ctaLabel: ui.openModule,
+        related, sectionKind: 'learn', howto,
+        jsonld: {
+          '@context': 'https://schema.org', '@type': 'DefinedTerm', name: p.name, description, url, inLanguage: lang,
+          inDefinedTermSet: hub(lang, seccion),
+        },
+      });
+      write(rel, html);
+      const fecha = fechaReal('src/lib/tradingEducationContent.js', `src/lib/i18n/${lang}.js`, `src/lib/i18n/${lang}.edu.js`);
+      sitemapUrls.push([`/${rel}/`, prio, fecha]);
+      indice[seccion][lang].push({ url, label: p.name, lead: p.description, fecha });
+      n++;
+    });
+  });
+  return n;
+}
+
+const patternCount = generaPatrones('patterns', CHART_PATTERNS_LANG, CHART_IDS, 'chartPatterns', 'chart-patterns', '0.65');
+const candleCount = generaPatrones('candles', CANDLE_PATTERNS_LANG, CANDLE_IDS, 'candlestickPatterns', 'candlesticks', '0.65');
+
+// ── Hubs de sección (/<idioma>/learn/, /tools/, /markets/, /strategies/) ──
 //
-// Y estaban las ocho en el sitemap con prioridad 0.85-0.9, es decir: se le
-// pedía a Google que indexara siete URLs que le devolvían 404 («Enviada: no
-// encontrada» en Search Console, que resta autoridad al resto del sitemap).
-// Encima el CTA principal de las 1.640 páginas estáticas —dos botones verdes
-// por página— apunta a `/pricing`.
+// El esqueleto que faltaba. Hasta aquí las 1.640 páginas eran alcanzables sólo
+// por el sitemap: un rastreador las descubría, pero ninguna recibía un enlace
+// desde una página con autoridad, así que todas competían desde cero. Estos 40
+// índices las cuelgan del árbol.
+const HUB_UI = {
+  es: { learn:'Toda la formación de trading', tools:'Todas las calculadoras', markets:'Todos los mercados', strategies:'Todas las estrategias con opciones', sub:'temas', subT:'calculadoras', subM:'mercados', subS:'estrategias', subP:'patrones', subC:'patrones de vela' },
+  en: { learn:'All trading education', tools:'All calculators', markets:'All markets', strategies:'All options strategies', sub:'topics', subT:'calculators', subM:'markets', subS:'strategies', subP:'patterns', subC:'candlestick patterns' },
+  de: { learn:'Alle Trading-Lerninhalte', tools:'Alle Rechner', markets:'Alle Märkte', strategies:'Alle Optionsstrategien', sub:'Themen', subT:'Rechner', subM:'Märkte', subS:'Strategien', subP:'Muster', subC:'Kerzenmuster' },
+  fr: { learn:'Toute la formation trading', tools:'Toutes les calculatrices', markets:'Tous les marchés', strategies:'Toutes les stratégies d’options', sub:'thèmes', subT:'calculatrices', subM:'marchés', subS:'stratégies', subP:'figures', subC:'figures de bougies' },
+  ru: { learn:'Всё обучение трейдингу', tools:'Все калькуляторы', markets:'Все рынки', strategies:'Все опционные стратегии', sub:'тем', subT:'калькуляторов', subM:'рынков', subS:'стратегий', subP:'паттернов', subC:'свечных паттернов' },
+  zh: { learn:'全部交易课程', tools:'全部计算器', markets:'全部市场', strategies:'全部期权策略', sub:'个主题', subT:'个计算器', subM:'个市场', subS:'个策略', subP:'个形态', subC:'个蜡烛形态' },
+  ja: { learn:'すべてのトレード教材', tools:'すべての計算ツール', markets:'すべてのマーケット', strategies:'すべてのオプション戦略', sub:'テーマ', subT:'計算ツール', subM:'マーケット', subS:'戦略', subP:'パターン', subC:'ローソク足パターン' },
+  ar: { learn:'كل تعليم التداول', tools:'كل الحاسبات', markets:'كل الأسواق', strategies:'كل استراتيجيات الخيارات', sub:'موضوعًا', subT:'حاسبة', subM:'سوقًا', subS:'استراتيجية', subP:'نمطًا', subC:'نمط شموع' },
+  pt: { learn:'Toda a formação de trading', tools:'Todas as calculadoras', markets:'Todos os mercados', strategies:'Todas as estratégias com opções', sub:'temas', subT:'calculadoras', subM:'mercados', subS:'estratégias', subP:'padrões', subC:'padrões de candles' },
+  it: { learn:'Tutta la formazione di trading', tools:'Tutte le calcolatrici', markets:'Tutti i mercati', strategies:'Tutte le strategie in opzioni', sub:'temi', subT:'calcolatrici', subM:'mercati', subS:'strategie', subP:'pattern', subC:'pattern di candele' },
+};
+const CONTADOR = { learn:'sub', tools:'subT', markets:'subM', strategies:'subS', patterns:'subP', candles:'subC' };
+
+function renderHub({ lang, seccion, entradas }) {
+  const ui = UI[lang];
+  const h = HUB_UI[lang] || HUB_UI.en;
+  const dir = RTL.has(lang) ? ' dir="rtl"' : '';
+  const url = hub(lang, seccion);
+  // `patterns`/`candles` reutilizan la etiqueta de la aplicación —misma
+  // fuente que `navHubs`— en vez de una traducción propia que podría divergir.
+  const titulo = seccion === 'patterns' ? T[lang].chartPatterns
+    : seccion === 'candles' ? T[lang].candlestickPatterns
+    : h[seccion];
+  const description = recortar(`${titulo} — ${entradas.length} ${h[CONTADOR[seccion]]}. ${ui.disc}`);
+  const alts = LANGS
+    .filter(([l]) => indice[seccion][l].length)
+    .map(([l, , hl]) => [hl, hub(l, seccion)]);
+  const hreflang = alts.map(([hl, u]) => `<link rel="alternate" hreflang="${hl}" href="${esc(u)}">`).join('\n')
+    + `\n<link rel="alternate" hreflang="x-default" href="${esc(hub('es', seccion))}">`;
+  const lista = entradas
+    .map((e) => `<li><a href="${esc(e.url)}">${esc(e.label)}</a><span> — ${esc(recortar(e.lead, 110))}</span></li>`)
+    .join('');
+  return `<!doctype html>
+<html lang="${lang}"${dir}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
+
+<title>${esc(titulo)} | TradingCalculator.Pro</title>
+<meta name="description" content="${esc(description)}">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="${esc(url)}">
+${ICONOS()}
+${hreflang}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradingCalculator.Pro">
+<meta property="og:title" content="${esc(titulo)}">
+<meta property="og:description" content="${esc(description)}">
+<meta property="og:url" content="${esc(url)}">
+<meta property="og:image" content="${esc(OG_IMAGE)}">
+<meta property="og:locale" content="${ogLocale(lang)}">
+<meta name="twitter:card" content="summary_large_image">
+${ld({ '@context':'https://schema.org', '@type':'CollectionPage', name: titulo, url, inLanguage: lang, description,
+  isPartOf: { '@type':'WebSite', name:'TradingCalculator.Pro', url: DOMAIN + '/' },
+  mainEntity: { '@type':'ItemList', numberOfItems: entradas.length,
+    itemListElement: entradas.map((e, n) => ({ '@type':'ListItem', position: n + 1, name: e.label, url: e.url })) } })}
+${ld({ '@context':'https://schema.org','@type':'BreadcrumbList', itemListElement:[
+  { '@type':'ListItem', position:1, name: ui.home, item: DOMAIN + '/' },
+  { '@type':'ListItem', position:2, name: titulo, item: url },
+] })}
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.65}
+a{color:#34d399;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid #1e1e1e;padding:16px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;color:#fff;font-size:18px;display:inline-flex;align-items:center;gap:8px}.brand span{color:#34d399}
+.brand .mark{flex:none;vertical-align:middle}
+nav.top a{color:#a3a3a3;font-size:14px;margin-inline-start:16px}
+.crumb{font-size:13px;color:#737373;padding:18px 0 0}.crumb a{color:#737373}
+h1{font-size:31px;line-height:1.25;color:#fff;margin:14px 0 6px}
+.lead{font-size:17px;color:#c7c7c7;margin:0 0 22px}
+.cta{display:inline-block;background:#22c55e;color:#04120a;font-weight:800;padding:14px 26px;border-radius:10px;margin:6px 0 18px;font-size:16px}.cta:hover{background:#16a34a;text-decoration:none}
+ul.idx{list-style:none;padding:0;margin:0}
+ul.idx li{border-bottom:1px solid #1c1c1c;padding:11px 0}
+ul.idx li:last-child{border-bottom:0}
+ul.idx a{font-weight:600}
+ul.idx span{color:#8f8f8f;font-size:14px}
+footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
+footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="${DOMAIN}/"><svg class="mark" viewBox="0 0 512 512" width="26" height="26" aria-hidden="true" focusable="false"><rect x="1.5" y="1.5" width="509" height="509" rx="120.3" fill="#0F0F0F" stroke="#262626" stroke-width="3"/><g transform="translate(56.3,123.9) scale(3.1446)"><polygon points="8,7 60,7 60,23 0,23" fill="#F2F2F2"/><rect x="24" y="23" width="16" height="54" fill="#F2F2F2"/><path d="M105 14 A 34 34 0 1 0 105 70" fill="none" stroke="#F2F2F2" stroke-width="16"/><rect x="87" y="33" width="2.5" height="32" fill="#17CF63"/><rect x="83" y="39" width="9" height="21" fill="#17CF63"/><rect x="100" y="26" width="2.5" height="33" fill="#17CF63"/><rect x="96" y="32" width="9" height="22" fill="#17CF63"/><rect x="113" y="17" width="2.5" height="36" fill="#17CF63"/><rect x="109" y="24" width="9" height="24" fill="#17CF63"/></g></svg>Trading Calculator <span>PRO</span></a>
+  <nav class="top">${navHubs(lang, ui)}<a href="${DOMAIN}/pricing">${esc(ui.prices)}</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="crumb"><a href="${DOMAIN}/">${esc(ui.home)}</a> › ${esc(titulo)}</div>
+  <h1>${esc(titulo)}</h1>
+  <p class="lead">${entradas.length} ${esc(h[CONTADOR[seccion]])}</p>
+  <a class="cta" href="${DOMAIN}/pricing">${esc(ui.trial)} →</a>
+  <ul class="idx">${lista}</ul>
+</main>
+<footer><div class="wrap">
+  <div>${navHubs(lang, ui)}<a href="${DOMAIN}/legal">Legal</a></div>
+  <div class="disc">${esc(ui.disc)}</div>
+</div></footer>
+</body>
+</html>`;
+}
+
+let hubCount = 0;
+SECCIONES.forEach((seccion) => {
+  LANGS.forEach(([lang]) => {
+    const entradas = indice[seccion][lang];
+    if (!entradas.length) return;
+    const rel = `${PREF.get(lang)}${seccion}`;
+    write(rel, renderHub({ lang, seccion, entradas }));
+    // Un índice «cambia» cuando cambia cualquiera de sus fichas: la fecha del
+    // hub es la más reciente de las que enlaza, nunca una inventada aparte.
+    const fecha = entradas.reduce((max, e) => (e.fecha > max ? e.fecha : max), entradas[0].fecha);
+    sitemapHubs.push([`/${rel}/`, '0.85', fecha]);
+    hubCount++;
+  });
+});
+
+// ── Páginas puente de las URLs que se movieron al traducir los slugs ──
 //
-// El arreglo es escribir el shell en esas rutas, con SU título, SU descripción
-// y SU canonical en el HTML crudo. Se escriben las dos formas (`pricing.html` y
-// `pricing/index.html`) a propósito: Pages resuelve `/pricing` con la primera y
-// `/pricing/` con la segunda, y así ninguna de las dos depende de que el
-// servidor pruebe la extensión. Las dos declaran el mismo canonical sin barra
-// final, que es el que anuncia el sitemap y el que emite `useSEO`.
+// GitHub Pages no permite cabeceras, así que no hay 301 posible: lo más fuerte
+// publicable es `canonical` + `meta refresh` a cero, que Google y Yandex tratan
+// como redirección permanente. Sin `noindex` —contradiría al canonical— y sin
+// entrar en el sitemap: existen para que ni los enlaces viejos ni la
+// indexación acumulada caigan en un 404.
+// La guarda que hace esto seguro: un puente NUNCA puede sobrescribir una
+// página real. Puede ocurrir sin mala suerte extraordinaria — basta con que el
+// slug español de un tema coincida con el slug derivado de otro tema en otro
+// idioma— y el resultado sería sustituir contenido indexado por una
+// redirección, en silencio y sin que falle nada. Si pasa, el build cae.
+let puenteCount = 0;
+const pisados = [];
+for (const [rel, destino, etiqueta] of puentes) {
+  if (escritas.has(rel)) { pisados.push([rel, destino]); continue; }
+  // El `canonical` va ABSOLUTO —es la señal que transfiere la indexación y
+  // tiene que nombrar el dominio— pero el `refresh` y el enlace van RELATIVOS.
+  //
+  // Con el refresh absoluto, un puente servido desde cualquier otro sitio
+  // saca al visitante del origen en el que está: en CI la sonda de CSP siguió
+  // uno hasta el sitio de producción y midió allí, y desde la URL de proyecto
+  // de GitHub Pages —la red de seguridad si cae el DNS— habría hecho lo mismo.
+  // Relativo, el puente se queda donde lo sirvan, que es lo que debe hacer.
+  const ruta = new URL(destino).pathname;
+  write(rel, `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0; url=${esc(ruta)}">
+<link rel="canonical" href="${esc(destino)}">
+<meta name="robots" content="follow">
+<title>${esc(etiqueta || destino)}</title>
+</head>
+<body><p>→ <a href="${esc(ruta)}">${esc(etiqueta || destino)}</a></p></body>
+</html>`);
+  puenteCount++;
+}
+if (pisados.length) {
+  console.error(`\n✗ ${pisados.length} página(s) puente chocan con una página real:`);
+  for (const [rel, destino] of pisados.slice(0, 10)) console.error(`    · /${rel}/ → ${destino}`);
+  console.error('  Se han conservado las páginas reales. Cambia el slug que colisiona.');
+  process.exitCode = 1;
+}
+
+// ── Rutas de aplicación: el shell, servido con estado 200 ──
 //
-// Los textos salen de las MISMAS claves i18n que usa `useSEO` en cada página
-// (`seoPricingTitle`, `seoAboutTitle`…), así que el HTML crudo y el renderizado
-// no pueden divergir.
+// EL FALLO QUE MÁS CARO SALÍA, y era invisible desde dentro.
+//
+// GitHub Pages no reescribe rutas: para `/pricing` busca `pricing.html` y
+// `pricing/index.html`, y si no encuentra ninguno sirve `404.html` **con estado
+// HTTP 404**. El workflow copia ahí el shell del SPA, así que la persona ve la
+// web perfecta y no sospecha nada — pero el rastreador recibe un 404 y NO
+// INDEXA. `/pricing`, `/about`, `/contact`, `/legal`, `/education`, `/options` y
+// `/options/strategies` llevaban así desde siempre, las siete anunciadas en el
+// sitemap con prioridad 0.85-0.9, y encima los dos botones verdes de cada una de
+// las páginas estáticas apuntan a `/pricing`.
+//
+// La cura es un fichero de verdad en cada ruta: el shell compilado —el mismo
+// JavaScript, la misma aplicación— con SU título, SU descripción y SU canonical
+// en el HTML crudo, para que un rastreador que no ejecuta JavaScript no vea
+// ocho veces la misma portada. `useSEO` reescribe esas etiquetas al arrancar,
+// con los mismos valores y desde las MISMAS claves i18n: el HTML crudo y el
+// renderizado no pueden divergir.
+//
+// Se escriben las DOS formas (`pricing.html` y `pricing/index.html`) a
+// propósito: Pages resuelve `/pricing` con la primera y `/pricing/` con la
+// segunda, así que ninguna de las dos depende de que el servidor pruebe la
+// extensión ni de una redirección. Las dos declaran el mismo canonical SIN
+// barra final — el que anuncia el sitemap y el que emite `useSEO`.
 const APP = [
   // ruta,                prioridad, clave de título,        clave de descripción,  indexable
   ['/',                   '1.0',  null,                    null,                     true ],
@@ -871,141 +1547,193 @@ const APP = [
   ['/about',              '0.7',  'seoAboutTitle',         'seoAboutDesc',           true ],
   ['/contact',            '0.6',  'seoContactTitle',       'seoContactDesc',         true ],
   ['/legal',              '0.4',  'seoLegalTitle',         'seoLegalDesc',           true ],
+  // ⚠️ `/brokers` y `/backtesting` NO están aquí, y no es un olvido. Sus
+  // componentes declaran `noindex: true` con el motivo escrito al lado —una
+  // lista de afiliados vacía, y una página cuyo contenido principal es de otro
+  // dominio—. Estuvieron en esta lista y era una contradicción de tres bandas:
+  // el sitemap pidiendo que se indexaran, el HTML estático diciendo
+  // `index, follow`, y `useSEO` poniendo `noindex` en cuanto React montaba. La
+  // guarda de abajo impide repetirlo.
+  //
   // Estas tres son `ProtectedRoute premiumOnly`: su contenido está tras el muro.
-  // Se les da estado 200 porque 750 páginas de academia y 660 de estrategias
-  // enlazan a ellas («Abrir el módulo completo»), y mandar 1.410 enlaces
-  // internos a un 404 es peor que cualquier cosa que hagan aquí. Pero NO van al
-  // sitemap y llevan `noindex`: es exactamente la decisión que ya estaba escrita
-  // para `/performance`, aplicada a las tres que se habían quedado fuera.
+  // Se les da estado 200 porque las páginas de academia y de estrategia enlazan
+  // a ellas («Abrir el módulo completo»), y mandar miles de enlaces internos a
+  // un 404 es peor que cualquier cosa que hagan aquí. Pero NO van al sitemap y
+  // llevan `noindex`: es la decisión que ya estaba escrita para `/performance`.
+  //
+  // Y NO se bloquean en `robots.txt`, que sería la reacción natural: una ruta
+  // prohibida ahí nunca llega a leer su propio `noindex`, así que Google puede
+  // indexar la URL a secas —sin contenido— por los enlaces que la citan. Con
+  // `noindex, follow` la lee, no la indexa, y sigue repartiendo autoridad.
   ['/education',          null,   'seoEducationTitle',     'seoEducationDesc',       false],
   ['/options',            null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
   ['/options/strategies', null,   'optStrategiesSection',  'optStrategiesIndexLead', false],
   // Las tres de autenticación estaban en el peor de los dos mundos: devolvían
   // 404 de Pages (un enlace de login compartido no abría) y a la vez eran
-  // indexables, porque `useSEO` no les pone `noindex` y robots.txt no las
-  // bloquea. Ahora responden 200 —el enlace funciona— y declaran `noindex` en el
-  // HTML crudo, sin pasar por robots: una ruta prohibida en robots nunca llega a
-  // leer su propio `noindex`, que es el error que ya costó el caso `/performance`.
+  // indexables, porque `useSEO` no les ponía `noindex` y robots no las bloquea.
+  // Ahora responden 200 —el enlace funciona— y declaran `noindex` en el HTML
+  // crudo, por el mismo motivo que las tres de arriba.
   ['/login',              null,   'seoLoginTitle',         'seoLoginDesc',           false],
   ['/register',           null,   'seoRegisterTitle',      'seoRegisterDesc',        false],
   ['/forgot-password',    null,   'seoForgotTitle',        'seoForgotDesc',          false],
 ];
 
-const SHELL = path.join(BUILD, 'index.html');
-let appCount = 0;
-if (!fs.existsSync(SHELL)) {
-  console.error('✗ No hay build/index.html: ¿corrió `craco build` antes del postbuild?');
-  process.exit(1);
-}
-const shellSrc = fs.readFileSync(SHELL, 'utf8');
+// Ninguna ruta INDEXABLE de aquí puede llevar `noindex` en su componente.
+//
+// Se comprueba leyendo `App.js` para saber qué componente sirve cada ruta y
+// mirando su fichero, en vez de mantener una segunda lista a mano: una lista
+// paralela se desincroniza en la primera revisión, y este verificador dejaría
+// de decir la verdad justo cuando más falta hace.
+(() => {
+  const rutasApp = fs.readFileSync(path.join(__dirname, '..', 'src', 'App.js'), 'utf8');
+  const malas = [];
+  for (const [ruta, prio] of APP) {
+    if (ruta === '/' || !prio) continue;              // sólo las que van al sitemap
+    const nombre = ruta.replace(/^\//, '');
+    const m = rutasApp.match(new RegExp(`path="/${nombre}"\\s+element=\\{<(?:ProtectedRoute[^>]*>)?\\s*<?(\\w+)`));
+    if (!m) { malas.push(`${nombre}: no encuentro su <Route> en App.js`); continue; }
+    const fichero = path.join(__dirname, '..', 'src', 'pages', `${m[1]}.jsx`);
+    if (!fs.existsSync(fichero)) { malas.push(`${nombre}: no encuentro ${m[1]}.jsx`); continue; }
+    if (/noindex:\s*true/.test(fs.readFileSync(fichero, 'utf8')))
+      malas.push(`${nombre}: ${m[1]}.jsx declara noindex: true`);
+  }
+  if (malas.length) {
+    console.error('\n✗ APP anuncia en el sitemap rutas que no deben indexarse:');
+    for (const x of malas) console.error(`    · ${x}`);
+    console.error('  Anunciarlas contradice al propio componente.');
+    process.exitCode = 1;
+  }
+})();
+
 // Sustituye el CONTENIDO de una etiqueta ya presente en el shell. Si la etiqueta
 // no está, no se inventa: el shell es la fuente y un cambio ahí tiene que verse
 // aquí, no quedar silenciosamente sin efecto.
+const faltantes = new Set();
 const sust = (html, re, reemplazo, que) => {
   if (!re.test(html)) { faltantes.add(que); return html; }
   return html.replace(re, reemplazo);
 };
-const faltantes = new Set();
 
-for (const [ruta, , tk, dk, indexable] of APP) {
-  if (ruta === '/') continue;                       // ya lo sirve build/index.html
-  const titulo = tk ? `${T.es[tk]} | Trading Calculator PRO` : null;
-  const desc = dk ? recorta(T.es[dk], 158) : null;
-  const url = `${DOMAIN}${ruta}`;
-  let html = shellSrc;
-  if (titulo) {
-    html = sust(html, /<title>[^<]*<\/title>/, `<title>${esc(titulo)}</title>`, '<title>');
-    html = sust(html, /(<meta property="og:title" content=")[^"]*"/,
-                `$1${esc(titulo)}"`, 'og:title');
-    html = sust(html, /(<meta name="twitter:title" content=")[^"]*"/,
-                `$1${esc(titulo)}"`, 'twitter:title');
+let shellCount = 0;
+const SHELL = path.join(BUILD, 'index.html');
+if (!fs.existsSync(SHELL)) {
+  console.log('⚠️  build/index.html no existe: no se generan las rutas del SPA.');
+  console.log('    (normal si has ejecutado este script suelto, sin `craco build` antes)');
+} else {
+  const shellSrc = fs.readFileSync(SHELL, 'utf8');
+  // El texto de estas páginas sale de las claves i18n de `useSEO`, en
+  // `src/lib/i18n/es.js`: ésa es la fuente cuya fecha vale como `lastmod`.
+  const FECHA_APP = fechaReal('src/lib/i18n/es.js', 'public/index.html');
+  for (const [ruta, prio, tk, dk, indexable] of APP) {
+    if (ruta === '/') continue;                       // ya lo sirve build/index.html
+    const titulo = tk ? `${T.es[tk]} | Trading Calculator PRO` : null;
+    const desc = dk ? recortar(T.es[dk]) : null;
+    const url = `${DOMAIN}${ruta}`;
+    let html = shellSrc;
+    if (titulo) {
+      html = sust(html, /<title>[\s\S]*?<\/title>/, `<title>${esc(titulo)}</title>`, '<title>');
+      html = sust(html, /(<meta property="og:title" content=")[^"]*"/, `$1${esc(titulo)}"`, 'og:title');
+      html = sust(html, /(<meta name="twitter:title" content=")[^"]*"/, `$1${esc(titulo)}"`, 'twitter:title');
+    }
+    if (desc) {
+      html = sust(html, /(<meta name="description" content=")[^"]*"/, `$1${esc(desc)}"`, 'description');
+      html = sust(html, /(<meta property="og:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'og:description');
+      html = sust(html, /(<meta name="twitter:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'twitter:description');
+    }
+    html = sust(html, /(<link rel="canonical" href=")[^"]*"/, `$1${esc(url)}"`, 'canonical');
+    html = sust(html, /(<meta property="og:url" content=")[^"]*"/, `$1${esc(url)}"`, 'og:url');
+    html = sust(html, /(<meta name="twitter:url" content=")[^"]*"/, `$1${esc(url)}"`, 'twitter:url');
+    // El `x-default` del shell apunta a la portada. Copiado tal cual, las diez
+    // rutas declararían que su versión por defecto es `/`, que es justo la señal
+    // que hace que Google se quede con una sola y descarte las demás.
+    //
+    // Y sólo `x-default`, sin las diez alternativas por idioma: estas rutas NO
+    // tienen una URL por idioma —la SPA traduce en cliente, así que
+    // `/pricing?lang=de` devuelve el mismo HTML—, y declarar diez URLs que
+    // sirven lo mismo es el error que `public/index.html` ya documenta.
+    html = sust(html, /(<link rel="alternate" hreflang="x-default" href=")[^"]*"/, `$1${esc(url)}"`, 'x-default');
+    if (!indexable) {
+      html = sust(html, /(<meta name="robots" content=")[^"]*"/, '$1noindex, follow"', 'robots');
+      html = sust(html, /(<meta name="googlebot" content=")[^"]*"/, '$1noindex, follow"', 'googlebot');
+    }
+    const dir = ruta.replace(/^\//, '');
+    fs.mkdirSync(path.join(BUILD, dir), { recursive: true });
+    fs.writeFileSync(path.join(BUILD, dir, 'index.html'), html, 'utf8');   // sirve /ruta/
+    fs.writeFileSync(path.join(BUILD, `${dir}.html`), html, 'utf8');       // sirve /ruta
+    escritas.add(dir);                                 // ningún puente puede pisarla
+    if (prio) sitemapApp.push([ruta, prio, FECHA_APP]);
+    shellCount++;
   }
-  if (desc) {
-    html = sust(html, /(<meta name="description" content=")[^"]*"/, `$1${esc(desc)}"`, 'description');
-    html = sust(html, /(<meta property="og:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'og:description');
-    html = sust(html, /(<meta name="twitter:description" content=")[^"]*"/, `$1${esc(desc)}"`, 'twitter:description');
+  if (faltantes.size) {
+    console.error(`✗ El shell no trae ${[...faltantes].join(', ')}: las rutas de app saldrían`);
+    console.error('  con los metadatos de la portada. Revisa public/index.html.');
+    process.exit(1);
   }
-  html = sust(html, /(<link rel="canonical" href=")[^"]*"/, `$1${esc(url)}"`, 'canonical');
-  html = sust(html, /(<meta property="og:url" content=")[^"]*"/, `$1${esc(url)}"`, 'og:url');
-  html = sust(html, /(<meta name="twitter:url" content=")[^"]*"/, `$1${esc(url)}"`, 'twitter:url');
-  html = sust(html, /(<link rel="alternate" hreflang="x-default" href=")[^"]*"/, `$1${esc(url)}"`, 'x-default');
-  if (!indexable) {
-    html = sust(html, /(<meta name="robots" content=")[^"]*"/, '$1noindex, follow"', 'robots');
-    html = sust(html, /(<meta name="googlebot" content=")[^"]*"/, '$1noindex, follow"', 'googlebot');
-  }
-  const dir = ruta.replace(/^\//, '');
-  fs.mkdirSync(path.join(BUILD, dir), { recursive: true });
-  fs.writeFileSync(path.join(BUILD, dir, 'index.html'), html, 'utf8');   // sirve /ruta/
-  fs.writeFileSync(path.join(BUILD, `${dir}.html`), html, 'utf8');       // sirve /ruta
-  appCount++;
-}
-if (faltantes.size) {
-  console.error(`✗ El shell no trae ${[...faltantes].join(', ')}: las rutas de app saldrían`);
-  console.error('  con los metadatos de la portada. Revisa public/index.html.');
-  process.exit(1);
 }
 
 // ── Sitemap ──
-// `/performance` NO va aquí: es una ruta premium (`ProtectedRoute premiumOnly`)
-// y robots.txt la bloquea con `Disallow: /performance`. Anunciar en el sitemap
-// una URL que robots prohíbe es la contradicción que Search Console marca como
-// «enviada pero bloqueada por robots.txt», y resta autoridad al resto del
-// sitemap. Por la misma razón se han sacado `/education`, `/options` y
-// `/options/strategies`, que son premium igual y estaban anunciadas con
-// prioridad 0.9.
+// `/performance` NO va aquí, y la razón ya estaba escrita en gen-sitemap.js: es
+// una ruta premium (`ProtectedRoute premiumOnly`) y robots.txt la bloquea con
+// `Disallow: /performance`. Anunciar en el sitemap una URL que robots prohíbe es
+// la contradicción que Search Console marca como «enviada pero bloqueada por
+// robots.txt», y resta autoridad al resto del sitemap.
 //
-// El arreglo original estaba en el generador equivocado: `postbuild` ejecuta
-// SÓLO este fichero, así que gen-sitemap.js —donde sí se había quitado, con su
-// comentario— no llega nunca al sitemap publicado.
-
-// `lastmod`: la fecha del último cambio REAL, o ninguna.
+// El arreglo estaba en el generador equivocado: `postbuild` ejecuta SÓLO este
+// fichero, así que gen-sitemap.js —donde sí se había quitado, con su comentario—
+// no llega nunca al sitemap publicado. Por eso `/performance` seguía saliendo.
+// Y `/education`, `/options` y `/options/strategies` TAMPOCO van, por lo mismo
+// que `/performance` y con la misma prueba: los tres son
+// `ProtectedRoute premiumOnly` en `src/App.js`, así que a quien no ha iniciado
+// sesión lo mandan a `/login`. Estaban aquí con prioridad 0.9 y 0.85 — las más
+// altas del sitemap después de la portada— anunciando a Google tres pantallas
+// de acceso. Su contenido público sí se indexa: son las 750 páginas de
+// `/learn/`, las 660 de estrategias y sus cuatro hubs, que no tienen muro.
 //
-// Salían las 1.648 URLs con la fecha del build, así que cada despliegue le decía
-// a Google que las 1.648 páginas habían cambiado. Google documenta que ignora el
-// `lastmod` que no es consistente con lo que ve, de modo que el campo no sólo no
-// servía: gastaba credibilidad. Se saca del git de cada FUENTE (una página de
-// estrategia cambia cuando cambia `mockData.js`), y si el repositorio no tiene
-// historia —un clon superficial— se omite la etiqueta en vez de inventar una
-// fecha. Un dato que no se puede calcular no se rellena con un valor plausible.
-const { execFileSync } = require('child_process');
-const RAIZ = path.join(__dirname, '..', '..');
-const cacheFecha = new Map();
-const fechaDe = (rel) => {
-  if (cacheFecha.has(rel)) return cacheFecha.get(rel);
-  let f = null;
-  try {
-    const d = execFileSync('git', ['log', '-1', '--format=%cs', '--', rel],
-      { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) f = d;
-  } catch { /* sin git: se omite lastmod */ }
-  cacheFecha.set(rel, f);
-  return f;
-};
-// De qué fichero depende el contenido de cada sección.
-const FUENTE = [
-  [/\/tools\//,              'frontend/scripts/gen-seo-pages.js'],
-  [/\/learn\//,              'frontend/src/lib/i18n/es.edu.js'],
-  [/\/markets\//,            'frontend/src/lib/marketTypesContent.js'],
-  [/\/options\/strategies\//, 'frontend/src/data/mockData.js'],
-];
-const lastmodDe = (ruta) => {
-  const m = FUENTE.find(([re]) => re.test(ruta));
-  return fechaDe(m ? m[1] : 'frontend/src/lib/i18n/es.js');
-};
+// Las que quedan aquí son las de `APP` con prioridad, y se añaden desde el
+// bucle que las ESCRIBE (arriba), no desde una lista aparte: así no puede
+// anunciarse una URL que nadie ha generado.
+const MAIN = [['/', '1.0', fechaReal('public/index.html')]];
 
-const enSitemap = APP.filter(([, prio]) => prio).map(([ruta, prio]) => [ruta, prio]);
-const all = [...enSitemap, ...sitemapUrls];
+// El ORDEN del sitemap no es cosmético: portada, rutas de aplicación y hubs
+// primero, y detrás la cola larga. Es la jerarquía real del sitio, y además es
+// lo que hace útil el muestreo de `check-seo-en-vivo.js` — que revisa la
+// cabecera, la cola y un reparto del medio. Con las rutas de aplicación
+// enterradas en el puesto 1.650 no las habría mirado nunca, que es justo cómo
+// pasaron desapercibidos sus 404.
+const all = [...MAIN, ...sitemapApp, ...sitemapHubs, ...sitemapUrls];
+// `lastmod` sale de `git log` sobre el fichero fuente de CADA página — nunca
+// la fecha del build. Antes las 1.685 URLs llevaban la MISMA fecha en cada
+// despliegue, que es justo lo que hace que un buscador deje de fiarse del
+// campo: no hay forma de distinguir «esto cambió» de «se ha vuelto a compilar
+// el mismo texto». `fechaReal()` cae al build-date sólo si git no tiene
+// historial que mirar (ver su cabecera), así que un `[2]` que falte aquí es un
+// punto que se me olvidó cablear, no el caso normal.
 const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-  all.map(([p, pr]) => {
-    const lm = lastmodDe(p);
-    return `  <url><loc>${DOMAIN}${p}</loc>${lm ? `<lastmod>${lm}</lastmod>` : ''}<priority>${pr}</priority></url>`;
-  }).join('\n') +
+  all.map(([p, pr, fecha]) => `  <url><loc>${DOMAIN}${p}</loc><lastmod>${fecha || LASTMOD}</lastmod><priority>${pr}</priority></url>`).join('\n') +
   '\n</urlset>\n';
+if (_fallosFecha > 0) {
+  console.log(`⚠️  ${_fallosFecha} fecha(s) cayeron al build-date por falta de historial de git (¿clon superficial?).`);
+}
 fs.writeFileSync(path.join(BUILD, 'sitemap.xml'), sitemap, 'utf8');
+// Informe para `check-seo.js`: cuántas de las consultas a git (no de las
+// PÁGINAS — muchas comparten una misma consulta) cayeron al build-date.
+// El sitemap por sí solo no distingue «cayó al build-date» de «el histórico
+// real dio la misma fecha a propósito» —un día con un cambio ancho de
+// verdad, como este mismo, produce lo segundo—, así que el verificador no
+// puede mirar sólo las fechas del sitemap: necesita saber si el MECANISMO
+// funcionó, y eso sólo lo sabe este script.
+fs.writeFileSync(path.join(BUILD, '.lastmod-meta.json'), JSON.stringify({
+  consultas: _fechasGit.size, fallos: _fallosFecha,
+}), 'utf8');
 
-console.log(`✅ Rutas de app: ${appCount} shells con estado 200 (antes: 404 de GitHub Pages)`);
 console.log(`✅ Calculadoras: ${calcCount} páginas (hasta ${CALCS.length} × ${LANGS.length} idiomas)`);
 console.log(`✅ Educación: ${learnCount} páginas (hasta ${TOPICS.length} temas × ${LANGS.length} idiomas)`);
+console.log(`   · ${conceptosPublicados} conceptos publicados desde i18n (antes: 0)`);
 console.log(`✅ Mercados: ${marketCount} páginas (${marketIds.length} mercados × ${LANGS.length} idiomas)`);
 console.log(`✅ Estrategias: ${stratCount} páginas (${STRATEGIES.length} estrategias × ${LANGS.length} idiomas)`);
+console.log(`✅ Patrones chartistas: ${patternCount} páginas (${CHART_IDS.length} patrones × ${LANGS.length} idiomas)`);
+console.log(`✅ Patrones de vela: ${candleCount} páginas (${CANDLE_IDS.length} patrones × ${LANGS.length} idiomas)`);
+console.log(`✅ Hubs de sección: ${hubCount} (${SECCIONES.length} secciones × idiomas con contenido)`);
+console.log(`✅ Rutas de app con fichero propio: ${shellCount} shells con estado 200 (antes: 404 de Pages)`);
+console.log(`✅ Páginas puente por slug traducido: ${puenteCount} (fuera del sitemap, a propósito)`);
 console.log(`✅ sitemap.xml: ${all.length} URLs`);

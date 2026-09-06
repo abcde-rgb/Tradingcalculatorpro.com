@@ -126,6 +126,17 @@ async function pedir(url) {
     process.exit(1);
   }
 
+  // 1b · el icono que sale en los resultados de búsqueda.
+  //
+  // Google y Yandex lo piden por su cuenta a la raíz, aparte de leer el que
+  // declara la página. Si no responde, el resultado sale con el globo genérico
+  // —que es como salía el sitio en Yandex— y no hay forma de enterarse desde
+  // dentro: la web se ve perfecta con el icono cacheado del navegador.
+  const icono = await pedir(`${BASE}/favicon.ico`);
+  if (!icono.ok) mal('favicon.ico no responde', `${icono.status || icono.error} — el buscador pintará un icono genérico`);
+  if (!/<link[^>]+rel="[^"]*icon/i.test(home.texto))
+    mal('la portada no declara ningún icono', 'sin `rel="icon"` el buscador se queda con lo que encuentre');
+
   // 2 · robots.txt existe y declara el sitemap
   const robots = await pedir(`${BASE}/robots.txt`);
   if (!robots.ok) mal('robots.txt no responde', robots.status);
@@ -145,26 +156,34 @@ async function pedir(url) {
   }
 
   // 4 · una muestra del sitemap responde de verdad y se declara canónica de sí
-  //     misma. Repartida a lo largo de la lista, no las N primeras: las primeras
-  //     son siempre las rutas principales, y son justo las que nunca fallan.
-  // El muestreo a paso fijo se saltaba justo las URLs que más importan.
+  //     misma.
   //
-  // Con 1.648 `<loc>` y `--muestra 25` el paso sale 65, así que de las ocho
-  // rutas de aplicación —que van las primeras del sitemap, índices 0 a 7— sólo
-  // se comprobaba la 0, la portada. Las otras siete (`/pricing`, `/education`,
-  // `/options`, `/about`, `/contact`, `/legal`…) llevaban meses devolviendo 404
-  // de GitHub Pages sin que este verificador pudiera verlo: no es que fallara,
-  // es que no las miraba. Un muestreo regular sobre una lista ordenada tiene
-  // exactamente esta forma de punto ciego.
+  // ⚠️ Aquí ponía que las primeras URLs de la lista «son las rutas principales,
+  // y son justo las que nunca fallan», y por eso el muestreo `i % paso` las
+  // saltaba: con 1.648 URLs el paso era ~55, así que de las ocho primeras sólo
+  // se pedía la portada.
   //
-  // Ahora las rutas cortas (un solo segmento, o ninguno) entran SIEMPRE, y el
-  // paso reparte el resto de la muestra por las páginas generadas.
-  const esRutaDeApp = (u) => rutaDe(u).replace(/^\/|\/$/g, '').split('/').filter(Boolean).length <= 1;
-  const fijas = locs.filter(esRutaDeApp);
-  const resto = locs.filter((u) => !esRutaDeApp(u));
-  const hueco = Math.max(0, MUESTRA - fijas.length);
-  const paso = Math.max(1, Math.floor(resto.length / Math.max(1, hueco)));
-  const muestra = [...fijas, ...resto.filter((_, i) => i % paso === 0).slice(0, hueco)];
+  // Eran las únicas que fallaban. GitHub Pages sólo sirve `index.html` en la
+  // raíz; cualquier otra ruta sin fichero propio recibe `404.html` **con
+  // estado 404**, y el workflow copia ahí el shell del SPA. Resultado: la
+  // persona ve la web perfecta y el rastreador recibe un 404. `/pricing`,
+  // `/education`, `/options`, `/about`, `/contact` y `/legal` llevaban así
+  // desde siempre, anunciadas en el sitemap, y este verificador estaba
+  // construido para no mirarlas.
+  //
+  // Ahora se piden SIEMPRE las primeras y las últimas —que son las que un
+  // muestreo por paso fijo no visita nunca— y se reparte el resto por el medio.
+  // El sitemap sale ordenado por jerarquía (portada, rutas de aplicación, hubs,
+  // y detrás la cola larga), así que la cabecera es justo lo que más duele si
+  // falla.
+  const EXTREMOS = 8;
+  const cabeza = locs.slice(0, EXTREMOS);
+  const cola = locs.slice(-EXTREMOS);
+  const medio = locs.slice(EXTREMOS, -EXTREMOS);
+  const cuantas = Math.max(1, MUESTRA - cabeza.length - cola.length);
+  const paso = Math.max(1, Math.floor(medio.length / cuantas));
+  const muestra = [...cabeza, ...medio.filter((_, i) => i % paso === 0).slice(0, cuantas), ...cola]
+    .filter((u, i, a) => a.indexOf(u) === i);
   let vistas = 0;
   for (const url of muestra) {
     const r = await pedir(aBase(url));

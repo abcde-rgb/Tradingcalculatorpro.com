@@ -6526,3 +6526,374 @@ No se tocó ninguna dependencia: el arreglo de fondo es salir de CRA (skill
   dejaría el frontend llamando a algo no desplegado. Es lo primero de la lista.
 - **Proteger `main` en GitHub.** BUG-087 cierra el camino del despliegue, pero un
   push que no toque `frontend/**` sigue sin pasar por nada.
+
+---
+
+### 2026-09-03 — El SEO no fallaba: devolvía 404. Cinco bugs y 1.680 páginas indexables
+
+Lo trajo el dueño con una captura de Yandex buscando «trading calculator pro»: el
+sitio salía con **el globo genérico** en vez de su logo, con una sola página de
+resultado —`/ru/learn/operar-noticias/`, un slug español bajo una URL rusa— y con
+una descripción que no era la del tema sino **el descargo legal del pie**.
+
+Cada una de esas tres rarezas era la punta de un fallo distinto, y al tirar del
+hilo apareció uno más gordo que ninguno de los tres.
+
+**BUG-081 — siete de las ocho rutas principales devolvían HTTP 404.** GitHub Pages
+sólo sirve `index.html` en la raíz; cualquier otra ruta sin fichero físico recibe
+`404.html` **con estado 404**, y el workflow copia ahí el shell del SPA. La persona
+ve la web perfecta y el rastreador ve un 404. `/pricing`, `/education`, `/options`,
+`/options/strategies`, `/about`, `/contact` y `/legal`, **las siete anunciadas en el
+sitemap**, tres con las prioridades más altas del sitio. Explica por qué sólo
+aparecían páginas estáticas profundas. Ningún verificador podía verlo:
+`check-seo.js` mira ficheros en disco, donde no hay códigos de estado, y
+`check-seo-en-vivo.js` —que sí pide las URLs de verdad— muestreaba con `i % paso`
+sobre 1.648 URLs y saltaba justo las ocho primeras. Su comentario decía que ésas
+«son las que nunca fallan».
+
+**BUG-088 — las 1.640 páginas eran huérfanas.** No salía ni un enlace de la
+aplicación hacia ninguna. El sitemap descubre, pero no reparte autoridad.
+
+**BUG-084 — descripción cortada a media palabra y contenido delgado.** El
+`.slice(0, 158)` partía la última palabra; el buscador descartaba la descripción y
+se inventaba el resumen con el texto de la página, que eran **94 palabras** de las
+que unas 40 eran del tema. Lo más sustancioso que encontraba era el descargo.
+
+**BUG-083 — `useSEO` deshacía en runtime el arreglo de `hreflang` que
+`public/index.html` documenta** en quince líneas de comentario. Duraba lo que
+tardaba React en montar.
+
+**BUG-089 — `check-seo.js` leía `robots.txt` ignorando los `Allow`**, y por eso
+denunciaba 660 páginas buenas en cuanto se usó la pareja `Disallow: /options` +
+`Allow: /options/strategies/`.
+
+#### Lo que se ha hecho
+
+- **Las seis rutas públicas del SPA tienen fichero propio** y devuelven 200, con
+  título, descripción, canonical y `x-default` propios. Las tres con muro
+  (`premiumOnly` → `/login`) **salen del sitemap y entran en `robots.txt`**: un 200
+  ahí sólo serviría para indexar una pantalla de acceso.
+- **40 hubs de sección** (`/learn/`, `/tools/`, `/markets/`, `/strategies/` × 10
+  idiomas). Toda página está a **dos saltos de la portada**. El pie de la SPA los
+  enlaza en el idioma activo.
+- **Slugs traducidos**, decisión del dueño. Se derivan del título ya traducido;
+  el cirílico se translitera (`/ru/learn/torgovlya-na-novostyah/`) y zh/ja/ar caen
+  al inglés. **El español no se mueve**: es el único con indexación consolidada.
+  Las 949 URLs que cambian quedan publicadas como **página puente** con `canonical`
+  + `meta refresh` — lo más fuerte que permite Pages, que no sirve cabeceras.
+- **4.300 conceptos publicados** desde `lib/i18n/*.edu.js`, que ya estaban
+  traducidos a los diez idiomas y sólo se pintaban dentro de la aplicación. Las
+  páginas de academia pasan de 94 a ~240 palabras. No se ha escrito ni una línea
+  de contenido nuevo: misma fuente que el módulo, así que no pueden divergir.
+- **Favicon declarado** en las 1.680 páginas, y la verificación de Yandex
+  Webmaster cableada por variable de entorno (estaba comentada con un
+  `TU_CODIGO_YANDEX` de plantilla, o sea inservible).
+
+#### Lo que se ha verificado, y con qué
+
+`npm run build` real, y sobre ese build: `check-seo.js` en verde (2.635 páginas,
+1.687 URLs), `i18n-check` (7.431 claves × 10, 0 crudas), `engine-check` (535/535),
+`eslint src scripts` (0 errores), `check-enlaces-academia`, `check-edu-index`,
+`gen-instruments-js --check`, `gen-mapa --check`, `gen-asistente --check`,
+`check-rutas-muertas`, `check-doc-links`. Siete sabotajes nuevos en
+`probar-verificadores.sh`, todos cazados.
+
+#### Lo que NO se ha podido comprobar aquí, y hay que mirar tras desplegar
+
+El sandbox **no tiene salida a internet**: no se ha podido pedir ni una URL del
+sitio publicado. Que `/pricing/` devuelva 200 está comprobado sobre el `build/`
+—el fichero existe—, pero **el 404 era un comportamiento del servidor**, así que la
+prueba definitiva es el workflow `seo-en-vivo.yml`, que sí corre con red y ahora sí
+mira las rutas principales. Correrlo tras el despliegue.
+
+#### Lo operativo, que no está en este commit
+
+1. Verificar la propiedad en **Yandex Webmaster** y poner
+   `REACT_APP_YANDEX_VERIFICATION` en los secretos del repositorio. Sin eso no se
+   le puede enviar el sitemap ni pedir que rastree el favicon.
+2. En **Search Console**, reenviar `sitemap.xml`: 1.687 URLs, y las que antes
+   daban 404 hay que pedir su reindexación a mano.
+3. Las 949 URLs viejas quedan como puente. Cuando haya un CDN delante (Cloudflare)
+   conviene convertirlas en **301 de verdad** y retirar los puentes.
+
+### 2026-09-03 (cont.) — G-42: la academia deja de ser delgada (94 → 453 palabras)
+
+El dueño pidió atacarlo en la misma sesión. La primera pasada publicaba los
+conceptos adivinando la familia de claves i18n por el prefijo del tema
+(`ntTitle` → `nt…Name`/`…Desc`), y eso sólo cubría 57 de 75: los otros 18 no
+siguen ese convenio.
+
+**La fuente correcta era otra, y estaba a la vista**: `tradingEducationContent.js`
+declara la estructura EXACTA que la aplicación pinta dentro de cada módulo, con
+sus claves i18n. Llamando a su `get…(t)` con la `t` del idioma sale el mismo
+texto que ve un suscriptor, traducido, sin adivinar y sin poder divergir del
+módulo.
+
+Y el emparejamiento tema→getter **no se escribe a mano**: se descubre llamando a
+cada getter con `t = identidad` y comparando el `title` que devuelve con el `tk`
+del tema. **72 de 75 se emparejan solos.** Una tabla escrita a mano se pudriría
+al primer renombrado, y en silencio: la página no fallaría, sólo saldría corta.
+
+Comprobado antes de cambiar nada que el getter no PIERDE contenido frente a la
+heurística: sólo un tema (`wyckoff`) daba un par menos, y el del getter es el
+autoritativo. La heurística se queda como plan B.
+
+- Conceptos publicados: **4.300 → 6.360**
+- Mediana de la academia: **94 → 453 palabras** (750 páginas)
+- Páginas delgadas: **166 → 43**
+
+Quedan 5 temas (`session-phases`, `strategies`, `harmonic-patterns`,
+`time-impact`, `pre-trade-protocol`) cuyo contenido vive dentro de un componente
+JSX y no en datos: **G-42**, reescrito con estas cifras.
+
+**Y un fallo del arnés, del mismo tipo que ya documenta BUG-078**: el sabotaje
+«el `<noscript>` del shell enlazando una ruta que robots.txt prohíbe» buscaba
+`<li><a href="/education">Academia de trading</a></li>`, línea que desapareció
+al repuntar el `<noscript>` a los hubs públicos. El `replace` no encontraba su
+texto, escribía el fichero igual y salía con 0, así que el arnés cantaba
+«SOBREVIVE» sobre una comprobación perfecta. Ahora lleva `grep -q` delante: si
+el ancla se mueve otra vez, el sabotaje falla y lo dice.
+
+Verificado: `npm run build` real, `check-seo.js` en verde (2.635 páginas, 1.687
+URLs), `eslint` 0 errores, `check-doc-links`. Traducciones comprobadas en ru y
+ja para los temas nuevos: 0 pares vacíos.
+
+---
+
+### 2026-09-05 — 77 patrones con página propia, un dato falso en 10 idiomas y BUG-089
+
+El dueño pidió usar dos auditorías SEO externas (una propia, una de un tercero) para
+hacer crecer el proyecto "sin dejarse nada": dato por dato, en los diez idiomas, y
+revisando también el despliegue. Lo aprovechable de ambas, aplicado; lo que no lo era,
+descartado con su razón (abajo, §"Lo que se rechazó").
+
+#### Dato falso corregido en los 10 idiomas
+
+`edu_regla802080_db62e282` decía que **~80 % de las opciones expiran sin valor** y por
+eso "el vendedor de primas suele ganar". La cifra real de la OCC es **30-35 %** — la
+mayoría de las demás se cierran antes del vencimiento, no expiran con valor. La
+conclusión práctica no cambia (el vendedor de primas sigue ganando más a menudo, con
+mal ratio riesgo/beneficio), pero la cifra que la sostenía era inventada. Corregida en
+`es, en, de, fr, ru, zh, ja, ar, pt, it`; verificado con `i18n-check.js` (7.431 claves ×
+10, 0 huérfanas) y parseo de cada fichero.
+
+#### `lastmod` real, y el bug que sólo salió al usarlo a fondo (BUG-089)
+
+Las URLs del sitemap llevaban SIEMPRE la fecha del build, repetida: ningún buscador
+podía distinguir "esto cambió" de "se ha vuelto a compilar el mismo texto". Ahora
+`fechaReal()` en `gen-seo-pages.js` deriva cada fecha de `git log` sobre el fichero
+fuente del CONTENIDO de cada página, no del código que la genera.
+
+Se escribió uniendo varias rutas con un `--` por cada una (`-- "a" -- "b"`). Un segundo
+`--` no es "otro separador": es un pathspec LITERAL que no casa nada, y git lo tolera
+en silencio devolviendo el commit más reciente del REPO ENTERO en vez de filtrar por
+ruta. Estaba mal desde que se escribió (temas, mercados y estrategias usan más de una
+ruta) y no se notó: el checker de entonces sólo miraba si el sitemap tenía más de una
+fecha distinta, y con `mockData.js`/`<lang>.js` cambiando a menudo casi siempre las
+había. Al construir las 770 páginas nuevas de patrones en el mismo build en que se
+tocaron los diez `<lang>.js` (por el dato del 80 %), TODO colapsó a la fecha de hoy y
+el síntoma se hizo imposible de ignorar.
+
+Arreglado el `join`, el checker de `check-seo.js` pasó a tener un problema distinto: un
+día de cambios anchos DE VERDAD (los diez `<lang>.js` a la vez) produce fechas reales
+pero igual de uniformes — indistinguible en el sitemap de la firma del bug que
+sustituye. Ahora `gen-seo-pages.js` escribe `build/.lastmod-meta.json` con cuántas
+CONSULTAS a git (no páginas — muchas comparten una) cayeron al build-date por falta de
+historial, y `check-seo.js` lee eso en vez de contar fechas distintas en la salida.
+
+#### 77 patrones (42 chartistas + 35 de vela), con hub propio
+
+Vivían dentro del módulo de educación, tras el muro de pago, sin una URL propia —el
+mismo hueco que ya se había cerrado para las 66 estrategias de opciones. `id` no se
+traduce (jerga técnica: "head-shoulders", "hammer"), así que no hay slug que derivar
+ni página puente que generar. Nuevos hubs `/patterns/` y `/candles/` × 10 idiomas.
+
+Al añadir las dos secciones apareció un segundo bug ajeno al contenido: el regex de
+`check-seo.js` que decide qué carpeta cuenta como "hub" llevaba la lista de cuatro
+nombres escrita a mano (`learn|tools|markets|strategies`) y no incluía las dos nuevas.
+Con eso puesto, las 770 páginas de patrones eran huérfanas SIEMPRE, aunque su propio
+hub sí las enlazara de verdad — un `check-seo.js` en verde no lo habría notado sin
+mirar el número real de páginas enlazadas.
+
+Sabotajes nuevos/reescritos en `probar-verificadores.sh` para los tres (patrones
+huérfanos, consultas de fecha al build-date, y se mantiene el de huérfanas genérico).
+
+- Páginas estáticas: **1.680 → 2.410** · sitemap: **1.687 → 2.475 URLs** · hubs: **40 → 60**
+
+#### CI en verde de verdad, no por casualidad
+
+Nueve fallos propios aparecieron al ir y volver con CI durante la sesión (iconos con
+URL absoluta violando su propia CSP, refresh de puente absoluto midiendo la CSP del
+sitio equivocado, `/brokers` y `/backtesting` en `RUTAS_SPA` pese a declarar
+`noindex: true` en su propio componente, un sabotaje con backticks que rompía por
+sintaxis, el checker de enlaces internos leyendo `robots.txt` antes de cargarlo, un
+`eval` de más rompiendo la restauración de seis casos seguidos, un ancla de
+`<noscript>` movida que dejaba un sabotaje sin aplicar en silencio, `CI` sin
+`REACT_APP_BACKEND_URL` invalidando la CSP entera, y — el más tonto — un `--sin-sesion`
+que imprimía "✅ se abre y la política lo autoriza" sobre una comprobación que
+literalmente acababa de saltarse). La raíz común de la mitad de ellos: no se podía
+correr Chromium en este sandbox para verificar en local antes de empujar. Se instaló
+`playwright-core` + el Chromium ya presente en el contenedor, y desde entonces cada
+arreglo se verificó con un navegador real antes de cualquier push, no después.
+
+- `REACT_APP_BACKEND_URL: https://api.example.invalid` (RFC 2606) en el build de CI:
+  sin ella, `%REACT_APP_BACKEND_URL%` quedaba sin sustituir dentro de `connect-src` y
+  el navegador descartaba la CSP entera, no sólo esa directiva — 12 páginas rotas por
+  build, sin relación con el cambio revisado.
+- `csp.js --sin-sesion`: sin backend vivo, el sub-check del WebSocket de alertas nunca
+  podía tener éxito en CI y contaba como fallo permanente; ahora se declara NO
+  COMPROBADO (ni ✅ ni ❌) y lo cubre de verdad el skill `qa`, con el stack completo.
+
+#### Meta keywords retirada
+
+`frontend/public/index.html` llevaba `<meta name="keywords">` desde el origen del
+proyecto. Google la ignora desde 2009 (lo dijo Google) y Bing desde 2014; no aporta
+nada y sólo hay que mantenerla sincronizada con nada. Retirada, con el porqué en un
+comentario para que nadie la reponga "por si acaso".
+
+#### La skill `mejorar-seo`, reescrita
+
+Describía `gen-sitemap.js` como el generador del sitemap real (es código muerto,
+sustituido por `gen-seo-pages.js`, con una comprobación en `check-seo.js` que salta
+justo si alguien vuelve a ejecutarlo), y el prerender como trabajo futuro cuando ya
+está completo desde la sesión del 2026-09-03. Reescrita reflejando la arquitectura de
+verdad: las dos superficies de SEO (páginas estáticas vs. rutas de la SPA con
+`useSEO`), cómo añadir una sección de contenido nueva usando patrones/candles como
+ejemplo guía, y la checklist de "nace una página".
+
+#### Lo que se rechazó de las auditorías externas
+
+Una de las dos recomendaba mover el `hreflang` al sitemap únicamente y quitarlo del
+`<head>`. Se descartó: el de `<head>` está verificado funcionando en las 2.475 páginas
+(reciprocidad + `x-default`, comprobado por `check-seo.js`), y cambiar el mecanismo de
+señalización de idioma sobre una indexación que ya se está consolidando es
+exactamente el tipo de cambio que se paga caro y no se puede deshacer rápido. Ambos
+métodos son válidos para Google; no había ningún problema que ese cambio resolviera.
+
+#### Lo que queda, y no es mío decidir solo
+
+- **Autoría/E-E-A-T**: no hay biografía de autor real que publicar. Fabricarla sería
+  justo el tipo de contenido sin respaldo que las reglas de honestidad numérica de
+  este proyecto existen para evitar. Hace falta un nombre, credenciales y una foto
+  reales del dueño.
+- **"Regala el cálculo, cobra la memoria"**: una de las auditorías sugiere mover las
+  calculadoras delante del muro de pago para captar más tráfico y convertir después.
+  Es una decisión de modelo de negocio, no de SEO — no se ha tocado.
+- **Cloud Run y GitHub Pages**: revisados por consistencia de configuración contra el
+  repositorio (no hay credenciales `gcloud` ni red en este sandbox para inspeccionar
+  el servicio en vivo). Sin hallazgos nuevos sobre lo ya documentado en
+  `.claude/rules/infra.md`.
+- **IndexNow** (empujar URLs nuevas a Bing/Yandex sin esperar al rastreo): no
+  implementado todavía.
+
+Verificado: `npm run build` real, `check-seo.js` en verde (3.423 páginas, 2.475 URLs),
+`i18n-check` (7.431 claves × 10), `engine-check` (535/535), `eslint src scripts` (0
+errores), `gen-instruments-js --check`, `gen-mapa --check`, `check-doc-links`,
+`check-rutas-muertas`, y `csp.js --sin-sesion` con Chromium real contra el build local.
+Sabotajes de patrones y `lastmod` verificados uno a uno (extracción de `probar()`,
+no el arnés completo de 25 min — pendiente correrlo entero antes de cerrar la PR).
+
+---
+
+### 2026-09-05 (cont.) — IndexNow: implementado en la misma sesión
+
+Quedaba anotado arriba como "no implementado todavía"; se hizo en la misma sesión,
+después de cerrar la revisión de despliegue.
+
+`frontend/scripts/indexnow-ping.js` avisa a `https://api.indexnow.org/indexnow`
+(reparte a Bing y Yandex) con las URLs cuyo `lastmod` es HOY — reutiliza el
+`fechaReal()` de BUG-089 en vez de reenviar las 2.475 URLs en cada despliegue, que
+es justo el patrón que Bing pide evitar. La clave de verificación
+(`frontend/public/4a42f1ecee09e72c1ffcfb94f2c726a1.txt`) no es secreta —el protocolo
+prueba propiedad del dominio con un fichero público, el mismo principio que la
+verificación HTML de Search Console— así que va en el repo, no en Secrets. Corre como
+paso `continue-on-error: true` en `deploy-gh-pages.yml`, después de publicar: un
+fallo de red ahí no debe deshacer un despliegue que ya tuvo éxito.
+
+Probado contra el build real: filtró correctamente las 2.475 URLs (todas con
+`lastmod` de hoy, por ser un día de cambios anchos — ver la entrada anterior) y
+llegó a mandar la petición real a `api.indexnow.org`, que respondió 403 porque el
+fichero de clave todavía no está publicado en producción — la respuesta esperada
+antes del primer despliegue con este cambio. No se puede confirmar aquí un 200/202
+real: eso sólo se sabrá tras desplegar.
+
+---
+
+### 2026-09-05 (cont. 2) — Fusionar main en el PR 229: dos arreglos del mismo fallo
+
+`main` avanzó mientras este PR estaba abierto, y lo hizo sobre el MISMO fallo que
+el PR abre: las siete rutas del sitemap que GitHub Pages servía con estado 404.
+Dos sesiones lo encontraron por su cuenta el mismo día y lo arreglaron distinto.
+Lo que quedó no era un conflicto de texto, sino seis ficheros con dos
+implementaciones del mismo arreglo, con nombres distintos y decisiones opuestas.
+
+**Lo que se decidió en cada choque, y por qué**
+
+- **Rutas de aplicación → la tabla `APP` de main.** Cubre diez rutas (las cuatro
+  públicas, las tres premium y las tres de autenticación) frente a las cuatro de
+  esta rama, escribe las DOS formas que Pages sabe servir (`pricing.html` y
+  `pricing/index.html`) y saca los textos de las mismas claves i18n que usa
+  `useSEO`, en vez de un literal inline que puede divergir. De esta rama se
+  conserva la guarda que lee `App.js` y aborta si una ruta anunciada en el
+  sitemap declara `noindex` en su componente — es lo que impide repetir lo de
+  `/brokers` y `/backtesting`.
+- **Canonical sin barra final.** La barra que traía esta rama era correcta para
+  SU diseño (sólo el directorio, servido tras un 301 de Pages). Con las dos
+  formas escritas no hay redirección que compensar, así que canonical,
+  `x-default` y sitemap dicen la misma cadena. `conBarra()` desaparece.
+- **Premium con `noindex`, no con `Disallow`.** Esta rama bloqueaba
+  `/education`, `/options` y `/options/strategies` en `robots.txt`; main les da
+  200 con `noindex, follow`. Gana main, y el motivo es el que ya costó el caso
+  `/performance`: **una ruta prohibida en robots nunca llega a leer su propio
+  `noindex`**, así que Google puede indexar la URL a secas por los enlaces que
+  la citan — y aquí la citan miles de páginas de academia y de estrategia. En
+  `robots.txt` queda sólo lo que NO tiene fichero: `/options/calculator`,
+  `/plan`, `/news` y `/affiliate`.
+- **Todo lo demás de esta rama entra tal cual**: los 60 hubs, los slugs
+  traducidos con sus 949 páginas puente, los 6.360 conceptos, los 77 patrones,
+  el favicon, IndexNow, el `lastmod` por fichero fuente y el muestreo de
+  extremos de `check-seo-en-vivo.js`.
+
+**Dos arreglos habían llegado por duplicado con otro nombre** —`recorta`/
+`recortar` y `ogLocale`/`OG_LOCALE`—, y el fichero ni siquiera parseaba: dos
+`const` con el mismo identificador. Se queda una implementación de cada uno.
+
+**La numeración chocaba en los dos diarios.** Las dos sesiones registraron en
+paralelo BUG-081…085, y tres de esos cinco eran el MISMO fallo contado dos
+veces. Se conservan los de main; de los de esta rama, los tres duplicados se
+retiran del diario y los dos propios pasan a **BUG-088** (páginas huérfanas) y
+**BUG-089** (parser de `robots.txt` y el `--` de más en `fechaReal`), con sus
+referencias remapeadas en código, reglas y skill. Lo mismo con los huecos: la
+sesión paralela reusó **G-37** y **G-38**, que ya existían desde agosto con otro
+significado; sus dos huecos nuevos pasan a **G-43** (fichas de mercado en inglés)
+y **G-44** (páginas huérfanas), y G-44 se cierra aquí.
+
+**Lo que encontró el arnés, y no se habría visto de otra forma**
+
+`probar-verificadores.sh` marcó **tres sabotajes que ya no sabotean**, los tres
+con su ✅ puesto hasta que se ejecutó: el que inserta una ruta con `noindex`
+apuntaba a `RUTAS_SPA`, que ya no existe; el que borra el fichero de `/pricing`
+borraba sólo el directorio, y `pricing.html` seguía sirviendo la ruta; y el que
+quita el `Allow` de `/options/strategies/` no casaba nada, porque esa línea ya no
+está en `robots.txt`. Los tres reescritos, y el último partido en dos —el
+sabotaje que añade el `Disallow`, y su mitad inversa con el `Allow` más largo,
+que es la que de verdad prueba el parser—.
+
+⚠️ **Y una trampa del propio arnés, para quien venga detrás**: `probar()`
+restaura con `git checkout -- .`, así que **se lleva por delante cualquier
+cambio sin commitear**. Editar documentación mientras corre cuesta el trabajo
+hecho. Se commitea antes de lanzarlo.
+
+**Verificado** sobre un `npm run build` real: `check-seo.js` (3.429 páginas,
+2.475 URLs), `i18n-check` (7.431 claves × 10), `engine-check` (535/535), `eslint
+src scripts` (0 errores), `check-precios.py`, `check-edu-index`,
+`check-enlaces-academia`, `check-fetch-credentials`, `check-i18n-identidad`,
+`check-quiz`, `gen-instruments-js --check`, `gen-mapa --check`, `gen-asistente
+--check`, `check-rutas-muertas`, `check-doc-links` y el arnés completo.
+
+**Lo que sigue sin poderse comprobar aquí**: el sandbox no tiene salida a
+internet, así que no se ha pedido ni una URL del sitio publicado. Que `/pricing`
+responda 200 está comprobado sobre el `build/` —los dos ficheros existen—, pero
+el 404 era un comportamiento del servidor: la prueba definitiva sigue siendo el
+workflow `seo-en-vivo.yml` tras el despliegue.
+

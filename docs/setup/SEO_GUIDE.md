@@ -128,5 +128,10 @@ páginas nuevas.
 - **Google Analytics 4**: añadir tag GA4 en `index.html` (te da datos de conversión).
 - **Google Tag Manager**: si quieres añadir múltiples tags sin redeplegar.
 - **Schema.org Course detallado**: enlazar cada `tab` del Education Center como `CourseInstance` propio con `learningResourceType: "Lesson"`.
-- **Pre-render con Vite SSG/Next.js**: para que crawlers vean HTML completo sin esperar a que React monte.
-- **Imagen `og-image.jpg` real (1200×630)**: actualmente apuntas a `/og-image.jpg` — sube una imagen real al `/public`.
+- ~~Pre-render con Vite SSG/Next.js~~ — **hecho, sin migrar nada**: `gen-seo-pages.js`
+  genera HTML completo (2.475 URLs: calculadoras, academia, mercados, estrategias,
+  patrones, candelas y sus hubs) en el `postbuild`, así que los rastreadores lo ven
+  sin esperar a que React monte. Sigue habiendo SPA pura detrás del muro
+  (`/dashboard`, `/options/calculator`…) — a propósito, no es contenido indexable.
+- ~~Imagen `og-image.jpg` real (1200×630)~~ — **hecho**: `/og-image.png`, 1200×630,
+  citada por su nombre real en `useSEO.js` y en `OG_IMAGE` de `gen-seo-pages.js`.

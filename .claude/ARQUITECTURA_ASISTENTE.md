@@ -33,7 +33,7 @@ CLAUDE.md ─── constitución: stack real, honestidad numérica, invariantes
 | `conversion-y-precio` | Trabajar el embudo de TradingCalculator.Pro: la página de precios, el muro de pago, la prueba de 7 días con tarjeta, el alta, el checkout y qué se mide… | 103 |
 | `estado-proyecto` | Usar al retomar el proyecto TradingCalculator.Pro, antes de añadir funciones, calculadoras, páginas, endpoints, idiomas o secciones admin, al preparar el… | 94 |
 | `identidad-visual` | Usar al tocar cualquier cosa visual de TradingCalculator.Pro: colores, tipografías, espaciados, tamaños, bordes, sombras, layout de una página, la… | 207 |
-| `mejorar-seo` | Usar para auditar o mejorar el SEO de TradingCalculator.Pro: meta tags, títulos, sitemap, robots.txt, hreflang/idiomas, datos estructurados (schema.org),… | 129 |
+| `mejorar-seo` | Usar para auditar o mejorar el SEO de TradingCalculator.Pro: páginas estáticas prerenderizadas, sitemap, robots.txt, hreflang/idiomas, datos… | 222 |
 | `microinteracciones` | Usar al añadir o revisar cualquier animación, transición, hover, estado de foco, feedback al pulsar, carga, aparición al hacer scroll o sonido en… | 175 |
 | `no-me-fio` | Verificación adversaria de una afirmación sobre TradingCalculator.Pro: una cifra de la web, un "ya está arreglado", un resultado de test, un dato de la… | 115 |
 | `orientarse` | La puerta de entrada | 180 |
