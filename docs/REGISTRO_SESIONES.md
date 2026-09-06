@@ -6962,3 +6962,72 @@ un `build/` viejo deja las carpetas de la tanda anterior, que quedan huérfanas 
 fuera del sitemap. Para medir un cambio de slugs hace falta `rm -rf build` y
 `npm run build`, no el generador a secas.
 
+
+---
+
+### 2026-09-06 (cont.) — El globo genérico de Yandex: qué falta de verdad, y qué no
+
+El dueño preguntó **dónde subir el logo** para que salga junto al resultado en
+Yandex, en vez del globo gris. La respuesta corta es que no hay nada que subir a
+ninguna parte: ese icono es el favicon del propio sitio y los buscadores lo cogen
+solos. Pero al mirarlo apareció un hueco real y un matiz que corrige el énfasis de
+la entrada del 2026-09-03.
+
+#### El matiz: el favicon es UNO POR HOST, no uno por página
+
+Aquella sesión declaró `rel="icon"` en las 2.410 páginas generadas, con el motivo
+escrito de que «el buscador lee el que declara la página que ha indexado». Eso no
+es lo que hacen Google ni Yandex: **los dos usan un solo icono por host**, y lo
+sacan de `/favicon.ico` en la raíz y del que declara la **portada**. Declararlo en
+las páginas profundas no sobra —cubre el caso de que la raíz falle— pero **no es
+la palanca**, y por eso el arreglo no hizo desaparecer el globo.
+
+La palanca era la portada, y ahí es donde estaba el hueco.
+
+#### El hueco: la portada ofrecía menos iconos que las páginas generadas
+
+`public/index.html` declaraba `.ico` (16/32), `.svg` y `apple-touch` (180). Los
+rásters que ofrecía, entonces, eran 32 y 180 — y **ninguno es múltiplo de 48**,
+que es el requisito que Google documenta para el fichero de favicon. Yandex, cuando
+hay varios, se queda con el mayor, y el mayor que veía era el de Apple. Mientras
+tanto `ICONOS()` de `gen-seo-pages.js` **sí** ofrecía `icon-192.png` desde el
+2026-09-03: la portada llevaba tres días declarando menos que sus propias páginas
+profundas.
+
+- `public/index.html`: añadido `icon-192.png` (192 = 4 × 48) y el `sizes` del `.ico`
+  puesto al día. Ahora la portada y las páginas generadas declaran lo mismo.
+- `public/favicon.ico`: era 16 + 32; ahora **16 + 32 + 48**. El de 48 sale de
+  promediar `icon-192.png` en cajas EXACTAS de 4×4 píxeles, en alfa premultiplicado
+  — no de estirar el de 32, que es factor 1,5 y deja el borde redondeado sucio.
+  Se commitea también `favicon-48.png`, que es la fuente de esa entrada, igual que
+  ya estaban `favicon-16.png` y `favicon-32.png`.
+
+#### Lo que NO se ha tocado, a propósito
+
+Las **949 páginas puente** (`canonical` + `meta refresh`) siguen sin declarar icono
+— y la URL que Yandex enseña hoy en el pantallazo, `/ru/learn/operar-noticias/`, es
+justo una de ellas. No se les añade: siendo el favicon uno por host, un puente que
+redirige en cero segundos no aporta ninguna señal, y serían ~190 KB repartidos en
+949 ficheros a cambio de nada.
+
+#### Verificado
+
+`npm run build` real (3.428 páginas, 2.475 URLs) y sobre ese build: `check-seo.js`
+en verde, y comprobado a mano que `build/index.html` emite los cuatro `<link>` con
+rutas relativas y que `favicon.ico` sale con sus tres tamaños. Además `eslint`
+(0 errores), `i18n-check`, `engine-check` (535/535), `gen-instruments-js --check`,
+`gen-mapa --check`, `gen-asistente --check`, `check-rutas-muertas`,
+`check-doc-links` y `py_compile` de todo el backend.
+
+**Lo que no se puede comprobar aquí**: el sandbox no tiene salida a internet, así
+que no se ha pedido ni una URL del sitio publicado. Que esto cambie lo que Yandex
+pinta es una hipótesis razonada, no un hecho medido — lo dirá `seo-en-vivo.yml`
+tras desplegar, y después el propio Yandex cuando vuelva a rastrear.
+
+#### Lo operativo, que sigue siendo del dueño y sigue sin hacerse
+
+Es el punto 1 de la entrada del 2026-09-03, y no ha avanzado: **verificar la
+propiedad en Yandex Webmaster** y poner `REACT_APP_YANDEX_VERIFICATION` en los
+secretos del repositorio. Sin eso no se le puede enviar el sitemap ni pedirle que
+vuelva a rastrear el favicon, que es lo único que fuerza el refresco: Yandex lo
+cachea por su cuenta y tarda semanas.
