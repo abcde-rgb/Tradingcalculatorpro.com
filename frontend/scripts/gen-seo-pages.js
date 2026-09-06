@@ -17,6 +17,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const SERP = require('./serp-ancho');
 const { execSync } = require('child_process');
 
 const DEFAULT_ORIGIN = 'https://tradingcalculator.pro';
@@ -135,16 +136,63 @@ const cap = (s) => String(s).replace(/^\w/, (m) => m.toUpperCase());
 //
 // Se corta en la última frontera de palabra antes del límite, y sólo se añaden
 // puntos suspensivos si de verdad se ha cortado algo.
+// El tope llega en CARACTERES, pero el buscador corta por ANCHO - y un
+// ideograma ocupa exactamente el doble que una letra latina, por diseno
+// tipografico, no por estimacion. Con el tope en 158 para todos, las
+// descripciones japonesas y chinas salian de ~1.400-3.000 px sobre un
+// contenedor de ~1.200: se publicaban cortadas por el buscador, que es cuando
+// deja de fiarse de la etiqueta y se inventa el resumen con el texto de la
+// pagina. Lo midio `auditar-visibilidad.js` sobre el build: 87 de las 88
+// descripciones que se pasaban eran `ja` y `zh`.
+//
+// El presupuesto se conserva: lo que ocupan `max` caracteres latinos. Para un
+// texto latino `maxEf` sale practicamente igual a `max`, asi que esto no
+// reescribe las ~2.000 paginas que no son CJK; solo encoge lo que de verdad
+// ocupa el doble.
+//
+// La tabla de anchos NO vive aqui: `scripts/serp-ancho.js` es la misma que usa
+// `auditar-visibilidad.js` para medir si lo emitido cabe. Con dos copias, el
+// generador y el auditor podrian dejar de hablar del mismo milimetro.
+const EM_LATINO = 0.5;
 const recortar = (texto, max = 158) => {
   const s = String(texto == null ? '' : texto).replace(/\s+/g, ' ').trim();
-  if (s.length <= max) return s;
-  const corte = s.slice(0, max - 1);
+  const chars = Array.from(s);
+  if (!chars.length) return s;
+  const em = SERP.anchoEm(s);
+  const presupuesto = max * EM_LATINO;
+  if (em <= presupuesto) return s;
+  // Se reparte el presupuesto al coste medio por caracter DE ESTE texto. El
+  // minimo de 20 evita que una cadena rara se quede en un munon sin sentido.
+  const maxEf = Math.max(20, Math.floor(presupuesto / (em / chars.length)));
+  if (chars.length <= maxEf) return s;
+  const corte = chars.slice(0, maxEf - 1).join('');
   const ultimo = corte.lastIndexOf(' ');
-  // Sin espacios (chino, japonés) no hay frontera que respetar: se corta y ya.
-  const base = (ultimo > max * 0.5 ? corte.slice(0, ultimo) : corte).replace(/[\s,;:·—–-]+$/, '');
-  // Si el corte cae justo detrás de un punto, la frase ya está cerrada y los
-  // puntos suspensivos sobran («… счётом.…» se leía como una errata).
+  // Sin espacios (chino, japones) no hay frontera que respetar: se corta y ya.
+  const base = (ultimo > maxEf * 0.5 ? corte.slice(0, ultimo) : corte).replace(/[\s,;:·—–-]+$/, '');
+  // Si el corte cae justo detras de un punto, la frase ya esta cerrada y los
+  // puntos suspensivos sobran («… счётом.…» se leia como una errata).
   return /[.!?。！？]$/.test(base) ? base : `${base}…`;
+};
+
+// -- La marca en el <title>, solo si cabe --------------------------------
+//
+// « | TradingCalculator.Pro» son ~230 px de los 600 que pinta el buscador.
+// Cuando el titulo ya es largo, esos 230 px no anaden marca: empujan fuera del
+// corte la parte que DESCRIBE la pagina. Y un titulo que Google corta es un
+// titulo que Google tiende a REESCRIBIR por su cuenta, con lo que se pierde el
+// control de lo que se lee.
+//
+// Medido sobre el build antes de este cambio: 188 de 1.811 titulos pasaban de
+// 600 px, repartidos por los diez idiomas (ru:31 fr:25 es:23 de:20 pt:20...),
+// asi que no era el problema de un idioma raro.
+//
+// Si el titulo YA se pasa el solo, se deja como esta: recortarlo perderia
+// significado y el buscador lo va a reescribir de todos modos. Este helper
+// decide una sola cosa -pegar la marca o no- y la decide con la misma tabla
+// con la que el auditor lo mide despues.
+const conMarca = (titulo, sep = ' | ') => {
+  const completo = `${titulo}${sep}TradingCalculator.Pro`;
+  return SERP.anchoPx(completo, SERP.PX_FUENTE_TITULO) <= SERP.CORTE_TITULO ? completo : titulo;
 };
 
 // ─── og:locale ────────────────────────────────────────────────────
@@ -620,6 +668,47 @@ const ld = (o) => `<script type="application/ld+json">${JSON.stringify(o)}</scri
 // índices del idioma. Es lo que convierte un montón de páginas sueltas en un
 // sitio con estructura — y lo que permite a un rastreador llegar a cualquiera
 // de ellas en dos saltos desde la portada.
+// ─── Selector de idioma ───────────────────────────────────────────
+//
+// EL AGUJERO QUE TAPA, medido con `auditar-visibilidad.js` sobre el build:
+// de las 1.811 páginas de contenido, **sólo 182 se alcanzaban siguiendo
+// enlaces desde la portada**, y las 182 eran españolas. Los otros nueve
+// idiomas —1.629 páginas— no recibían NI UN `<a>` entrante desde ninguna
+// página alcanzable. Enlazaban hacia la portada y hacia `/pricing`, y no
+// cobraban nada a cambio: una válvula de un solo sentido que regalaba
+// autoridad interna al árbol español.
+//
+// El `hreflang` NO tapaba ese agujero, y confundir las dos cosas es el error
+// caro aquí. `<link rel="alternate">` le dice al buscador que dos URLs son la
+// misma cosa en otro idioma y le sirve para DESCUBRIRLAS y agruparlas; no es
+// un enlace de navegación y no transmite autoridad. Lo mismo el sitemap:
+// descubre, no reparte. Sólo un `<a href>` reparte.
+//
+// La solución no inventa datos: los `alts` que ya se calculan para el
+// `hreflang` son exactamente el conjunto de traducciones que EXISTEN, así que
+// pintarlos como enlaces no puede apuntar a un 404. Y de paso es una función
+// de verdad para quien lee: hasta ahora no había forma de cambiar de idioma
+// desde una página estática.
+//
+// Los nombres van en su propio idioma —`Deutsch`, no `Alemán`— porque quien
+// los busca lee ese idioma, no el de la página en la que ha caído. Se indexan
+// por el código HREFLANG (`zh-CN`), que es lo que llevan los `alts`, no por el
+// código corto.
+const NOMBRE_IDIOMA = {
+  es: 'Español', en: 'English', de: 'Deutsch', fr: 'Français', ru: 'Русский',
+  'zh-CN': '中文', ja: '日本語', ar: 'العربية', pt: 'Português', it: 'Italiano',
+};
+const selectorIdioma = (alts, urlActual) => {
+  const otros = (alts || []).filter(([, u]) => u !== urlActual);
+  if (!otros.length) return '';
+  // `hreflang` y `lang` en el propio <a>: el primero le dice al buscador a qué
+  // idioma lleva el enlace, el segundo le dice al lector de pantalla en qué
+  // idioma está el rótulo. Sin `lang`, un lector de pantalla en español
+  // pronuncia «日本語» con fonética española.
+  return `<div class="idiomas">` + otros.map(([hl, u]) =>
+    `<a href="${esc(u)}" hreflang="${hl}" lang="${hl}">${esc(NOMBRE_IDIOMA[hl] || hl)}</a>`).join('') + `</div>`;
+};
+
 const navHubs = (lang, ui) => `<a href="${DOMAIN}/">${esc(ui.home)}</a>`
   + SECCIONES.map((s) => {
     // `chartPatterns`/`candlestickPatterns` son claves de la APLICACIÓN
@@ -698,7 +787,8 @@ ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 .sub{margin:2px 0 6px;font-size:14px}.sub a{color:#8f8f8f}
 .free{display:inline-block;background:#14361f;color:#4ade80;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
 footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
-footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+footer a{color:#a3a3a3;margin-inline-end:16px}
+.idiomas{margin-top:10px}.idiomas a{font-size:13px;color:#7a7a7a;margin-inline-end:14px;display:inline-block}.disc{margin-top:12px;font-size:12px;color:#525252}
 </style>
 </head>
 <body>
@@ -722,6 +812,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 </main>
 <footer><div class="wrap">
   <div>${navHubs(lang, ui)}<a href="${DOMAIN}/legal">Legal</a></div>
+  ${selectorIdioma(alts, url)}
   <div class="disc">${esc(ui.disc)}</div>
 </div></footer>
 </body>
@@ -963,7 +1054,7 @@ TOPICS.forEach((tp, i) => {
     const conceptos = conceptosDe(tp, lang);
     conceptosPublicados += conceptos.length;
     const html = render({
-      lang, url, alts, title: `${title} | TradingCalculator.Pro`, description, h1: title, kw: title, ui,
+      lang, url, alts, title: conMarca(title), description, h1: title, kw: title, ui,
       sectionLabel: ui.learn, sectionUrl: hub(lang, 'learn'), lead: intro, formula: null, points: null,
       conceptos, conceptosTitulo: ui.whatLearn,
       ctaUrl: `${DOMAIN}/education?topic=${tp.v}`, ctaLabel: ui.openModule, related, sectionKind: 'learn',
@@ -1024,7 +1115,7 @@ function renderMarket({ lang, url, alts, id, name, body, mui, related }) {
   const dir = RTL.has(lang) ? ' dir="rtl"' : '';
   const hreflang = alts.map(([hl, u]) => `<link rel="alternate" hreflang="${hl}" href="${esc(u)}">`).join('\n') +
     `\n<link rel="alternate" hreflang="x-default" href="${esc((alts.find(a => a[0] === 'es') || [null, url])[1])}">`;
-  const title = `${name} — ${mui.what} · TradingCalculator.Pro`;
+  const title = conMarca(`${name} — ${mui.what}`, ' · ');
   const description = recortar(body.what, 155);
   const relatedHtml = related.map(r => `<li><a href="${esc(r.url)}">${esc(r.label)}</a></li>`).join('');
 
@@ -1107,7 +1198,8 @@ td.num{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:end;co
 .qa h3{font-size:15px;color:#fff;margin:0 0 6px}.qa p{margin:0;color:#b8b8b8;font-size:14px}
 ul{padding-inline-start:20px;margin:8px 0}li{margin:6px 0}
 footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
-footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+footer a{color:#a3a3a3;margin-inline-end:16px}
+.idiomas{margin-top:10px}.idiomas a{font-size:13px;color:#7a7a7a;margin-inline-end:14px;display:inline-block}.disc{margin-top:12px;font-size:12px;color:#525252}
 </style>
 </head>
 <body>
@@ -1128,6 +1220,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 </main>
 <footer><div class="wrap">
   <div>${navHubs(lang, UI[lang])}<a href="${DOMAIN}/legal">Legal</a></div>
+  ${selectorIdioma(alts, url)}
   <div class="disc">${esc(UI[lang].disc)}</div>
 </div></footer>
 </body>
@@ -1409,7 +1502,7 @@ function renderHub({ lang, seccion, entradas }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'">
 
-<title>${esc(titulo)} | TradingCalculator.Pro</title>
+<title>${esc(conMarca(titulo))}</title>
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
@@ -1451,7 +1544,8 @@ ul.idx li:last-child{border-bottom:0}
 ul.idx a{font-weight:600}
 ul.idx span{color:#8f8f8f;font-size:14px}
 footer{border-top:1px solid #1e1e1e;margin-top:40px;padding:24px 0;color:#737373;font-size:13px}
-footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12px;color:#525252}
+footer a{color:#a3a3a3;margin-inline-end:16px}
+.idiomas{margin-top:10px}.idiomas a{font-size:13px;color:#7a7a7a;margin-inline-end:14px;display:inline-block}.disc{margin-top:12px;font-size:12px;color:#525252}
 </style>
 </head>
 <body>
@@ -1468,6 +1562,7 @@ footer a{color:#a3a3a3;margin-inline-end:16px}.disc{margin-top:12px;font-size:12
 </main>
 <footer><div class="wrap">
   <div>${navHubs(lang, ui)}<a href="${DOMAIN}/legal">Legal</a></div>
+  ${selectorIdioma(alts, url)}
   <div class="disc">${esc(ui.disc)}</div>
 </div></footer>
 </body>

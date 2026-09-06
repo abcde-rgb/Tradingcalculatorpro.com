@@ -75,14 +75,26 @@ de determinismo tautológica, una regla que nunca disparaba, un smoke visual que
 generando imágenes en blanco— y ninguna se habría cazado ejecutándola y mirando si pasaba:
 pasaban. Si añades un verificador, añade aquí su sabotaje.
 
-Dos herramientas más, que no son puertas sino informes:
+Tres herramientas más, que no son puertas sino informes:
 
 ```bash
 python scripts/auditar.py    # ramas sin fusionar, código muerto, restos de lo retirado,
                              # provisionales y contradicciones doc↔código
 node scripts/capturas.js     # smoke visual de las pantallas públicas (escritorio + móvil,
                              # claro + oscuro) con los errores de consola de cada una
+
+cd frontend && node scripts/auditar-visibilidad.js   # exige `npm run build` antes
+                             # lo que mide una suite de agencia sobre el build: ancho real
+                             # en el SERP, títulos/descripciones duplicados, grafo de
+                             # enlaces internos y alcanzabilidad por idioma, contenido
+                             # delgado por plantilla, cobertura de schema. `--json` para
+                             # diffear entre despliegues
 ```
+
+`check-seo.js` pregunta «¿está bien puesto?» y bloquea el despliegue; el auditor pregunta
+«¿esto compite?» y no bloquea nada. Los dos comparten `scripts/serp-ancho.js`, la tabla
+de anchos tipográficos: el que DECIDE cuánto texto emitir y el que MIDE si cabe usan el
+mismo milímetro, así que no pueden contradecirse.
 
 ## Reglas de honestidad numérica (NO ROMPER)
 

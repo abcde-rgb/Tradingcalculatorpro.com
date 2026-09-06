@@ -464,7 +464,7 @@ export default {
   "tweezerBottomName": "毛抜き底",
   "piercingLineName": "切り込み線",
   "darkCloudName": "かぶせ線",
-  "threeWhiteSoldiersName": "三羽烏",
+  "threeWhiteSoldiersName": "赤三兵",
   "threeBlackCrowsName": "三羽烏",
   "haramiName": "はらみ足",
   "haramiDesc": "2本のローソクパターンで、2本目が最初の範囲内に収まる。反転の可能性を示すシグナル。",

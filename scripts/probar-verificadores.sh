@@ -1860,6 +1860,22 @@ p.write_text(re.sub(r'<noscript><h1>[\\s\\S]*?</noscript>', '', t, count=1), enc
     "sed -i '/rel=\"icon\"/d' $SEO_PAG" \
     "$SEO_REST"
 
+  # Los enlaces de idioma VISIBLES, que no son lo mismo que el `hreflang`.
+  # Confundirlos costó los nueve idiomas: con el hreflang puesto y sin `<a>`,
+  # de las 1.811 páginas de contenido sólo 182 se alcanzaban siguiendo enlaces
+  # desde la portada, y las 182 eran españolas. Las otras 1.629 enlazaban a la
+  # portada y a /pricing y no recibían ni un enlace: regalaban autoridad
+  # interna y no cobraban ninguna. Y NADA fallaba, ni siquiera la comprobación
+  # de huérfanas, porque «huérfana» allí significa «ningún hub de SU idioma la
+  # enlaza» — una condición local que se cumplía perfectamente.
+  #
+  # El sabotaje quita los <a> y DEJA el hreflang, que es exactamente el estado
+  # que estuvo publicado y que ninguna comprobación veía.
+  probar "una página con hreflang pero sin enlaces de idioma" \
+    "(cd frontend && node scripts/check-seo.js --breve)" \
+    "grep -q 'class=\"idiomas\"' $SEO_PAG && sed -i 's|<div class=\"idiomas\">.*</div>||' $SEO_PAG" \
+    "$SEO_REST"
+
   # La descripción cortada a media palabra. El buscador la descarta y se
   # inventa el resumen con el texto de la página — en la rusa de
   # `operar-noticias` eligió el descargo legal del pie, y eso es lo que Yandex

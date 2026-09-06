@@ -47,7 +47,7 @@ leen en el mismo momento ni con la misma intención.
 | Documento | Para qué |
 |---|---|
 | [`setup/SEO_GUIDE.md`](./setup/SEO_GUIDE.md) | Dónde vive cada pieza de SEO y cómo cambiarla |
-| [`CAPTAR_TRAFICO.md`](./CAPTAR_TRAFICO.md) | Canales de adquisición |
+| [`CAPTAR_TRAFICO.md`](./CAPTAR_TRAFICO.md) | **Qué compras cuando pagas a una agencia o a Google Ads, y cómo replicarlo gratis.** Con lo medido sobre el build y lo que sigue abierto |
 | [`PROGRAMA_AFILIADOS.md`](./PROGRAMA_AFILIADOS.md) | Comisiones, tramos y solicitudes de pago |
 | [`ESTUDIO_UBICACION_WEB.md`](./ESTUDIO_UBICACION_WEB.md) | Dónde colocar cada cosa en la web |
 

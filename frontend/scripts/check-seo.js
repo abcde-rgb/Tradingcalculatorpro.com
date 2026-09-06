@@ -232,6 +232,28 @@ function revisar(fichero) {
   // páginas que se indexan son éstas, no la portada.
   if (!/<link rel="icon"/i.test(html)) anota('sin favicon declarado', rel, '');
 
+  // 0a · enlaces de idioma VISIBLES, no sólo `hreflang`.
+  //
+  // Confundir las dos cosas costó los nueve idiomas. `<link rel="alternate">`
+  // le dice al buscador que dos URLs son la misma cosa en otro idioma: sirve
+  // para DESCUBRIRLAS y agruparlas, y no transmite autoridad. El sitemap,
+  // igual: descubre, no reparte. Sólo un `<a href>` reparte.
+  //
+  // Con el hreflang puesto y sin enlaces, `auditar-visibilidad.js` midió sobre
+  // el build que de las 1.811 páginas de contenido **sólo 182 se alcanzaban
+  // siguiendo enlaces desde la portada, y las 182 eran españolas**. Las otras
+  // 1.629 enlazaban a la portada y a /pricing y no recibían ni un `<a>`: una
+  // válvula de un solo sentido. Y nada fallaba: ni ésta ni la comprobación de
+  // huérfanas de más abajo lo veían, porque «huérfana» aquí significa «ningún
+  // hub de SU idioma la enlaza», que es una condición local que se cumplía.
+  //
+  // Se comprueba sobre las páginas que declaran más de una alternativa: si hay
+  // traducciones, tiene que haber forma de llegar a ellas pinchando.
+  const nAlts = (html.match(/<link rel="alternate" hreflang="(?!x-default)/g) || []).length;
+  if (nAlts > 1 && !/<a [^>]*hreflang="/i.test(html)) {
+    anota('con hreflang pero sin enlaces de idioma', rel, `${nAlts} traducciones declaradas y ninguna enlazada`);
+  }
+
   // 0b · ningún subrecurso con URL absoluta.
   //
   // Estas páginas llevan una CSP dura propia: `default-src 'none'` con

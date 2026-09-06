@@ -7031,3 +7031,134 @@ propiedad en Yandex Webmaster** y poner `REACT_APP_YANDEX_VERIFICATION` en los
 secretos del repositorio. Sin eso no se le puede enviar el sitemap ni pedirle que
 vuelva a rastrear el favicon, que es lo único que fuerza el refresco: Yandex lo
 cachea por su cuenta y tarda semanas.
+
+---
+
+### 2026-09-06 (cont. 2) — Visibilidad: qué compras cuando pagas, y los nueve idiomas que regalaban autoridad
+
+El dueño pidió estudiar «lo mejor del mercado y lo mejor de las agencias de SEO y el
+tráfico de pago», y replicarlo **siempre por la vía gratuita**. La respuesta corta es que
+de las siete partidas en las que se reparte una iguala de agencia, cinco son gratis, una
+es trabajo que nadie regala (contenido) y sólo una —los datos de volumen y de enlaces— es
+un producto de pago con réplica imperfecta. El desarrollo está en
+[`CAPTAR_TRAFICO.md`](./CAPTAR_TRAFICO.md), reescrito entero.
+
+#### La herramienta: lo que una suite de agencia mide, sobre el build
+
+`check-seo.js` tiene 43 comprobaciones y **todas preguntan lo mismo**: ¿está bien puesto?
+Es una puerta y bloquea el despliegue. Faltaba la otra pregunta —¿esto compite?— que es
+la que venden Screaming Frog, Ahrefs y Semrush. `frontend/scripts/auditar-visibilidad.js`
+la contesta sobre el `build/`: ancho REAL en el resultado de búsqueda, duplicados y
+canibalización por idioma, grafo de enlaces internos con alcanzabilidad, contenido
+delgado por plantilla, cobertura de schema, unicidad de la imagen social. Es un **informe,
+no una puerta** —como `auditar.py` y `capturas.js`—, con `--json` para diffear entre
+despliegues.
+
+Dos decisiones de método que cambian el resultado:
+
+1. **Se mide en píxeles, no en caracteres**, porque el buscador corta por ancho. La tabla
+   de avances vive en `scripts/serp-ancho.js` y **la comparten el generador y el
+   auditor**: el que decide cuánto texto emitir y el que comprueba si cabe usan el mismo
+   milímetro, así que no pueden contradecirse.
+2. **El umbral de la descripción se deriva, no se copia.** Por ahí circulan a la vez «920
+   px» y «155-160 caracteres» como si fueran la misma cifra: a 14 px, 155 caracteres
+   latinos ocupan ~1.085 px, así que al menos una de las dos está desactualizada. Con el
+   920 puesto salían **854 descripciones cortadas (47 %)**; con el corte derivado del
+   contenedor (600 px × 2 líneas = 1.200), **88 (4,9 %)**, y de esas 87 eran `ja` y `zh`.
+   El 47 % era mi umbral, no la web.
+
+#### El hallazgo: 182 de 1.811
+
+De las 1.811 páginas de contenido **sólo 182 se alcanzaban siguiendo `<a>` desde la
+portada, y las 182 eran españolas**. Los otros nueve idiomas —1.629 páginas— enlazaban
+hacia la portada y hacia `/pricing` y no recibían nada.
+
+Lo grave no es el agujero, es que **dos comprobaciones decían la verdad y ninguna lo
+veía**: el `hreflang` estaba puesto y era recíproco —pero descubre y agrupa, no reparte
+autoridad—, y «huérfana» en `check-seo.js` significa «ningún hub de SU idioma la enlaza»,
+que es una condición local y se cumplía. Por eso G-44 se cerró el 2026-09-05 afirmando
+que «toda página queda a dos saltos de la portada»: cierto dentro de cada idioma, falso
+entre idiomas. Anotado como **BUG-090** y corregido en el G-44 de `ESTADO_PROYECTO.md`.
+
+Arreglado sin inventar datos: los `alts` que ya se calculaban para el `hreflang` son
+exactamente las traducciones que existen, así que pintarlos como selector de idioma
+visible no puede apuntar a un 404 — y de paso resuelve que hasta ahora no hubiera forma
+de cambiar de idioma desde una página estática.
+
+#### BUG-091: el japonés llamaba «tres cuervos» al patrón alcista
+
+`threeWhiteSoldiersName` y `threeBlackCrowsName` valían los dos `三羽烏` (*Three Black
+Crows*, **bajista**). El alcista es `赤三兵`. Los otros nueve idiomas lo distinguían. No
+lo destapó ninguna revisión de contenido sino la comprobación de **títulos duplicados
+dentro del mismo idioma**: dos URLs con el mismo `<title>`. `i18n-check.js` no podía
+verlo — comprueba que la clave exista, no que diga algo distinto de su hermana.
+
+No es un problema de posiciones: es una señal de trading invertida en la cara de quien
+lee japonés.
+
+#### Y un fallo operativo que no vive en el código
+
+`docs/setup/SEO_GUIDE.md` mandaba verificar **`tradingcalculatorpro.com`** en Search
+Console, Bing, Yandex, Pinterest y Meta, y en los `curl` de comprobación final: seis
+sitios. Ese dominio **es de un tercero** (BUG-067). Quien hubiera seguido la guía al pie
+de la letra habría intentado verificar la propiedad de una web ajena. Ningún verificador
+lo cazaba ni lo caza: `check-seo.js` mira el `build/` y `check-doc-links.py` sólo
+comprueba que los enlaces resuelvan, y resolvían. Lo cazó leerlo. De paso, la guía decía
+que los códigos se pegan a mano en `index.html`, cuando desde el 2026-09-03 viajan como
+secretos del repositorio.
+
+#### Medido, antes y después
+
+| | antes | después |
+|---|---|---|
+| Páginas alcanzables por `<a>` desde la portada | 182 / 1.811 | **1.811 / 1.811** |
+| Enlaces entrantes medianos (`learn` · `patterns` · `candles` · `tools` · `markets`) | 2 · 1 · 4 · 8 · 10 | **11 · 10 · 13 · 17 · 19** |
+| Títulos que el buscador corta (>600 px) | 188 | **42** |
+| Descripciones que el buscador corta (>1.200 px) | 88 | **0** |
+| Títulos duplicados dentro del mismo idioma | 1 grupo | **0** |
+| Páginas con un solo enlace entrante | 553 | **0** |
+| Páginas que reciben todos sus enlaces con el mismo texto | 1.251 | **0** |
+
+El título ganó sitio quitando la marca sólo cuando no cabe (`conMarca`): « |
+TradingCalculator.Pro» son ~230 px de los 600, y cuando el título ya es largo esos 230 px
+no añaden marca, empujan fuera del corte la parte que describe la página. La portada
+pasó de 763 a 548 px de título y de 1.355 a 1.089 px de descripción.
+
+#### Verificado, y con qué
+
+`npm run build` limpio (3.428 páginas, 2.475 URLs) y sobre ese build `check-seo.js` en
+verde con su comprobación nueva. El sabotaje del invariante nuevo —quitar los `<a>` de
+idioma **dejando el `hreflang`**, que es exactamente el estado que estuvo publicado y que
+nada veía— se probó a mano (exit 1 al sabotear, 0 al restaurar) y queda en
+`probar-verificadores.sh`. `recortar()` se probó en aislamiento antes de regenerar: el
+latino y el cirílico no se mueven, el CJK baja de 3.080 px a 1.099. Además `eslint`,
+`i18n-check`, `engine-check`, `gen-instruments-js/gen-mapa/gen-asistente --check`,
+`check-rutas-muertas`, `check-doc-links` y `py_compile` del backend.
+
+Un error propio, por si vuelve: la primera versión del auditor daba «1.810 páginas a más
+de 3 clics» porque clasificaba por CARPETA y `offline.html` e `index.html` viven los dos
+en la raíz del build — `porUrl` se quedaba con el último, que no enlaza a nada, y el BFS
+moría en el primer salto. Y al añadir el selector, el recuento de palabras subió ~9 de
+golpe y 82 fichas «dejaron de ser delgadas» sin que nadie escribiera nada: un menú
+repetido en todo el sitio no es contenido. Las dos cosas están comentadas en el código.
+
+#### Lo que queda abierto, y por qué no lo he tocado
+
+- **Ni una imagen en las 1.811 páginas indexables.** Sin imagen no hay miniatura en el
+  resultado móvil ni entrada a Discover, y el `max-image-preview:large` no describe nada.
+  Poner relleno sería peor: lo que toca es un diagrama por patrón (42 + 35), que es
+  contenido nuevo.
+- **Contenido delgado**: `/candles/` mediana **73** palabras, `/patterns/` **117**,
+  `/tools/` **146** (medido ya sin el cromo). Hermano de G-42.
+- **Una sola `og:image`** para las 1.811. Barato: `gen-og-image.js` ya sabe vectorizar
+  texto sobre 1200×630; son seis imágenes, una por sección.
+- **Ni un autor declarado.** Finanzas es YMYL, el listón de E-E-A-T más alto. **No se
+  arregla inventando un autor**: hace falta un nombre real. Decisión del dueño.
+
+#### Lo operativo, que sigue siendo del dueño
+
+Sin **Search Console** verificado no hay ni una posición, ni una impresión, ni un CTR: el
+resto se hace a ciegas. **Bing Webmaster** importa la propiedad en un clic y regala
+investigación de palabras clave con volúmenes. **Yandex Webmaster** sigue sin verificar,
+que es lo que bloquea el favicon y el envío del sitemap para las 168 páginas rusas que ya
+indexa.

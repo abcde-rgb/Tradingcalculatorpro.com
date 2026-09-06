@@ -113,10 +113,21 @@
         <!-- End Google Tag Manager -->
 
         <!-- ─────────── Primary SEO ─────────── -->
-        <title>Trading Calculator PRO — Calculadoras, Opciones y Patrones de Trading | 10 Idiomas</title>
+        <!-- Medidos con `scripts/serp-ancho.js`, la misma tabla con la que
+             `gen-seo-pages.js` decide y `auditar-visibilidad.js` mide.
+             El título iba a 763 px sobre los ~600 que pinta Google y la
+             descripción a 1.355 px sobre ~1.200: las dos salían cortadas en la
+             página MÁS importante del sitio, y un título que Google corta es un
+             título que Google tiende a reescribir por su cuenta.
+             Se ha quitado sólo lo que no aportaba: «de Trading» ya está en la
+             marca, y «10 Idiomas» no lo busca nadie — eso lo comunica el
+             hreflang, no el título. Ahora 548 px y 1.089 px.
+             «77 patrones» = 42 chartistas + 35 de vela, que es lo que imprime
+             el generador; el «42+» de antes se dejaba fuera los de vela. -->
+        <title>Trading Calculator PRO — Calculadoras, Opciones y Patrones</title>
         <meta
             name="description"
-            content="Plataforma profesional para traders: calculadora de apalancamiento, position size, opciones (Black-Scholes + Greeks), simulador Monte Carlo, 42+ patrones gráficos y velas japonesas. Prueba 7 días gratis. 10 idiomas."
+            content="Calculadoras profesionales de trading: position size, apalancamiento, opciones con Black-Scholes y griegas, Monte Carlo y 77 patrones de gráfico y vela. Prueba 7 días gratis."
         />
         <!-- `meta keywords` NO va aquí. Google confirmó en 2009 que no lo usa
              para posicionar, y ningún buscador con peso lo mira hoy: es la señal

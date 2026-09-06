@@ -1,37 +1,60 @@
 # SEO — Guía de Verificación y Envío del Sitemap
 
+> ⚠️ **El dominio es `tradingcalculator.pro`** (con punto, «pro» como TLD).
+> Hasta el 2026-09-06 esta guía decía `tradingcalculatorpro.com` en sus seis
+> pasos operativos —el de Search Console incluido—, y **ese dominio es de un
+> tercero**: se llama así el repositorio, y confundirlos ya tumbó la web entera
+> una vez (BUG-067). Quien hubiera seguido esta guía al pie de la letra habría
+> intentado verificar en Google, Bing y Yandex la propiedad de una web ajena.
+>
+> **Ningún verificador lo cazaba, y sigue sin cazarlo.** `check-seo.js` mira el
+> `build/`; `check-doc-links.py` sólo comprueba que los enlaces resuelvan, y
+> éstos resolvían. Un documento operativo que se lee y se teclea a mano no tiene
+> red debajo: si tocas dominios aquí, compruébalos a mano contra los siete
+> sitios que enumera `.claude/rules/i18n-seo.md`.
+
+
 ## 1) Meta tags de verificación
 
-Editar `/app/frontend/public/index.html` y reemplazar los placeholders:
+Los códigos NO se editan a mano en `frontend/public/index.html`: viajan como
+secretos del repositorio y el build los interpola. Los `%REACT_APP_*%` de abajo
+son los marcadores reales:
 
-```html
-<meta name="google-site-verification" content="TU_CODIGO_GOOGLE" />
-<meta name="msvalidate.01"            content="TU_CODIGO_BING" />
-<meta name="yandex-verification"      content="TU_CODIGO_YANDEX" />
-<meta name="p:domain_verify"          content="TU_CODIGO_PINTEREST" />
-<meta name="facebook-domain-verification" content="TU_CODIGO_META" />
-```
+| Buscador | Secreto del repositorio | Estado |
+|---|---|---|
+| Google Search Console | `REACT_APP_GSC_VERIFICATION` | cableado |
+| Bing Webmaster | `REACT_APP_BING_VERIFICATION` | cableado |
+| Yandex Webmaster | `REACT_APP_YANDEX_VERIFICATION` | cableado, **secreto sin poner** |
+| Pinterest · Meta | — | comentados en `index.html`, sin cablear |
+
+Se ponen en GitHub → Settings → Secrets and variables → Actions, y entran en el
+HTML en el siguiente despliegue. Si un secreto no está, su `meta` sale vacío y
+no pasa nada.
 
 ## 2) Cómo obtener cada código
 
 ### 🔍 Google Search Console (PRIORITARIO)
 1. Ir a: https://search.google.com/search-console
-2. **Añadir propiedad** → elegir **"Prefijo de URL"** → introducir `https://tradingcalculatorpro.com/`
+2. **Añadir propiedad** → elegir **"Prefijo de URL"** → introducir `https://tradingcalculator.pro/`
 3. Método de verificación: **"Etiqueta HTML"**
 4. Google te muestra: `<meta name="google-site-verification" content="aBcDeFgHiJkLmN..." />`
-5. Copia SOLO el valor de `content` y pégalo en `index.html`
-6. Despliega tu app
+5. Copia SOLO el valor de `content` y ponlo en el secreto `REACT_APP_GSC_VERIFICATION`
+   (§1) — **no** lo pegues en `index.html`: ahí sólo vive el marcador `%REACT_APP_…%`
+6. Despliega (push a `main` que toque `frontend/**`, o Actions → «Build & Deploy» → Run)
 7. Vuelve a Search Console y haz clic en "Verificar"
 
 ### 🔍 Bing Webmaster Tools
 1. https://www.bing.com/webmasters
-2. **Añadir un sitio** → introducir `https://tradingcalculatorpro.com`
+2. **Añadir un sitio** → introducir `https://tradingcalculator.pro`
 3. Método **"Meta tag"** → te dan `msvalidate.01`
-4. Pegar valor y desplegar
+4. Al secreto `REACT_APP_BING_VERIFICATION`, y desplegar
 
 ### 🔍 Yandex Webmaster
 1. https://webmaster.yandex.com
-2. Verificar dominio con meta tag `yandex-verification`
+2. Verificar con meta tag → al secreto `REACT_APP_YANDEX_VERIFICATION`, y desplegar
+3. **Es el que falta hoy.** Sin la propiedad verificada no se le puede enviar el
+   sitemap ni pedirle que rastree el favicon, que es la vía por la que el icono
+   deja de ser el globo genérico en sus resultados
 
 ### 🔍 Pinterest (opcional pero útil para imágenes de patrones)
 1. https://www.pinterest.com/business/
@@ -53,7 +76,7 @@ Editar `/app/frontend/public/index.html` y reemplazar los placeholders:
 
 ### Bing Webmaster Tools
 1. Menú **"Sitemaps"** → **Enviar sitemap**
-2. URL completa: `https://tradingcalculatorpro.com/sitemap.xml`
+2. URL completa: `https://tradingcalculator.pro/sitemap.xml`
 
 ### Yandex Webmaster
 1. **Indexación** → **Archivos sitemap**
@@ -67,13 +90,13 @@ Después de desplegar, comprobar:
 
 ```bash
 # Robots.txt accesible
-curl https://tradingcalculatorpro.com/robots.txt
+curl https://tradingcalculator.pro/robots.txt
 
 # Sitemap accesible y válido
-curl https://tradingcalculatorpro.com/sitemap.xml
+curl https://tradingcalculator.pro/sitemap.xml
 
 # Meta tags presentes
-curl -s https://tradingcalculatorpro.com/ | grep -i "verification\|google-site"
+curl -s https://tradingcalculator.pro/ | grep -i "verification\|google-site"
 ```
 
 Validar el sitemap con: https://www.xml-sitemaps.com/validate-xml-sitemap.html
